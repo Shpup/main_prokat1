@@ -11,14 +11,13 @@
 <div class="min-h-screen bg-gray-50">
     @include('layouts.navigation')
     <div class="container mx-auto p-6">
-        <h1 class="text-2xl font-semibold text-gray-800 mb-6">Календарь проектов</h1>
         <div id="calendar" class="bg-white rounded-lg shadow p-4"></div>
 
         <!-- Модальное окно для создания проекта -->
         <div id="createProjectModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
             <div class="bg-white rounded-lg p-6 w-full max-w-md">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4">Создать проект</h2>
-                <form id="createProjectForm" action="{{ route('projects.store') }}" method="POST">
+                <form action="{{ route('projects.store') }}" method="POST">
                     @csrf
                     <div class="mb-4">
                         <label for="name" class="block text-sm font-medium text-gray-600">Название</label>

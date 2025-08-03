@@ -21,6 +21,23 @@
                         {{ __('Склад') }}
                     </x-nav-link>
                 </div>
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <x-nav-link :href="route('personnel')" :active="request()->routeIs('personnel')">
+                        {{ __('Персонал') }}
+                    </x-nav-link>
+                </div>
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <x-nav-link :href="route('managers')" :active="request()->routeIs('managers')">
+                        {{ __('Менеджеры') }}
+                    </x-nav-link>
+                </div>
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <x-nav-link :href="route('users')" :active="request()->routeIs('users')">
+                        {{ __('Разрешения') }}
+                    </x-nav-link>
+                </div>
+
+
 
             </div>
 

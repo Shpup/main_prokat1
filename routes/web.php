@@ -23,7 +23,6 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/dashboard', [ProjectController::class, 'index'])->name('dashboard');
-    Route::get('managers', [ManagerController::class, 'index'])->name('managers');
     Route::resource('projects', ProjectController::class)->names('projects');
     Route::post('/projects/{project}/equipment', [ProjectController::class, 'addEquipment'])->name('projects.addEquipment');
     Route::resource('equipment', EquipmentController::class)->names('equipment');
@@ -32,8 +31,8 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::get('/managers', [ManagerController::class, 'index'])->name('managers');
     Route::resource('categories', CategoryController::class)->names('categories')->only(['index', 'create', 'store']);
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy')->middleware('auth');
-    Route::get('/users', [UserController::class, 'index'])->name('users.index')->middleware('auth');
     Route::post('/users/{user}/permissions', [UserController::class, 'updatePermissions'])->name('users.updatePermissions')->middleware('auth');
+    Route::get('/users', [UserController::class, 'index'])->name('users')->middleware('auth');
     Route::get('/categories/{id}', [CategoryController::class, 'show'])->middleware('auth');
     Route::middleware('auth:sanctum')->get('/categories', [CategoryController::class, 'index']);
     Route::get('/equipment', [EquipmentController::class, 'index'])->name('equipment');
@@ -41,7 +40,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::post('/equipment', [EquipmentController::class, 'store'])->name('equipment.store');
     Route::put('/equipment/{equipment}', [EquipmentController::class, 'update'])->name('equipment.update');
     Route::delete('/equipment/{equipment}', [EquipmentController::class, 'destroy'])->name('equipment.destroy');
-    Route::get('personnel', [PersonnelController::class, 'index'])->name('personnel');
+    Route::get('/personnel', [PersonnelController::class, 'index'])->name('personnel');
     Route::post('/personnel/assign', [PersonnelController::class, 'assign'])->name('personnel.assign');
     Route::post('/personnel/non-working', [PersonnelController::class, 'addNonWorkingDay'])->name('personnel.non-working');
     Route::get('/personnel/time-slots', [PersonnelController::class, 'getTimeSlots'])->name('personnel.time-slots');
