@@ -10,7 +10,6 @@
 <div class="min-h-screen bg-gray-50">
     @include('layouts.navigation')
     <div class="container mx-auto p-6">
-        <h1 class="text-2xl font-semibold text-gray-800 mb-6">Менеджеры</h1>
         <button onclick="document.getElementById('createManagerModal').classList.remove('hidden')" class="mb-4 inline-block bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
             Добавить менеджера
         </button>
