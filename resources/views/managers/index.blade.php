@@ -39,7 +39,7 @@
         <div id="createManagerModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden">
             <div class="bg-white rounded-lg p-6 w-full max-w-md">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4">Добавить менеджера</h2>
-                <form id="createManagerForm" action="{{ route('managers.store') }}" method="POST">
+                <form action="{{ route('managers.store') }}" method="POST">
                     @csrf
                     <div class="mb-4">
                         <label for="name" class="block text-sm font-medium text-gray-600">Имя</label>
