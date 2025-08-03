@@ -56,6 +56,6 @@ class ManagerController extends Controller
             return response()->json(['success' => 'Менеджер создан.', 'manager' => $user]);
         }
 
-        return redirect()->route('managers.index')->with('success', 'Менеджер создан.');
+        return redirect()->route('managers')->with('success', 'Менеджер создан.');
     }
 }
