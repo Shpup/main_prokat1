@@ -28,7 +28,8 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::post('/projects/{project}/equipment', [ProjectController::class, 'addEquipment'])->name('projects.addEquipment');
     Route::resource('equipment', EquipmentController::class)->names('equipment');
     Route::resource('equipment', EquipmentController::class)->except(['show']);
-    Route::resource('managers', ManagerController::class)->names('managers')->only(['index', 'create', 'store']);
+    Route::resource('managers', ManagerController::class)->names('managers')->only(['index', 'create', 'store'])->middleware('auth');
+    Route::get('/managers', [ManagerController::class, 'index'])->name('managers');
     Route::resource('categories', CategoryController::class)->names('categories')->only(['index', 'create', 'store']);
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy')->middleware('auth');
     Route::get('/users', [UserController::class, 'index'])->name('users.index')->middleware('auth');
