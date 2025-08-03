@@ -67,8 +67,6 @@
 <div class="min-h-screen bg-gray-50">
     @include('layouts.navigation')
     <div class="container mx-auto p-6">
-        <h1 class="text-3xl font-bold text-gray-800 mb-8">Склад оборудования</h1>
-
         <div class="flex flex-row gap-8">
             <!-- Левая колонка: Дерево категорий -->
             <div class="w-1/3 bg-white rounded-lg shadow-lg p-6 h-fit">
