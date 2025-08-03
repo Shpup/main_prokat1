@@ -17,7 +17,6 @@
 <div class="min-h-screen bg-gray-50">
     @include('layouts.navigation')
     <div class="container mx-auto p-6">
-        <h1 class="text-3xl font-bold text-gray-800 mb-8">Управление пользователями</h1>
         <table class="user-table">
             <thead>
             <tr>
