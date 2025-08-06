@@ -6,6 +6,7 @@ use App\Models\Assignment;
 use App\Models\Employee;
 use App\Models\NonWorkingDay;
 use App\Models\Specialty;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -16,25 +17,8 @@ class PersonnelController extends Controller
         // Устанавливаем московский часовой пояс
         date_default_timezone_set('Europe/Moscow');
 
-        // Тестовые данные вместо загрузки из БД
-        $employees = [
-            ['id' => 1, 'name' => 'Иван Иванов', 'specialty' => ['name' => 'Администратор']],
-            ['id' => 2, 'name' => 'Петр Петров', 'specialty' => ['name' => 'Менеджер']],
-            ['id' => 3, 'name' => 'Анна Сидорова', 'specialty' => ['name' => 'Администратор']],
-        ];
 
-        $specialties = [
-            ['id' => 1, 'name' => 'Администратор'],
-            ['id' => 2, 'name' => 'Менеджер'],
-        ];
-
-        $projects = [
-            ['id' => 1, 'name' => 'Веб-сайт компании'],
-            ['id' => 2, 'name' => 'Мобильное приложение'],
-            ['id' => 3, 'name' => 'Система учета'],
-        ];
-
-        // Генерируем временные слоты от 00:00 до 23:00 с шагом 1 час (24 столбца) - по умолчанию
+        $employees = User::role('manager')->where('admin_id',auth()->id())->get();
         $timeSlots = [];
         $startTime = Carbon::createFromTime(0, 0, 0);
         $endTime = Carbon::createFromTime(23, 0, 0);

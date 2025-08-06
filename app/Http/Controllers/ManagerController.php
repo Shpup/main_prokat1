@@ -18,7 +18,7 @@ class ManagerController extends Controller
     public function index(): View
     {
         $this->authorize('create projects');
-        $managers = User::role('manager')->get();
+        $managers = User::role('manager')->where('admin_id',auth()->id())->get();
         return view('managers.index', compact('managers'));
     }
 
@@ -47,11 +47,11 @@ class ManagerController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'admin_id' => auth()->id(),
         ]);
 
         $user->assignRole('manager');
         $user->subscription()->create(['is_active' => false]);
-
         if ($request->ajax()) {
             return response()->json(['success' => 'Менеджер создан.', 'manager' => $user]);
         }
