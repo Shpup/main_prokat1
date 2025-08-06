@@ -37,19 +37,21 @@ class ProjectController extends Controller
     public function store(Request $request): RedirectResponse|JsonResponse
     {
         $this->authorize('create projects');
-        $request->validate([
+        $validated=$request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'manager_id' => 'required|exists:users,id',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after:start_date',
         ]);
+        $validated['admin_id'] = auth()->id();
 
-        $project = Project::create($request->all());
+        $project = Project::create($validated);
 
         if ($request->ajax()) {
             return response()->json(['success' => 'Проект создан.', 'project' => $project]);
         }
+
 
         return redirect()->route('dashboard')->with('success', 'Проект создан.');
     }

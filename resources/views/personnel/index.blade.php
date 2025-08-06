@@ -1,107 +1,346 @@
 
+
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    @vite(['resources/css/app.css'])
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Склад оборудования</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+<style>
+    .selectable-cell {
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        position: relative;
+        z-index: 1;
+    }
+
+    .selectable-cell.selected {
+        background-color: #3b82f6 !important;
+        border-color: #1d4ed8 !important;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+        color: white !important;
+    }
+
+    .selectable-cell.selected:hover {
+        background-color: #2563eb !important;
+    }
+
+    .calendar-block {
+        position: relative;
+        z-index: 10;
+    }
+
+    .calendar-block.merged {
+        position: absolute !important;
+        z-index: 20 !important;
+        border-radius: 4px !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .delete-block-btn {
+        font-size: 10px;
+        padding: 1px 3px;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    .delete-block-btn:hover {
+        background-color: rgba(239, 68, 68, 0.1);
+    }
+
+    #contextMenu {
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        border-radius: 8px;
+        min-width: 200px;
+        background: white;
+        border: 1px solid #e5e7eb;
+        padding: 8px 0;
+        display: none;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    #contextMenu:not(.hidden) {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    #contextMenu button {
+        transition: background-color 0.15s ease;
+        padding: 8px 16px;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    #contextMenu button:hover {
+        background-color: #f3f4f6;
+    }
+
+    #contextMenu button.hidden {
+        display: none;
+    }
+
+    #toast {
+        z-index: 9999;
+    }
+</style>
+
+<style>
+    /* БАЗОВЫЕ СТИЛИ ДЛЯ ЯЧЕЕК - КОМПАКТНЫЕ */
+    .time-slot-header,
+    .time-slot-cell {
+        width: 50px !important;
+        min-width: 50px !important;
+        max-width: 50px !important;
+        flex: 0 0 50px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Принудительно устанавливаем ширину для всех ячеек времени */
+    #calendarTable th.time-slot-header,
+    #calendarTable td.time-slot-cell {
+        width: 50px !important;
+        min-width: 50px !important;
+        max-width: 50px !important;
+        flex: 0 0 50px !important;
+    }
+
+    /* Специальные стили для интервала 4 часа */
+    .time-slot-header-4h,
+    .time-slot-cell-4h {
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+        flex: 0 0 100px !important;
+        box-sizing: border-box !important;
+    }
+
+    #calendarTable th.time-slot-header-4h,
+    #calendarTable td.time-slot-cell-4h {
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+        flex: 0 0 100px !important;
+    }
+
+    /* Специальные стили для интервалов недели */
+    .time-slot-header-12h,
+    .time-slot-cell-12h {
+        width: 80px !important;
+        min-width: 80px !important;
+        max-width: 80px !important;
+        flex: 0 0 80px !important;
+        box-sizing: border-box !important;
+    }
+
+    #calendarTable th.time-slot-header-12h,
+    #calendarTable td.time-slot-cell-12h {
+        width: 80px !important;
+        min-width: 80px !important;
+        max-width: 80px !important;
+        flex: 0 0 80px !important;
+    }
+
+    .time-slot-header-1d,
+    .time-slot-cell-1d {
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+        flex: 0 0 100px !important;
+        box-sizing: border-box !important;
+    }
+
+    #calendarTable th.time-slot-header-1d,
+    #calendarTable td.time-slot-cell-1d {
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+        flex: 0 0 100px !important;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .table-scroll {
+            overflow-x: auto;
+        }
+
+        #calendarTable {
+            min-width: max-content;
+        }
+
+        .time-slot-header,
+        .time-slot-cell {
+            width: 40px !important;
+            min-width: 40px !important;
+            max-width: 40px !important;
+            flex: 0 0 40px !important;
+        }
+
+        #calendarTable th.time-slot-header,
+        #calendarTable td.time-slot-cell {
+            width: 40px !important;
+            min-width: 40px !important;
+            max-width: 40px !important;
+            flex: 0 0 40px !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .time-slot-header,
+        .time-slot-cell {
+            width: 35px !important;
+            min-width: 35px !important;
+            max-width: 35px !important;
+            flex: 0 0 35px !important;
+        }
+
+        #calendarTable th.time-slot-header,
+        #calendarTable td.time-slot-cell {
+            width: 35px !important;
+            min-width: 35px !important;
+            max-width: 35px !important;
+            flex: 0 0 35px !important;
+        }
+    }
+</style>
+<body>
 <div class="bg-white shadow rounded-lg">
-     @include('layouts.navigation')
+    @include('layouts.navigation')
      <!-- Заголовок -->
 
+
      <!-- Фильтры и управление -->
-     <div class="px-6 py-4 border-b border-gray-200">
-         <div class="flex justify-between items-center">
+     <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+         <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-4 lg:space-y-0">
              <!-- Блок фильтров -->
-             <div class="flex items-center space-x-4">
-                 <select id="employeeFilter" class="rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm">
+             <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                 <select id="employeeFilter" class="w-full sm:w-auto rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm">
                      <option value="">Все сотрудники</option>
                      @foreach($employees as $employee)
-                         <option value="{{ $employee['id'] }}">{{ $employee['name'] }}</option>
+                         <option value="{{ $employee->id }}">{{ $employee->name }}</option>
                      @endforeach
                  </select>
 
-                 <select id="specialtyFilter" class="rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm">
+                 <select id="specialtyFilter" class="w-full sm:w-auto rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm">
                      <option value="">Все специальности</option>
                      @foreach($specialties as $specialty)
-                         <option value="{{ $specialty['id'] }}">{{ $specialty['name'] }}</option>
+                         <option value="{{ $specialty->id }}">{{ $specialty->name }}</option>
                      @endforeach
                  </select>
 
-                                   <div class="flex items-center space-x-2">
-                      <span class="text-sm text-gray-600">Дата:</span>
-                      <input type="date" id="calendarDate" class="rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm" value="{{ date('Y-m-d') }}">
-                  </div>
+                 <div class="flex items-center space-x-2 w-full sm:w-auto">
+                     <span class="text-sm text-gray-600">Дата:</span>
+                     <input type="date" id="calendarDate" class="flex-1 sm:flex-none rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm" value="{{ date('Y-m-d') }}">
+                 </div>
              </div>
 
-                           <!-- Блок управления -->
-              <div class="flex items-center space-x-4">
-                                     <div class="flex items-center space-x-1">
-                       <span class="text-sm text-gray-600 mr-2">Вид:</span>
-                       <button class="view-btn px-3 py-2 text-sm rounded-lg border bg-primary text-white" data-view="day">День</button>
-                       <button class="view-btn px-3 py-2 text-sm rounded-lg border" data-view="week">Неделя</button>
-                       <button class="view-btn px-3 py-2 text-sm rounded-lg border" data-view="month">Месяц</button>
-                   </div>
+             <!-- Блок управления -->
+             <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                 <div class="flex items-center space-x-1 w-full sm:w-auto">
+                     <span class="text-sm text-gray-600 mr-2">Вид:</span>
+                     <div class="flex space-x-1">
+                         <button class="view-btn px-2 sm:px-3 py-2 text-xs sm:text-sm rounded-lg border bg-blue-600 text-white" data-view="day">День</button>
+                         <button class="view-btn px-2 sm:px-3 py-2 text-xs sm:text-sm rounded-lg border bg-white text-gray-700" data-view="week">Неделя</button>
+                         <button class="view-btn px-2 sm:px-3 py-2 text-xs sm:text-sm rounded-lg border bg-white text-gray-700" data-view="month">Месяц</button>
+                     </div>
+                 </div>
 
-                                     <div class="flex items-center space-x-2">
-                       <span class="text-sm text-gray-600">Интервал:</span>
-                                              <select id="timeInterval" class="rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm">
-                            <option value="30m">30 минут</option>
-                            <option value="60m" selected>1 час</option>
-                            <option value="4h">4 часа</option>
-                        </select>
-                   </div>
-
-
-              </div>
+                 <div class="flex items-center space-x-2 w-full sm:w-auto">
+                     <span class="text-sm text-gray-600">Интервал:</span>
+                     <select id="timeInterval" class="flex-1 sm:flex-none rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm">
+                         <option value="30m">30 минут</option>
+                         <option value="60m" selected>1 час</option>
+                         <option value="4h">4 часа</option>
+                     </select>
+                 </div>
+             </div>
          </div>
      </div>
 
-                                                                       <!-- Таблица календаря -->
-        <div class="px-8 py-6">
-                         <div class="table-scroll overflow-x-auto whitespace-nowrap">
-                                                               <table class="divide-y divide-gray-200" id="calendarTable" style="min-width: max-content;">
-                  <thead class="bg-gray-50">
-                      <tr>
-                          <th class="px-8 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider w-64 sticky left-0 bg-gray-50 z-10">
-                              Сотрудник
-                          </th>
-                                                     @foreach($timeSlots as $slot)
-                                                               <th class="px-2 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider time-slot-header" style="width: 80px !important; min-width: 80px !important;">
-                                    {{ $slot }}
-                                </th>
-                           @endforeach
-                      </tr>
-                  </thead>
-                  <tbody class="bg-white divide-y divide-gray-200">
-                      @foreach($employees as $employee)
-                                                     <tr class="employee-row" data-employee-id="{{ $employee['id'] }}" data-specialty="{{ $employee['specialty']['name'] }}">
-                              <td class="px-8 py-6 whitespace-nowrap sticky left-0 bg-white z-10">
-                                  <div class="flex items-center">
-                                      <div class="text-base font-medium text-gray-900">{{ $employee['name'] }}</div>
-                                      @if(isset($employee['specialty']))
-                                          <div class="ml-2 text-base text-gray-500">({{ $employee['specialty']['name'] }})</div>
-                                      @endif
-                                  </div>
-                              </td>
-                                                             @foreach($timeSlots as $slot)
-                                                                       <td class="px-2 py-6 whitespace-nowrap time-slot-cell" style="width: 80px !important; min-width: 80px !important;">
-                                        <div class="calendar-cell h-12 border border-gray-200 hover:bg-blue-50 cursor-pointer transition-colors selectable-cell"
-                                             data-employee-id="{{ $employee['id'] }}"
-                                             data-time-slot="{{ $slot }}"
-                                             data-date="{{ date('Y-m-d') }}"
-                                             data-cell-id="{{ $employee['id'] }}-{{ $slot }}">
-                                        </div>
-                                    </td>
-                               @endforeach
-                          </tr>
-                      @endforeach
-                      </tbody>
-                  </table>
-              </div>
-          </div>
-     </div>
+     <!-- Таблица календаря -->
+     <div class="px-2 sm:px-8 py-4 sm:py-6">
+         <div class="table-scroll overflow-x-auto whitespace-nowrap">
+             <table class="divide-y divide-gray-200" id="calendarTable" style="min-width: max-content;">
+                 <thead class="bg-gray-50">
+                     <tr>
+                         <th class="px-4 sm:px-8 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider w-48 sm:w-64 sticky left-0 bg-gray-50 z-10">
+                             Сотрудник
+                         </th>
+                         @foreach($timeSlots as $slot)
+                             <th class="px-1 sm:px-2 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider time-slot-header" style="width: 50px !important; min-width: 50px !important;">
+                                 {{ $slot }}
+                             </th>
+                         @endforeach
+                     </tr>
+                 </thead>
+                 <tbody class="bg-white divide-y divide-gray-200">
+                     @foreach($employees as $employee)
+                         <tr class="employee-row" data-employee-id="{{ $employee->id }}" data-specialty="{{ $employee->specialty?->name }}">
+                             <td class="px-4 sm:px-8 py-4 sm:py-6 whitespace-nowrap sticky left-0 bg-white z-10">
+                                 <div class="flex items-center">
+                                     <div class="text-sm sm:text-base font-medium text-gray-900">{{ $employee->name }}</div>
+                                     <div class="ml-2 text-xs sm:text-base text-gray-500">({{ $employee->specialty?->name }})</div>
+                                 </div>
+                             </td>
+                             @foreach($timeSlots as $slot)
+                                 <td class="px-1 sm:px-2 py-4 sm:py-6 whitespace-nowrap time-slot-cell" style="width: 50px !important; min-width: 50px !important;">
+                                     <div class="calendar-cell h-6 sm:h-8 border border-gray-200 hover:bg-blue-50 cursor-pointer transition-colors selectable-cell"
+                                          data-employee-id="{{ $employee->id }}"
+                                          data-time-slot="{{ $slot }}"
+                                          data-date="{{ date('Y-m-d') }}"
+                                          data-cell-id="{{ $employee->id }}-{{ $slot }}">
+                                         @php
+                                             // Проверяем, есть ли назначение для этой ячейки
+                                             $assignment = $assignments->where('employee_id', $employee->id)
+                                                                      ->where('start', $slot)
+                                                                      ->first();
+                                             $nonWorkingDay = $nonWorkingDays->where('employee_id', $employee->id)
+                                                                           ->where('date', date('Y-m-d'))
+                                                                           ->first();
+                                         @endphp
 
+                                         @if($assignment)
+                                             <div class="calendar-block bg-blue-100 border border-blue-300 rounded p-1 h-full flex items-center justify-center relative group">
+                                                 <span class="text-blue-800 font-medium text-xs">В проекте</span>
+                                                 <div class="absolute top-0 right-0 hidden group-hover:block">
+                                                     <button class="delete-block-btn bg-red-500 text-white text-xs px-1 py-0.5 rounded"
+                                                             onclick="deleteAssignment({{ $assignment->id }})">×</button>
+                                                 </div>
+                                                 <div class="absolute bottom-0 right-0 hidden group-hover:block">
+                                                     <a href="/project/{{ $assignment->project_id }}"
+                                                        class="text-blue-600 text-xs underline">Перейти в проект</a>
+                                                 </div>
+                                             </div>
+                                         @elseif($nonWorkingDay)
+                                             <div class="calendar-block bg-red-100 border border-red-300 rounded p-1 h-full flex items-center justify-center relative group">
+                                                 <span class="text-red-800 font-medium text-xs">Нерабочее время</span>
+                                                 <div class="absolute top-0 right-0 hidden group-hover:block">
+                                                     <button class="delete-block-btn bg-red-500 text-white text-xs px-1 py-0.5 rounded"
+                                                             onclick="deleteNonWorkingDay({{ $nonWorkingDay->id }})">×</button>
+                                                 </div>
+                                             </div>
+                                         @endif
+                                     </div>
+                                 </td>
+                             @endforeach
+                         </tr>
+                     @endforeach
+                 </tbody>
+             </table>
+         </div>
+     </div>
+</div>
 
 <!-- Контекстное меню -->
 <div id="contextMenu" class="fixed bg-white border border-gray-300 rounded-lg shadow-lg z-50 hidden">
@@ -119,6 +358,12 @@
 </div>
 
 <!-- Toast уведомления -->
+<div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-y-full transition-transform duration-300">
+    <div class="flex items-center">
+        <span id="toastMessage"></span>
+    </div>
+</div>
+
 
 
 <!-- Модалка назначения на проект -->
@@ -134,47 +379,47 @@
                 </button>
             </div>
 
-                                                   <form id="assignmentForm">
-                  <div class="mb-4">
-                      <label class="block text-sm font-medium text-gray-700 mb-2">Проект</label>
-                      <select id="projectSelect" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" required>
-                          <option value="">Выберите проект</option>
-                          @foreach($projects as $project)
-                              <option value="{{ $project['id'] }}">{{ $project['name'] }}</option>
-                          @endforeach
-                      </select>
-                  </div>
+            <form id="assignmentForm">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Проект</label>
+                    <select id="projectSelect" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" required>
+                        <option value="">Выберите проект</option>
+                        @foreach($projects as $project)
+                            <option value="{{ $project->id }}">{{ $project->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
 
-                  <div class="mb-4">
-                      <label class="block text-sm font-medium text-gray-700 mb-2">Лист</label>
-                      <select id="sheetSelect" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" disabled>
-                          <option value="">Недоступно</option>
-                      </select>
-                  </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Лист</label>
+                    <select id="sheetSelect" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" disabled>
+                        <option value="">Недоступно</option>
+                    </select>
+                </div>
 
-                  <div class="mb-4">
-                      <label class="block text-sm font-medium text-gray-700 mb-2">Специальность</label>
-                      <select id="specialtySelect" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" required>
-                          <option value="">Выберите специальность</option>
-                          <option value="administrator">Администратор</option>
-                          <option value="manager">Менеджер</option>
-                      </select>
-                  </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Специальность</label>
+                    <select id="specialtySelect" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" required>
+                        <option value="">Выберите специальность</option>
+                        <option value="administrator">Администратор</option>
+                        <option value="manager">Менеджер</option>
+                    </select>
+                </div>
 
-                  <div class="mb-4">
-                      <label class="block text-sm font-medium text-gray-700 mb-2">Сотрудник</label>
-                      <input type="text" id="employeeInput" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" placeholder="Иван Иванов" readonly>
-                  </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Сотрудник</label>
+                    <input type="text" id="employeeInput" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" placeholder="Иван Иванов" readonly>
+                </div>
 
-                  <div class="mb-4">
-                      <label class="block text-sm font-medium text-gray-700 mb-2">Сумма</label>
-                      <input type="number" id="sumInput" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" placeholder="Введите сумму" min="1" step="1" required>
-                  </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Сумма</label>
+                    <input type="number" id="sumInput" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" placeholder="Введите сумму" min="1" step="1" required>
+                </div>
 
-                  <div class="mb-4">
-                      <label class="block text-sm font-medium text-gray-700 mb-2">Комментарий</label>
-                      <textarea id="commentInput" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" rows="3" placeholder="Добавьте комментарий"></textarea>
-                  </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Комментарий</label>
+                    <textarea id="commentInput" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" rows="3" placeholder="Добавьте комментарий"></textarea>
+                </div>
 
                 <div class="flex justify-end space-x-3 pt-2">
                     <button type="button" id="cancelAssignment" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200">
@@ -209,9 +454,9 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">Сотрудник</label>
                     <select name="employee_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary" required>
                         <option value="">Выберите сотрудника</option>
-                                                 @foreach($employees as $employee)
-                             <option value="{{ $employee['id'] }}">{{ $employee['name'] }}</option>
-                         @endforeach
+                        @foreach($employees as $employee)
+                            <option value="{{ $employee->id }}">{{ $employee->name }}</option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -234,128 +479,8 @@
 </div>
 
 
-<style>
-    .selectable-cell {
-        user-select: none;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-    }
 
-    .selectable-cell.selected {
-        background-color: #dbeafe !important;
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-    }
 
-    .calendar-block {
-        position: relative;
-        z-index: 10;
-    }
-
-    .delete-block-btn {
-        font-size: 12px;
-        padding: 2px 4px;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-
-    .delete-block-btn:hover {
-        background-color: rgba(239, 68, 68, 0.1);
-    }
-
-    #contextMenu {
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        border-radius: 8px;
-        min-width: 200px;
-    }
-
-    #contextMenu button {
-        transition: background-color 0.15s ease;
-    }
-
-    #contextMenu button:hover {
-        background-color: #f3f4f6;
-    }
-
-    #toast {
-        z-index: 9999;
-    }
-</style>
-
-<style>
-/* БАЗОВЫЕ СТИЛИ ДЛЯ ЯЧЕЕК */
-.time-slot-header,
-.time-slot-cell {
-    width: 80px !important;
-    min-width: 80px !important;
-    max-width: 80px !important;
-    flex: 0 0 80px !important;
-    box-sizing: border-box !important;
-}
-
-/* Принудительно устанавливаем ширину для всех ячеек времени */
-#calendarTable th.time-slot-header,
-#calendarTable td.time-slot-cell {
-    width: 80px !important;
-    min-width: 80px !important;
-    max-width: 80px !important;
-    flex: 0 0 80px !important;
-}
-
-/* Специальные стили для интервала 4 часа */
-.time-slot-header-4h,
-.time-slot-cell-4h {
-    width: 170px !important;
-    min-width: 170px !important;
-    max-width: 170px !important;
-    flex: 0 0 170px !important;
-    box-sizing: border-box !important;
-}
-
-#calendarTable th.time-slot-header-4h,
-#calendarTable td.time-slot-cell-4h {
-    width: 170px !important;
-    min-width: 170px !important;
-    max-width: 170px !important;
-    flex: 0 0 170px !important;
-}
-
-/* Специальные стили для интервалов недели */
-.time-slot-header-12h,
-.time-slot-cell-12h {
-    width: 120px !important;
-    min-width: 120px !important;
-    max-width: 120px !important;
-    flex: 0 0 120px !important;
-    box-sizing: border-box !important;
-}
-
-#calendarTable th.time-slot-header-12h,
-#calendarTable td.time-slot-cell-12h {
-    width: 120px !important;
-    min-width: 120px !important;
-    max-width: 120px !important;
-    flex: 0 0 120px !important;
-}
-
-.time-slot-header-1d,
-.time-slot-cell-1d {
-    width: 150px !important;
-    min-width: 150px !important;
-    max-width: 150px !important;
-    flex: 0 0 150px !important;
-    box-sizing: border-box !important;
-}
-
-#calendarTable th.time-slot-header-1d,
-#calendarTable td.time-slot-cell-1d {
-    width: 150px !important;
-    min-width: 150px !important;
-    max-width: 150px !important;
-    flex: 0 0 150px !important;
-}
-</style>
 
 
 
@@ -366,6 +491,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedCells = new Set();
     let isSelecting = false;
     let selectionStart = null;
+    let lastSelectedCell = null;
+    let lastMouseX = 0; // Для отслеживания направления движения
+    let isMovingRight = true; // Направление движения
+    let previousCell = null; // Предыдущая ячейка для определения направления
+    let mouseStartX = 0; // Начальная позиция мыши
+    let currentMouseX = 0; // Текущая позиция мыши
+    let lastDirection = null; // Последнее направление движения
 
     // Переменные для контекстного меню
     const contextMenu = document.getElementById('contextMenu');
@@ -412,7 +544,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
         }
 
-                         options.forEach(option => {
+        options.forEach(option => {
             const optionElement = document.createElement('option');
             optionElement.value = option.value;
             optionElement.textContent = option.text;
@@ -423,7 +555,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-                       // Функция для обновления таблицы
+    // Функция для обновления таблицы
     async function updateTable() {
         try {
             const selectedDate = document.getElementById('calendarDate').value;
@@ -432,125 +564,199 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             console.log('Получены данные:', data);
 
-              const table = document.querySelector('#calendarTable');
-              const tableScroll = document.querySelector('.table-scroll');
-              const thead = table.querySelector('thead tr');
-              const tbody = table.querySelector('tbody');
+            const table = document.querySelector('#calendarTable');
+            const tableScroll = document.querySelector('.table-scroll');
+            const thead = table.querySelector('thead tr');
+            const tbody = table.querySelector('tbody');
 
+            // Управляем скроллом в зависимости от интервала
+            if (currentInterval === '60m' || currentInterval === '4h' || currentInterval === '12h' || (currentView === 'week' && currentInterval === '1d')) {
+                tableScroll.classList.remove('overflow-x-auto', 'whitespace-nowrap');
+                table.style.minWidth = '100%';
+            } else if (currentView === 'month' && currentInterval === '1d') {
+                // Для месяца с интервалом "День" включаем горизонтальный скролл
+                tableScroll.classList.add('overflow-x-auto', 'whitespace-nowrap');
+                table.style.minWidth = 'max-content';
+            } else {
+                tableScroll.classList.add('overflow-x-auto', 'whitespace-nowrap');
+                table.style.minWidth = 'max-content';
+            }
 
+            // Обновляем заголовки
+            const timeHeader = thead.querySelector('th:first-child');
+            thead.innerHTML = '';
+            thead.appendChild(timeHeader);
 
-                                             // Управляем скроллом в зависимости от интервала
-                if (currentInterval === '60m' || currentInterval === '4h' || currentInterval === '12h' || (currentView === 'week' && currentInterval === '1d')) {
-                    tableScroll.classList.remove('overflow-x-auto', 'whitespace-nowrap');
-                    table.style.minWidth = '100%';
-                } else if (currentView === 'month' && currentInterval === '1d') {
-                    // Для месяца с интервалом "День" включаем горизонтальный скролл
-                    tableScroll.classList.add('overflow-x-auto', 'whitespace-nowrap');
-                    table.style.minWidth = 'max-content';
-                } else {
-                    tableScroll.classList.add('overflow-x-auto', 'whitespace-nowrap');
-                    table.style.minWidth = 'max-content';
+            data.timeSlots.forEach(slot => {
+                const th = document.createElement('th');
+                let className = 'px-2 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider time-slot-header';
+                let width = '50px';
+
+                if (currentInterval === '4h') {
+                    className = className.replace('time-slot-header', 'time-slot-header-4h');
+                    width = '100px';
+                } else if (currentInterval === '12h') {
+                    className = className.replace('time-slot-header', 'time-slot-header-12h');
+                    width = '80px';
+                } else if (currentInterval === '1d') {
+                    className = className.replace('time-slot-header', 'time-slot-header-1d');
+                    width = '100px';
                 }
 
-               // Обновляем заголовки
-               const timeHeader = thead.querySelector('th:first-child');
-               thead.innerHTML = '';
-               thead.appendChild(timeHeader);
+                th.className = className;
+                th.style.width = width;
+                th.style.minWidth = width;
 
-                                                                                                                               data.timeSlots.forEach(slot => {
-                    const th = document.createElement('th');
-                    let className = 'px-2 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider time-slot-header';
-                    let width = '80px';
+                th.textContent = slot;
+                thead.appendChild(th);
+            });
+
+            // Обновляем ячейки
+            const employees = @json($employees);
+            tbody.innerHTML = '';
+
+            employees.forEach(employee => {
+                const row = document.createElement('tr');
+                row.className = 'employee-row';
+                row.dataset.employeeId = employee.id;
+                row.dataset.specialty = employee.role;
+
+                // Ячейка с именем сотрудника (sticky)
+                const nameCell = document.createElement('td');
+                nameCell.className = 'px-4 sm:px-8 py-4 sm:py-6 whitespace-nowrap sticky left-0 bg-white z-10';
+                nameCell.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="text-sm sm:text-base font-medium text-gray-900">${employee.name}</div>
+                        <div class="ml-2 text-xs sm:text-base text-gray-500">(${employee.role})</div>
+                    </div>
+                `;
+                row.appendChild(nameCell);
+
+                // Ячейки времени
+                data.timeSlots.forEach(slot => {
+                    const cell = document.createElement('td');
+                    let className = 'px-1 sm:px-2 py-4 sm:py-6 whitespace-nowrap time-slot-cell';
+                    let width = '50px';
 
                     if (currentInterval === '4h') {
-                        className = className.replace('time-slot-header', 'time-slot-header-4h');
-                        width = '170px';
+                        className = className.replace('time-slot-cell', 'time-slot-cell-4h');
+                        width = '100px';
                     } else if (currentInterval === '12h') {
-                        className = className.replace('time-slot-header', 'time-slot-header-12h');
-                        width = '120px';
+                        className = className.replace('time-slot-cell', 'time-slot-cell-12h');
+                        width = '80px';
                     } else if (currentInterval === '1d') {
-                        className = className.replace('time-slot-header', 'time-slot-header-1d');
-                        width = '150px';
+                        className = className.replace('time-slot-cell', 'time-slot-cell-1d');
+                        width = '100px';
                     }
 
-                    th.className = className;
-                    th.style.width = width;
-                    th.style.minWidth = width;
+                    cell.className = className;
+                    cell.style.width = width;
+                    cell.style.minWidth = width;
 
-                     th.textContent = slot;
-                     thead.appendChild(th);
-                 });
+                    cell.innerHTML = `
+                        <div class="calendar-cell h-6 sm:h-8 border border-gray-200 hover:bg-blue-50 cursor-pointer transition-colors selectable-cell"
+                            data-employee-id="${employee.id}"
+                            data-time-slot="${slot}"
+                            data-date="${document.getElementById('calendarDate').value}"
+                            data-cell-id="${employee.id}-${slot}">
+                        </div>
+                    `;
+                    row.appendChild(cell);
+                });
 
-             // Обновляем ячейки
-             const employees = @json($employees);
-             tbody.innerHTML = '';
+                tbody.appendChild(row);
+            });
 
-             employees.forEach(employee => {
-                                   const row = document.createElement('tr');
-                  row.className = 'employee-row';
-                  row.dataset.employeeId = employee.id;
-                  row.dataset.specialty = employee.specialty.name;
+            // Переподключаем обработчики событий
+            attachCellEventHandlers();
 
-                 // Ячейка с именем сотрудника (sticky)
-                 const nameCell = document.createElement('td');
-                 nameCell.className = 'px-8 py-6 whitespace-nowrap sticky left-0 bg-white z-10';
-                 nameCell.innerHTML = `
-                     <div class="flex items-center">
-                         <div class="text-base font-medium text-gray-900">${employee.name}</div>
-                         <div class="ml-2 text-base text-gray-500">(${employee.specialty.name})</div>
-                     </div>
-                 `;
-                 row.appendChild(nameCell);
-
-                 // Ячейки времени
-                                                     data.timeSlots.forEach(slot => {
-                      const cell = document.createElement('td');
-                      let className = 'px-2 py-6 whitespace-nowrap time-slot-cell';
-                      let width = '80px';
-
-                      if (currentInterval === '4h') {
-                          className = className.replace('time-slot-cell', 'time-slot-cell-4h');
-                          width = '170px';
-                      } else if (currentInterval === '12h') {
-                          className = className.replace('time-slot-cell', 'time-slot-cell-12h');
-                          width = '120px';
-                      } else if (currentInterval === '1d') {
-                          className = className.replace('time-slot-cell', 'time-slot-cell-1d');
-                          width = '150px';
-                      }
-
-                      cell.className = className;
-                      cell.style.width = width;
-                      cell.style.minWidth = width;
-
-                                             cell.innerHTML = `
-                          <div class="calendar-cell h-12 border border-gray-200 hover:bg-blue-50 cursor-pointer transition-colors selectable-cell"
-                               data-employee-id="${employee.id}"
-                               data-time-slot="${slot}"
-                               data-date="${document.getElementById('calendarDate').value}"
-                               data-cell-id="${employee.id}-${slot}">
-                          </div>
-                      `;
-                      row.appendChild(cell);
-                  });
-
-                 tbody.appendChild(row);
-             });
-
-             // Переподключаем обработчики событий
-             attachCellEventHandlers();
-
-         } catch (error) {
-             console.error('Ошибка при обновлении таблицы:', error);
-         }
-     }
+        } catch (error) {
+            console.error('Ошибка при обновлении таблицы:', error);
+        }
+    }
 
     // Функция для подключения обработчиков событий ячеек
     function attachCellEventHandlers() {
         const cells = document.querySelectorAll('.selectable-cell');
 
         cells.forEach(cell => {
-            // Обработчик клика для одиночного выбора
+            // Обработчик mousedown для начала выделения
+            cell.addEventListener('mousedown', function(e) {
+                if (e.button === 0) { // Левая кнопка мыши
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    isSelecting = true;
+                    selectionStart = this;
+                    lastSelectedCell = this;
+                    mouseStartX = e.clientX; // Запоминаем начальную позицию мыши
+                    currentMouseX = e.clientX;
+                    lastDirection = null; // Сбрасываем направление
+
+                    // Очищаем предыдущий выбор
+                    clearSelection();
+
+                    // Добавляем текущую ячейку в выбор
+                    selectedCells.add(this);
+                    this.classList.add('selected');
+
+                    // Принудительно обновляем стили
+                    this.style.backgroundColor = '#3b82f6';
+                    this.style.borderColor = '#1d4ed8';
+                    this.style.color = 'white';
+
+                    console.log('Начато выделение:', this.dataset.cellId, 'Позиция мыши:', mouseStartX);
+                }
+            });
+
+            // Обработчик mouseenter для выделения при перетаскивании
+            cell.addEventListener('mouseenter', function(e) {
+                if (isSelecting && selectionStart) {
+                    // Обновляем текущую позицию мыши
+                    const newMouseX = e.clientX;
+                    const mouseDelta = newMouseX - currentMouseX;
+                    currentMouseX = newMouseX;
+
+                    // Определяем направление движения
+                    const currentDirection = mouseDelta > 0 ? 'right' : mouseDelta < 0 ? 'left' : lastDirection;
+
+                    console.log('Мышь движется:', currentDirection, 'Дельта:', mouseDelta, 'Текущая позиция:', newMouseX);
+
+                    // Проверяем, что ячейка находится в той же строке
+                    const startEmployeeId = selectionStart.dataset.employeeId;
+                    const currentEmployeeId = this.dataset.employeeId;
+
+                    if (startEmployeeId === currentEmployeeId) {
+                        // Получаем все ячейки в строке
+                        const currentRow = this.closest('.employee-row');
+                        const rowCells = Array.from(currentRow.querySelectorAll('.selectable-cell'));
+                        const currentCellIndex = rowCells.indexOf(this);
+                        const startCellIndex = rowCells.indexOf(selectionStart);
+
+                        // Если направление изменилось, обрабатываем это
+                        if (currentDirection && currentDirection !== lastDirection) {
+                            console.log('Направление изменилось с', lastDirection, 'на', currentDirection);
+                            lastDirection = currentDirection;
+                        }
+
+                        // Добавляем ячейку в выбор только если она в той же строке
+                        selectedCells.add(this);
+                        this.classList.add('selected');
+                        lastSelectedCell = this;
+
+                        // Принудительно обновляем стили
+                        this.style.backgroundColor = '#3b82f6';
+                        this.style.borderColor = '#1d4ed8';
+                        this.style.color = 'white';
+
+                        console.log('Добавлена ячейка в выделение:', this.dataset.cellId);
+                    } else {
+                        console.log('Ячейка в другой строке, пропускаем:', this.dataset.cellId);
+                    }
+                }
+            });
+
+            // Обработчик клика для одиночного выбора (если не было перетаскивания)
             cell.addEventListener('click', function(e) {
                 if (!isSelecting) {
                     e.preventDefault();
@@ -563,35 +769,63 @@ document.addEventListener('DOMContentLoaded', function() {
                     selectedCells.add(this);
                     this.classList.add('selected');
 
+                    // Принудительно обновляем стили для визуального выделения
+                    this.style.backgroundColor = '#3b82f6';
+                    this.style.borderColor = '#1d4ed8';
+                    this.style.color = 'white';
+
                     // Показываем контекстное меню
                     showContextMenu(e, [this]);
                 }
             });
+        });
 
-            // Обработчики для мультивыделения
-            cell.addEventListener('mousedown', function(e) {
-                if (e.button === 0) { // Левая кнопка мыши
-                    isSelecting = true;
-                    selectionStart = this;
-                    clearSelection();
-                    selectedCells.add(this);
-                    this.classList.add('selected');
+        // Обработчик mouseup для завершения выделения
+        document.addEventListener('mouseup', function(e) {
+            console.log('Mouseup сработал, isSelecting:', isSelecting);
+            if (isSelecting) {
+                isSelecting = false;
+
+                if (selectedCells.size > 0) {
+                    console.log('Завершено выделение. Выбрано ячеек:', selectedCells.size);
+
+                    // Небольшая задержка для гарантии завершения всех событий
+                    setTimeout(() => {
+                        showContextMenuForSelection();
+                    }, 100);
                 }
-            });
+            }
+        });
 
-            cell.addEventListener('mouseenter', function(e) {
-                if (isSelecting && selectionStart) {
-                    selectedCells.add(this);
-                    this.classList.add('selected');
+        // Обработчик mouseup на самих ячейках
+        cells.forEach(cell => {
+            cell.addEventListener('mouseup', function(e) {
+                console.log('Mouseup на ячейке:', this.dataset.cellId);
+                if (isSelecting) {
+                    isSelecting = false;
+
+                    if (selectedCells.size > 0) {
+                        console.log('Завершено выделение на ячейке. Выбрано ячеек:', selectedCells.size);
+
+                        // Небольшая задержка для гарантии завершения всех событий
+                        setTimeout(() => {
+                            showContextMenuForSelection();
+                        }, 100);
+                    }
                 }
             });
         });
 
-        // Обработчик отпускания мыши
-        document.addEventListener('mouseup', function() {
-            if (isSelecting && selectedCells.size > 0) {
+        // Обработчик mouseleave для таблицы
+        const table = document.querySelector('#calendarTable');
+        table.addEventListener('mouseleave', function() {
+            if (isSelecting) {
                 isSelecting = false;
-                showContextMenuForSelection();
+
+                if (selectedCells.size > 0) {
+                    console.log('Выделение завершено при выходе из таблицы');
+                    showContextMenuForSelection();
+                }
             }
         });
     }
@@ -600,9 +834,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function clearSelection() {
         selectedCells.forEach(cell => {
             cell.classList.remove('selected');
+            cell.style.backgroundColor = ''; // Сбрасываем стили
+            cell.style.borderColor = '';
+            cell.style.color = '';
         });
         selectedCells.clear();
         hideContextMenu();
+        console.log('Выбор очищен');
     }
 
     // Функция показа контекстного меню для одиночной ячейки
@@ -625,25 +863,71 @@ document.addEventListener('DOMContentLoaded', function() {
             markNonWorkingBtn.classList.remove('hidden');
         }
 
-        // Позиционируем меню
-        contextMenu.style.left = rect.right + 'px';
-        contextMenu.style.top = rect.top + 'px';
+        // Позиционируем меню рядом с ячейкой
+        let menuLeft = rect.right + 10;
+        let menuTop = rect.top;
+
+        // Проверяем, не выходит ли меню за пределы экрана
+        const menuWidth = 200;
+        const menuHeight = 150;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        // Если меню выходит за правый край экрана, показываем слева
+        if (menuLeft + menuWidth > windowWidth) {
+            menuLeft = rect.left - menuWidth - 10;
+        }
+
+        // Если меню выходит за нижний край экрана, поднимаем его
+        if (menuTop + menuHeight > windowHeight) {
+            menuTop = windowHeight - menuHeight - 10;
+        }
+
+        // Если меню выходит за верхний край экрана, опускаем его
+        if (menuTop < 10) {
+            menuTop = 10;
+        }
+
+        // Принудительно показываем меню
+        contextMenu.style.cssText = `
+            position: fixed !important;
+            left: ${menuLeft}px !important;
+            top: ${menuTop}px !important;
+            z-index: 99999 !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            background-color: #ffffff !important;
+            border: 2px solid #3b82f6 !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+        `;
+
         contextMenu.classList.remove('hidden');
 
         // Сохраняем выбранные ячейки
         contextMenu.dataset.selectedCells = JSON.stringify(Array.from(cells).map(c => c.dataset.cellId));
+
+        console.log('Показано контекстное меню для одной ячейки рядом с ячейкой:', menuLeft, menuTop);
     }
 
     // Функция показа контекстного меню для множественного выбора
     function showContextMenuForSelection() {
-        if (selectedCells.size === 0) return;
+        if (selectedCells.size === 0) {
+            console.log('Нет выбранных ячеек для показа меню');
+            return;
+        }
+
+        console.log('Показываем контекстное меню для', selectedCells.size, 'ячеек');
 
         const cells = Array.from(selectedCells);
-        const firstCell = cells[0];
-        const lastCell = cells[cells.length - 1];
 
         // Проверяем, есть ли уже блоки в выбранных ячейках
-        const hasBlocks = cells.some(cell => cell.querySelector('.calendar-block'));
+        const hasBlocks = cells.some(cell => {
+            const block = cell.querySelector('.calendar-block');
+            return block !== null;
+        });
+
+        console.log('Проверка блоков в выбранных ячейках:', hasBlocks);
 
         if (hasBlocks) {
             deleteBlockBtn.classList.remove('hidden');
@@ -655,21 +939,77 @@ document.addEventListener('DOMContentLoaded', function() {
             markNonWorkingBtn.classList.remove('hidden');
         }
 
-        // Позиционируем меню в центре выделения
+        // Позиционируем меню рядом с выделенной областью
+        const firstCell = cells[0];
+        const lastCell = cells[cells.length - 1];
+
         const firstRect = firstCell.getBoundingClientRect();
         const lastRect = lastCell.getBoundingClientRect();
 
-        contextMenu.style.left = (firstRect.left + (lastRect.right - firstRect.left) / 2) + 'px';
-        contextMenu.style.top = (firstRect.bottom + 5) + 'px';
+        // Вычисляем центр выделенной области
+        const centerX = (firstRect.left + lastRect.right) / 2;
+        const centerY = (firstRect.top + lastRect.bottom) / 2;
+
+        // Позиционируем меню справа от выделенной области
+        const menuLeft = lastRect.right + 10;
+        const menuTop = firstRect.top;
+
+        // Проверяем, не выходит ли меню за пределы экрана
+        const menuWidth = 200;
+        const menuHeight = 120;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        let finalLeft = menuLeft;
+        let finalTop = menuTop;
+
+        // Если меню выходит за правый край экрана, показываем слева
+        if (menuLeft + menuWidth > windowWidth) {
+            finalLeft = firstRect.left - menuWidth - 10;
+        }
+
+        // Если меню выходит за нижний край экрана, поднимаем его
+        if (menuTop + menuHeight > windowHeight) {
+            finalTop = windowHeight - menuHeight - 10;
+        }
+
+        // Если меню выходит за верхний край экрана, опускаем его
+        if (finalTop < 10) {
+            finalTop = 10;
+        }
+
+        // Принудительно показываем меню с компактными размерами
+        contextMenu.style.cssText = `
+            position: fixed !important;
+            left: ${finalLeft}px !important;
+            top: ${finalTop}px !important;
+            z-index: 99999 !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            background-color: #ffffff !important;
+            border: 2px solid #3b82f6 !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+            width: 200px !important;
+            max-width: 200px !important;
+            min-width: 200px !important;
+        `;
+
         contextMenu.classList.remove('hidden');
 
         // Сохраняем выбранные ячейки
         contextMenu.dataset.selectedCells = JSON.stringify(cells.map(c => c.dataset.cellId));
+
+        console.log('Контекстное меню показано рядом с выделенной областью:', finalLeft, finalTop);
+        console.log('Центр выделения:', centerX, centerY);
     }
 
     // Функция скрытия контекстного меню
     function hideContextMenu() {
         contextMenu.classList.add('hidden');
+        contextMenu.style.display = 'none';
+        contextMenu.style.visibility = 'hidden';
+        contextMenu.style.opacity = '0';
     }
 
     // Обработчики контекстного меню
@@ -687,7 +1027,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedCellIds = JSON.parse(contextMenu.dataset.selectedCells || '[]');
         const cells = selectedCellIds.map(id => document.querySelector(`[data-cell-id="${id}"]`));
 
-        // Создаем блок нерабочего времени
+        // Создаем блоки нерабочего времени
         createNonWorkingBlock(cells);
         hideContextMenu();
         showToast('Нерабочее время добавлено');
@@ -697,65 +1037,87 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedCellIds = JSON.parse(contextMenu.dataset.selectedCells || '[]');
         const cells = selectedCellIds.map(id => document.querySelector(`[data-cell-id="${id}"]`));
 
-        // Удаляем блоки
+        console.log('Удаляем блоки из', cells.length, 'ячеек');
+
+        // Удаляем блоки из всех ячеек и очищаем выделение
         cells.forEach(cell => {
             const block = cell.querySelector('.calendar-block');
             if (block) {
                 block.remove();
+                console.log('Удален блок из ячейки:', cell.dataset.cellId);
             }
+
+            // Очищаем выделение с ячейки
+            cell.classList.remove('selected');
+            cell.style.backgroundColor = '';
+            cell.style.borderColor = '';
+            cell.style.color = '';
+            console.log('Очищено выделение ячейки:', cell.dataset.cellId);
         });
+
+        // Очищаем глобальное выделение
+        selectedCells.clear();
+
         hideContextMenu();
-        showToast('Блок удалён');
+        showToast('Блоки удалены, выделение очищено');
     });
 
-                   // Функция создания блока проекта
-      function createProjectBlock(cells) {
-          if (cells.length === 0) return;
+    // Функция создания блока проекта
+    function createProjectBlock(cells) {
+        if (cells.length === 0) return;
 
-          // Показываем модалку для выбора проекта
-          document.getElementById('assignmentModal').classList.remove('hidden');
+        // Показываем модалку для выбора проекта
+        document.getElementById('assignmentModal').classList.remove('hidden');
 
-          // Сохраняем выбранные ячейки для использования в модалке
-          document.getElementById('assignmentModal').dataset.selectedCells = JSON.stringify(cells.map(c => c.dataset.cellId));
+        // Сохраняем выбранные ячейки для использования в модалке
+        document.getElementById('assignmentModal').dataset.selectedCells = JSON.stringify(cells.map(c => c.dataset.cellId));
 
-          // Заполняем поля модалки данными из первой выбранной ячейки
-          const firstCell = cells[0];
-          const employeeId = firstCell.dataset.employeeId;
+        // Заполняем поля модалки данными из первой выбранной ячейки
+        const firstCell = cells[0];
+        const employeeId = firstCell.dataset.employeeId;
 
-          // Находим имя сотрудника по ID
-          const employees = @json($employees);
-          const employee = employees.find(emp => emp.id == employeeId);
-          if (employee) {
-              document.getElementById('employeeInput').value = employee.name;
-          }
-      }
+        // Находим имя сотрудника по ID
+        const employees = @json($employees);
+        const employee = employees.find(emp => emp.id == employeeId);
+        if (employee) {
+            document.getElementById('employeeInput').value = employee.name;
+        }
+    }
 
-        // Функция создания блока нерабочего времени
+    // Функция создания блока нерабочего времени
     function createNonWorkingBlock(cells) {
         if (cells.length === 0) return;
 
-        // Создаем объединенный блок
-        const firstCell = cells[0];
+        console.log('Создаем блоки нерабочего времени для', cells.length, 'ячеек');
 
-        // Очищаем все ячейки
-        cells.forEach(cell => {
+        // Создаем блок в каждой ячейке
+        cells.forEach((cell, index) => {
+            // Очищаем ячейку
             cell.innerHTML = '';
+
+            // Убираем выделение с ячейки
+            cell.classList.remove('selected');
+            cell.style.backgroundColor = '';
+            cell.style.borderColor = '';
+            cell.style.color = '';
+
+            // Создаем блок
+            const block = document.createElement('div');
+            block.className = 'calendar-block bg-red-100 border border-red-300 rounded p-1 h-full flex items-center justify-center relative group';
+            block.innerHTML = `
+                <span class="text-red-800 font-medium text-xs">Нерабочее время</span>
+            `;
+
+            cell.appendChild(block);
+
+            console.log('Создан блок нерабочего времени в ячейке:', cell.dataset.cellId);
         });
 
-                 // Создаем блок в первой ячейке
-         const block = document.createElement('div');
-         block.className = 'calendar-block bg-red-100 border border-red-300 rounded p-2 h-full flex items-center justify-center relative group';
-         block.innerHTML = `
-             <span class="text-red-800 font-medium text-sm">Нерабочее время</span>
-         `;
+        // Очищаем глобальное выделение
+        selectedCells.clear();
 
-         firstCell.appendChild(block);
-
-         // Скрываем остальные ячейки
-         for (let i = 1; i < cells.length; i++) {
-             cells[i].style.display = 'none';
-         }
-     }
+        console.log('Созданы блоки нерабочего времени для всех ячеек');
+    }
 
     // Обработчик клика вне контекстного меню
     document.addEventListener('click', function(e) {
@@ -764,18 +1126,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-        // Обработка кнопок вида
+    // Обработка кнопок вида
     document.querySelectorAll('.view-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             // Убираем активный класс у всех кнопок
             document.querySelectorAll('.view-btn').forEach(b => {
-                b.classList.remove('bg-primary', 'text-white');
+                b.classList.remove('bg-blue-600', 'text-white');
                 b.classList.add('bg-white', 'text-gray-700');
             });
 
             // Добавляем активный класс к текущей кнопке
             this.classList.remove('bg-white', 'text-gray-700');
-            this.classList.add('bg-primary', 'text-white');
+            this.classList.add('bg-blue-600', 'text-white');
 
             currentView = this.dataset.view;
             console.log('Изменен вид на', currentView);
@@ -804,107 +1166,113 @@ document.addEventListener('DOMContentLoaded', function() {
         updateTable();
     });
 
-                                       // Обработка отправки формы назначения
-       document.getElementById('assignmentForm').addEventListener('submit', function(e) {
-           e.preventDefault();
+    // Обработка отправки формы назначения
+    document.getElementById('assignmentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
 
-           const selectedCellIds = JSON.parse(document.getElementById('assignmentModal').dataset.selectedCells || '[]');
-           const cells = selectedCellIds.map(id => document.querySelector(`[data-cell-id="${id}"]`));
+        const selectedCellIds = JSON.parse(document.getElementById('assignmentModal').dataset.selectedCells || '[]');
+        const cells = selectedCellIds.map(id => document.querySelector(`[data-cell-id="${id}"]`));
 
-           // Получаем данные из формы
-           const projectId = document.getElementById('projectSelect').value;
-           const projectName = document.getElementById('projectSelect').options[document.getElementById('projectSelect').selectedIndex].text;
-           const sheetSelect = document.getElementById('sheetSelect').value;
-           const specialtySelect = document.getElementById('specialtySelect').value;
-           const employeeInput = document.getElementById('employeeInput').value;
-           const sum = document.getElementById('sumInput').value;
-           const comment = document.getElementById('commentInput').value;
+        // Получаем данные из формы
+        const projectId = document.getElementById('projectSelect').value;
+        const projectName = document.getElementById('projectSelect').options[document.getElementById('projectSelect').selectedIndex].text;
+        const sheetSelect = document.getElementById('sheetSelect').value;
+        const specialtySelect = document.getElementById('specialtySelect').value;
+        const employeeInput = document.getElementById('employeeInput').value;
+        const sum = document.getElementById('sumInput').value;
+        const comment = document.getElementById('commentInput').value;
 
-           // Валидация
-           if (!projectId || !specialtySelect || !sum || sum < 1) {
-               alert('Пожалуйста, заполните все обязательные поля. Сумма должна быть не менее 1.');
-               return;
-           }
+        // Валидация
+        if (!projectId || !specialtySelect || !sum || sum < 1) {
+            alert('Пожалуйста, заполните все обязательные поля. Сумма должна быть не менее 1.');
+            return;
+        }
 
-           // Создаем блок проекта
-           createProjectBlockFromModal(cells, projectName);
+        // Создаем блок проекта
+        createProjectBlockFromModal(cells, projectName);
 
-           // Закрываем модалку
-           document.getElementById('assignmentModal').classList.add('hidden');
+        // Закрываем модалку
+        document.getElementById('assignmentModal').classList.add('hidden');
 
-           // Показываем уведомление
-           showToast('Проект назначен');
+        // Показываем уведомление
+        showToast('Проект назначен');
 
-           // Здесь можно добавить отправку данных на сервер
-           console.log('Данные для отправки:', {
-               projectId,
-               projectName,
-               sheetSelect,
-               specialtySelect,
-               employeeInput,
-               sum,
-               comment,
-               selectedCells: selectedCellIds
-           });
-       });
+        // Здесь можно добавить отправку данных на сервер
+        console.log('Данные для отправки:', {
+            projectId,
+            projectName,
+            sheetSelect,
+            specialtySelect,
+            employeeInput,
+            sum,
+            comment,
+            selectedCells: selectedCellIds
+        });
+    });
 
     // Функция создания блока проекта из модалки
     function createProjectBlockFromModal(cells, projectName) {
         if (cells.length === 0) return;
 
-        // Создаем объединенный блок
-        const firstCell = cells[0];
+        console.log('Создаем блоки проекта для', cells.length, 'ячеек');
 
-        // Очищаем все ячейки
-        cells.forEach(cell => {
+        // Создаем блок в каждой ячейке
+        cells.forEach((cell, index) => {
+            // Очищаем ячейку
             cell.innerHTML = '';
+
+            // Убираем выделение с ячейки
+            cell.classList.remove('selected');
+            cell.style.backgroundColor = '';
+            cell.style.borderColor = '';
+            cell.style.color = '';
+
+            // Создаем блок
+            const block = document.createElement('div');
+            block.className = 'calendar-block bg-blue-100 border border-blue-300 rounded p-1 h-full flex items-center justify-center relative group';
+            block.innerHTML = `
+                <span class="text-blue-800 font-medium text-xs">В проекте</span>
+            `;
+
+            cell.appendChild(block);
+
+            console.log('Создан блок проекта в ячейке:', cell.dataset.cellId);
         });
 
-                 // Создаем блок в первой ячейке
-         const block = document.createElement('div');
-         block.className = 'calendar-block bg-blue-100 border border-blue-300 rounded p-2 h-full flex items-center justify-center relative group';
-         block.innerHTML = `
-             <span class="text-blue-800 font-medium text-sm">${projectName}</span>
-         `;
+        // Очищаем глобальное выделение
+        selectedCells.clear();
 
-        firstCell.appendChild(block);
-
-        // Скрываем остальные ячейки
-        for (let i = 1; i < cells.length; i++) {
-            cells[i].style.display = 'none';
-        }
+        console.log('Созданы блоки проекта для всех ячеек');
     }
 
-                   // Функция очистки полей модалки
-      function clearAssignmentModal() {
-          document.getElementById('projectSelect').value = '';
-          document.getElementById('sheetSelect').value = '';
-          document.getElementById('specialtySelect').value = '';
-          document.getElementById('employeeInput').value = '';
-          document.getElementById('sumInput').value = '';
-          document.getElementById('commentInput').value = '';
-      }
+    // Функция очистки полей модалки
+    function clearAssignmentModal() {
+        document.getElementById('projectSelect').value = '';
+        document.getElementById('sheetSelect').value = '';
+        document.getElementById('specialtySelect').value = '';
+        document.getElementById('employeeInput').value = '';
+        document.getElementById('sumInput').value = '';
+        document.getElementById('commentInput').value = '';
+    }
 
-     // Закрытие модалки назначения
-     document.getElementById('closeAssignmentModal').addEventListener('click', function() {
-         document.getElementById('assignmentModal').classList.add('hidden');
-         clearAssignmentModal();
-     });
+    // Закрытие модалки назначения
+    document.getElementById('closeAssignmentModal').addEventListener('click', function() {
+        document.getElementById('assignmentModal').classList.add('hidden');
+        clearAssignmentModal();
+    });
 
-     document.getElementById('cancelAssignment').addEventListener('click', function() {
-         document.getElementById('assignmentModal').classList.add('hidden');
-         clearAssignmentModal();
-     });
+    document.getElementById('cancelAssignment').addEventListener('click', function() {
+        document.getElementById('assignmentModal').classList.add('hidden');
+        clearAssignmentModal();
+    });
 
-                                               // Закрытие модалки при клике вне её области
-        document.getElementById('assignmentModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                this.classList.add('hidden');
-                clearAssignmentModal();
-            }
-        });
-
-
+    // Закрытие модалки при клике вне её области
+    document.getElementById('assignmentModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.add('hidden');
+            clearAssignmentModal();
+        }
+    });
 
     // Фильтрация по сотрудникам
     document.getElementById('employeeFilter').addEventListener('change', function() {
@@ -946,9 +1314,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateTable();
     });
 
-
-
-                           // Инициализация для интервалов без скролла
+    // Инициализация для интервалов без скролла
     const table = document.querySelector('#calendarTable');
     const tableScroll = document.querySelector('.table-scroll');
     if (currentInterval === '60m' || currentInterval === '4h' || currentInterval === '12h' || (currentView === 'week' && currentInterval === '1d')) {
@@ -966,8 +1332,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Инициализация обработчиков событий
     attachCellEventHandlers();
-
-
 });
-</script>
 
+// Функции для удаления назначений
+function deleteAssignment(assignmentId) {
+    if (confirm('Вы уверены, что хотите удалить это назначение?')) {
+        fetch(`/personnel/assignment/${assignmentId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка при удалении: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            alert('Произошла ошибка при удалении');
+        });
+    }
+}
+
+function deleteNonWorkingDay(nonWorkingDayId) {
+    if (confirm('Вы уверены, что хотите удалить этот нерабочий день?')) {
+        // Здесь можно добавить AJAX запрос для удаления нерабочего дня
+        location.reload();
+    }
+}
+</script>
+</body>
+</html>

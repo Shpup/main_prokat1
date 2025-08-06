@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Assignment;
 use App\Models\Employee;
 use App\Models\NonWorkingDay;
+use App\Models\Project;
+use App\Models\Role;
 use App\Models\Specialty;
 use App\Models\User;
 use Carbon\Carbon;
@@ -17,8 +19,16 @@ class PersonnelController extends Controller
         // Устанавливаем московский часовой пояс
         date_default_timezone_set('Europe/Moscow');
 
+        // Загружаем данные через Eloquent модели
+        $employees = User::where('admin_id',auth()->id())->get();
+        $specialties = Role::all();
+        $projects = Project::where('admin_id',auth()->id())->get();
 
-        $employees = User::role('manager')->where('admin_id',auth()->id())->get();
+        // Загружаем существующие назначения для отображения
+        $assignments = Assignment::with(['employee', 'project'])->get();
+        $nonWorkingDays = NonWorkingDay::with('employee')->get();
+
+        // Генерируем временные слоты от 00:00 до 23:00 с шагом 1 час (24 столбца) - по умолчанию
         $timeSlots = [];
         $startTime = Carbon::createFromTime(0, 0, 0);
         $endTime = Carbon::createFromTime(23, 0, 0);
@@ -28,7 +38,7 @@ class PersonnelController extends Controller
             $startTime->addHour();
         }
 
-        return view('personnel.index', compact('employees', 'specialties', 'projects', 'timeSlots'));
+        return view('personnel.index', compact('employees', 'specialties', 'projects', 'timeSlots', 'assignments', 'nonWorkingDays'));
     }
 
     public function assign(Request $request)
