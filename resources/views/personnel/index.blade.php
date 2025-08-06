@@ -8,6 +8,9 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Склад оборудования</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
 </head>
 <style>
     .selectable-cell {
@@ -312,7 +315,7 @@
 
                                          @if($assignment)
                                              <div class="calendar-block bg-blue-100 border border-blue-300 rounded p-1 h-full flex items-center justify-center relative group">
-                                                 <span class="text-blue-800 font-medium text-xs">В проекте</span>
+                                                 <span class="text-blue-800 font-medium text-xs"><i class="fa fa-minus-square" aria-hidden="true"></i></span>
                                                  <div class="absolute top-0 right-0 hidden group-hover:block">
                                                      <button class="delete-block-btn bg-red-500 text-white text-xs px-1 py-0.5 rounded"
                                                              onclick="deleteAssignment({{ $assignment->id }})">×</button>
@@ -1231,7 +1234,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const block = document.createElement('div');
             block.className = 'calendar-block bg-blue-100 border border-blue-300 rounded p-1 h-full flex items-center justify-center relative group';
             block.innerHTML = `
-                <span class="text-blue-800 font-medium text-xs">В проекте</span>
+                <span class="text-blue-800 font-medium text-xs"><i class="fa fa-calendar-o" aria-hidden="true"></i></span>
             `;
 
             cell.appendChild(block);
