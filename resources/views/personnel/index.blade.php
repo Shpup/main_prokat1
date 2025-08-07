@@ -8,9 +8,6 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Склад оборудования</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
-          crossorigin="anonymous" referrerpolicy="no-referrer"/>
 </head>
 <style>
     .selectable-cell {
@@ -314,20 +311,18 @@
                                          @endphp
 
                                          @if($assignment)
-                                             <div class="calendar-block bg-blue-100 border border-blue-300 rounded p-1 h-full flex items-center justify-center relative group">
-                                                 <span class="text-blue-800 font-medium text-xs"><i class="fa fa-minus-square" aria-hidden="true"></i></span>
+                                             <div class="calendar-block bg-green-500 border border-green-600 rounded p-1 h-full flex items-center justify-center relative group" data-project-id="{{ $assignment->project_id }}">
                                                  <div class="absolute top-0 right-0 hidden group-hover:block">
                                                      <button class="delete-block-btn bg-red-500 text-white text-xs px-1 py-0.5 rounded"
                                                              onclick="deleteAssignment({{ $assignment->id }})">×</button>
                                                  </div>
                                                  <div class="absolute bottom-0 right-0 hidden group-hover:block">
                                                      <a href="/project/{{ $assignment->project_id }}"
-                                                        class="text-blue-600 text-xs underline">Перейти в проект</a>
+                                                        class="text-white text-xs underline">Перейти в проект</a>
                                                  </div>
                                              </div>
                                          @elseif($nonWorkingDay)
-                                             <div class="calendar-block bg-red-100 border border-red-300 rounded p-1 h-full flex items-center justify-center relative group">
-                                                 <span class="text-red-800 font-medium text-xs">Нерабочее время</span>
+                                             <div class="calendar-block bg-red-500 border border-red-600 rounded p-1 h-full flex items-center justify-center relative group">
                                                  <div class="absolute top-0 right-0 hidden group-hover:block">
                                                      <button class="delete-block-btn bg-red-500 text-white text-xs px-1 py-0.5 rounded"
                                                              onclick="deleteNonWorkingDay({{ $nonWorkingDay->id }})">×</button>
@@ -502,6 +497,102 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentMouseX = 0; // Текущая позиция мыши
     let lastDirection = null; // Последнее направление движения
 
+    // Функция восстановления блоков из БД
+    function restoreBlocks() {
+        const date = document.getElementById('calendarDate').value;
+        const cells = document.querySelectorAll('.calendar-cell');
+        
+        console.log('Загружаем блоки из БД для даты:', date);
+        
+        // Загружаем данные из БД
+        fetch(`/personnel/data?date=${date}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Получены данные из БД:', data);
+            
+            cells.forEach(cell => {
+                // Очищаем существующие блоки
+                const existingBlocks = cell.querySelectorAll('.calendar-block');
+                existingBlocks.forEach(block => block.remove());
+                
+                const cellId = cell.dataset.cellId;
+                const employeeId = cell.dataset.employeeId;
+                const timeSlot = cell.dataset.timeSlot;
+                
+                // Проверяем нерабочие блоки из БД
+                const nonWorkingDay = data.nonWorkingDays.find(nwd => 
+                    nwd.employee_id == employeeId && 
+                    nwd.date === date &&
+                    nwd.start_time <= timeSlot && 
+                    nwd.end_time > timeSlot
+                );
+                
+                if (nonWorkingDay) {
+                    console.log('Найден нерабочий блок для ячейки:', cellId);
+                    // Создаем красный блок
+                    const block = document.createElement('div');
+                    block.className = 'calendar-block bg-red-500 border border-red-600 rounded p-1 h-full flex items-center justify-center relative group';
+                    block.innerHTML = ``;
+                    cell.appendChild(block);
+                }
+                
+                // Проверяем блоки проектов из БД
+                const assignment = data.assignments.find(ass => 
+                    ass.employee_id == employeeId && 
+                    ass.date === date &&
+                    ass.start_time <= timeSlot && 
+                    ass.end_time > timeSlot
+                );
+                
+                if (assignment) {
+                    console.log('Найден блок проекта для ячейки:', cellId, 'с ID проекта:', assignment.project_id);
+                    // Создаем зеленый блок
+                    const block = document.createElement('div');
+                    block.className = 'calendar-block bg-green-500 border border-green-600 rounded p-1 h-full flex items-center justify-center relative group';
+                    block.setAttribute('data-project-id', assignment.project_id);
+                    block.innerHTML = ``;
+                    cell.appendChild(block);
+                }
+            });
+            
+            console.log('Восстановление блоков завершено для даты:', date);
+        })
+        .catch(error => {
+            console.error('Ошибка при загрузке данных из БД:', error);
+        });
+    }
+
+    // Вызываем восстановление блоков
+    setTimeout(restoreBlocks, 100);
+    
+    // Обработчик для кнопки "Назад" в браузере
+    window.addEventListener('beforeunload', function() {
+        // Сохраняем текущее состояние перед уходом со страницы
+        console.log('Сохранение состояния перед уходом со страницы');
+    });
+    
+    // Обработчик для восстановления при возврате на страницу
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            // Страница была восстановлена из кэша браузера
+            console.log('Страница восстановлена из кэша, восстанавливаем блоки');
+            setTimeout(restoreBlocks, 200);
+        }
+    });
+    
+    // Обработчик для восстановления при возврате на страницу (всегда)
+    window.addEventListener('focus', function() {
+        // Восстанавливаем блоки при возврате фокуса на страницу
+        console.log('Возврат фокуса на страницу, восстанавливаем блоки');
+        setTimeout(restoreBlocks, 100);
+    });
+
     // Переменные для контекстного меню
     const contextMenu = document.getElementById('contextMenu');
     const assignProjectBtn = document.getElementById('assignProjectBtn');
@@ -672,6 +763,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Переподключаем обработчики событий
             attachCellEventHandlers();
+            
+            // Восстанавливаем блоки после обновления таблицы
+            setTimeout(restoreBlocks, 100);
 
         } catch (error) {
             console.error('Ошибка при обновлении таблицы:', error);
@@ -855,15 +949,42 @@ document.addEventListener('DOMContentLoaded', function() {
         const hasBlock = cell.querySelector('.calendar-block');
 
         if (hasBlock) {
-            // Показываем только кнопку удаления
-            deleteBlockBtn.classList.remove('hidden');
-            assignProjectBtn.classList.add('hidden');
-            markNonWorkingBtn.classList.add('hidden');
+            // Проверяем тип блока
+            const isProjectBlock = hasBlock.classList.contains('bg-green-500');
+            const isNonWorkingBlock = hasBlock.classList.contains('bg-red-500');
+            
+            if (isProjectBlock) {
+                // Для зеленых блоков (проекты) показываем "Перейти в проект" и "Удалить"
+                deleteBlockBtn.classList.remove('hidden');
+                assignProjectBtn.classList.add('hidden');
+                markNonWorkingBtn.classList.add('hidden');
+                
+                // Добавляем кнопку "Перейти в проект"
+                if (!document.getElementById('goToProjectBtn')) {
+                    const goToProjectBtn = document.createElement('button');
+                    goToProjectBtn.id = 'goToProjectBtn';
+                    goToProjectBtn.className = 'w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center';
+                    goToProjectBtn.innerHTML = '<span class="mr-2">🔗</span> Перейти в проект';
+                    contextMenu.querySelector('.py-1').insertBefore(goToProjectBtn, deleteBlockBtn);
+                }
+                document.getElementById('goToProjectBtn').classList.remove('hidden');
+            } else if (isNonWorkingBlock) {
+                // Для красных блоков (нерабочее время) показываем только "Удалить"
+                deleteBlockBtn.classList.remove('hidden');
+                assignProjectBtn.classList.add('hidden');
+                markNonWorkingBtn.classList.add('hidden');
+                if (document.getElementById('goToProjectBtn')) {
+                    document.getElementById('goToProjectBtn').classList.add('hidden');
+                }
+            }
         } else {
             // Показываем кнопки назначения
             deleteBlockBtn.classList.add('hidden');
             assignProjectBtn.classList.remove('hidden');
             markNonWorkingBtn.classList.remove('hidden');
+            if (document.getElementById('goToProjectBtn')) {
+                document.getElementById('goToProjectBtn').classList.add('hidden');
+            }
         }
 
         // Позиционируем меню рядом с ячейкой
@@ -933,13 +1054,48 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Проверка блоков в выбранных ячейках:', hasBlocks);
 
         if (hasBlocks) {
-            deleteBlockBtn.classList.remove('hidden');
-            assignProjectBtn.classList.add('hidden');
-            markNonWorkingBtn.classList.add('hidden');
+            // Проверяем тип блоков
+            const hasProjectBlocks = cells.some(cell => {
+                const block = cell.querySelector('.calendar-block');
+                return block && block.classList.contains('bg-green-500');
+            });
+            
+            const hasNonWorkingBlocks = cells.some(cell => {
+                const block = cell.querySelector('.calendar-block');
+                return block && block.classList.contains('bg-red-500');
+            });
+
+            if (hasProjectBlocks) {
+                // Для зеленых блоков (проекты) показываем "Перейти в проект" и "Удалить"
+                deleteBlockBtn.classList.remove('hidden');
+                assignProjectBtn.classList.add('hidden');
+                markNonWorkingBtn.classList.add('hidden');
+                
+                // Добавляем кнопку "Перейти в проект"
+                if (!document.getElementById('goToProjectBtn')) {
+                    const goToProjectBtn = document.createElement('button');
+                    goToProjectBtn.id = 'goToProjectBtn';
+                    goToProjectBtn.className = 'w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center';
+                    goToProjectBtn.innerHTML = '<span class="mr-2">🔗</span> Перейти в проект';
+                    contextMenu.querySelector('.py-1').insertBefore(goToProjectBtn, deleteBlockBtn);
+                }
+                document.getElementById('goToProjectBtn').classList.remove('hidden');
+            } else if (hasNonWorkingBlocks) {
+                // Для красных блоков (нерабочее время) показываем только "Удалить"
+                deleteBlockBtn.classList.remove('hidden');
+                assignProjectBtn.classList.add('hidden');
+                markNonWorkingBtn.classList.add('hidden');
+                if (document.getElementById('goToProjectBtn')) {
+                    document.getElementById('goToProjectBtn').classList.add('hidden');
+                }
+            }
         } else {
             deleteBlockBtn.classList.add('hidden');
             assignProjectBtn.classList.remove('hidden');
             markNonWorkingBtn.classList.remove('hidden');
+            if (document.getElementById('goToProjectBtn')) {
+                document.getElementById('goToProjectBtn').classList.add('hidden');
+            }
         }
 
         // Позиционируем меню рядом с выделенной областью
@@ -1046,6 +1202,24 @@ document.addEventListener('DOMContentLoaded', function() {
         cells.forEach(cell => {
             const block = cell.querySelector('.calendar-block');
             if (block) {
+                // Определяем тип блока и удаляем из localStorage
+                const cellId = cell.dataset.cellId;
+                const date = document.getElementById('calendarDate').value;
+                
+                if (block.classList.contains('bg-red-500')) {
+                    // Удаляем нерабочий блок
+                    const userId = {{ auth()->id() ?? 0 }};
+                    const nonWorkingKey = `nonworking_${userId}_${date}_${cellId}`;
+                    localStorage.removeItem(nonWorkingKey);
+                    console.log('Удален нерабочий блок из localStorage:', nonWorkingKey);
+                } else if (block.classList.contains('bg-green-500')) {
+                    // Удаляем блок проекта
+                    const userId = {{ auth()->id() ?? 0 }};
+                    const projectKey = `project_${userId}_${date}_${cellId}`;
+                    localStorage.removeItem(projectKey);
+                    console.log('Удален блок проекта из localStorage:', projectKey);
+                }
+                
                 block.remove();
                 console.log('Удален блок из ячейки:', cell.dataset.cellId);
             }
@@ -1065,9 +1239,41 @@ document.addEventListener('DOMContentLoaded', function() {
         showToast('Блоки удалены, выделение очищено');
     });
 
+    // Обработчик для кнопки "Перейти в проект"
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'goToProjectBtn') {
+            const selectedCellIds = JSON.parse(contextMenu.dataset.selectedCells || '[]');
+            const cells = selectedCellIds.map(id => document.querySelector(`[data-cell-id="${id}"]`));
+            
+            if (cells.length > 0) {
+                const cell = cells[0];
+                const block = cell.querySelector('.calendar-block');
+                
+                // Получаем ID проекта из блока
+                const projectId = block.dataset.projectId;
+                
+                if (projectId) {
+                    // Сохраняем текущее состояние перед переходом
+                    console.log('Переход к проекту:', projectId);
+                    
+                    // Переходим на страницу проекта
+                    window.location.href = `/project/${projectId}`;
+                } else {
+                    // Если ID проекта не найден, показываем уведомление
+                    showToast('ID проекта не найден');
+                }
+            }
+            
+            hideContextMenu();
+        }
+    });
+
     // Функция создания блока проекта
     function createProjectBlock(cells) {
         if (cells.length === 0) return;
+
+        // Очищаем поля модалки перед открытием
+        clearAssignmentModal();
 
         // Показываем модалку для выбора проекта
         document.getElementById('assignmentModal').classList.remove('hidden');
@@ -1093,33 +1299,65 @@ document.addEventListener('DOMContentLoaded', function() {
 
         console.log('Создаем блоки нерабочего времени для', cells.length, 'ячеек');
 
-        // Создаем блок в каждой ячейке
-        cells.forEach((cell, index) => {
-            // Очищаем ячейку
-            cell.innerHTML = '';
+        // Получаем данные для отправки на сервер
+        const firstCell = cells[0];
+        const employeeId = firstCell.dataset.employeeId;
+        const date = document.getElementById('calendarDate').value;
+        const startTime = firstCell.dataset.timeSlot;
+        const endTime = cells[cells.length - 1].dataset.timeSlot;
 
-            // Убираем выделение с ячейки
-            cell.classList.remove('selected');
-            cell.style.backgroundColor = '';
-            cell.style.borderColor = '';
-            cell.style.color = '';
+        // Отправляем данные на сервер
+        fetch('/personnel/non-working', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                employee_id: employeeId,
+                date: date,
+                start_time: startTime,
+                end_time: endTime
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Создаем блоки только после успешного сохранения
+                cells.forEach((cell, index) => {
+                    // Очищаем ячейку
+                    cell.innerHTML = '';
 
-            // Создаем блок
-            const block = document.createElement('div');
-            block.className = 'calendar-block bg-red-100 border border-red-300 rounded p-1 h-full flex items-center justify-center relative group';
-            block.innerHTML = `
-                <span class="text-red-800 font-medium text-xs">Нерабочее время</span>
-            `;
+                    // Убираем выделение с ячейки
+                    cell.classList.remove('selected');
+                    cell.style.backgroundColor = '';
+                    cell.style.borderColor = '';
+                    cell.style.color = '';
 
-            cell.appendChild(block);
+                    // Создаем блок
+                    const block = document.createElement('div');
+                    block.className = 'calendar-block bg-red-500 border border-red-600 rounded p-1 h-full flex items-center justify-center relative group';
+                    block.innerHTML = ``;
 
-            console.log('Создан блок нерабочего времени в ячейке:', cell.dataset.cellId);
+                    cell.appendChild(block);
+
+                    console.log('Создан блок нерабочего времени в ячейке:', cell.dataset.cellId);
+                });
+
+                // Очищаем глобальное выделение
+                selectedCells.clear();
+
+                console.log('Созданы блоки нерабочего времени для всех ячеек');
+                showToast('Нерабочий день добавлен');
+            } else {
+                console.error('Ошибка при создании нерабочего дня:', data.message);
+                showToast('Ошибка при создании нерабочего дня');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при отправке данных:', error);
+            showToast('Ошибка при создании нерабочего дня');
         });
-
-        // Очищаем глобальное выделение
-        selectedCells.clear();
-
-        console.log('Созданы блоки нерабочего времени для всех ячеек');
     }
 
     // Обработчик клика вне контекстного меню
@@ -1192,7 +1430,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Создаем блок проекта
-        createProjectBlockFromModal(cells, projectName);
+        createProjectBlockFromModal(cells, projectName, projectId);
 
         // Закрываем модалку
         document.getElementById('assignmentModal').classList.add('hidden');
@@ -1214,38 +1452,76 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Функция создания блока проекта из модалки
-    function createProjectBlockFromModal(cells, projectName) {
+    function createProjectBlockFromModal(cells, projectName, projectId) {
         if (cells.length === 0) return;
 
         console.log('Создаем блоки проекта для', cells.length, 'ячеек');
 
-        // Создаем блок в каждой ячейке
-        cells.forEach((cell, index) => {
-            // Очищаем ячейку
-            cell.innerHTML = '';
+        // Получаем данные для отправки на сервер
+        const firstCell = cells[0];
+        const employeeId = firstCell.dataset.employeeId;
+        const date = document.getElementById('calendarDate').value;
+        const startTime = firstCell.dataset.timeSlot;
+        const endTime = cells[cells.length - 1].dataset.timeSlot;
+        const sum = document.getElementById('sumInput').value || 0;
+        const comment = document.getElementById('commentInput').value || '';
 
-            // Убираем выделение с ячейки
-            cell.classList.remove('selected');
-            cell.style.backgroundColor = '';
-            cell.style.borderColor = '';
-            cell.style.color = '';
+        // Отправляем данные на сервер
+        fetch('/personnel/assign', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                employee_id: employeeId,
+                project_id: projectId,
+                date: date,
+                start_time: startTime,
+                end_time: endTime,
+                sum: sum,
+                comment: comment
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Создаем блоки только после успешного сохранения
+                cells.forEach((cell, index) => {
+                    // Очищаем ячейку
+                    cell.innerHTML = '';
 
-            // Создаем блок
-            const block = document.createElement('div');
-            block.className = 'calendar-block bg-blue-100 border border-blue-300 rounded p-1 h-full flex items-center justify-center relative group';
-            block.innerHTML = `
-                <span class="text-blue-800 font-medium text-xs"><i class="fa fa-calendar-o" aria-hidden="true"></i></span>
-            `;
+                    // Убираем выделение с ячейки
+                    cell.classList.remove('selected');
+                    cell.style.backgroundColor = '';
+                    cell.style.borderColor = '';
+                    cell.style.color = '';
 
-            cell.appendChild(block);
+                    // Создаем блок
+                    const block = document.createElement('div');
+                    block.className = 'calendar-block bg-green-500 border border-green-600 rounded p-1 h-full flex items-center justify-center relative group';
+                    block.setAttribute('data-project-id', projectId);
+                    block.innerHTML = ``;
 
-            console.log('Создан блок проекта в ячейке:', cell.dataset.cellId);
+                    cell.appendChild(block);
+
+                    console.log('Создан блок проекта в ячейке:', cell.dataset.cellId, 'с ID проекта:', projectId);
+                });
+
+                // Очищаем глобальное выделение
+                selectedCells.clear();
+
+                console.log('Созданы блоки проекта для всех ячеек');
+                showToast('Назначение успешно создано');
+            } else {
+                console.error('Ошибка при создании назначения:', data.message);
+                showToast('Ошибка при создании назначения');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при отправке данных:', error);
+            showToast('Ошибка при создании назначения');
         });
-
-        // Очищаем глобальное выделение
-        selectedCells.clear();
-
-        console.log('Созданы блоки проекта для всех ячеек');
     }
 
     // Функция очистки полей модалки
@@ -1315,6 +1591,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Обновляем таблицу при изменении даты
         updateTable();
+        
+        // Восстанавливаем блоки для новой даты
+        setTimeout(restoreBlocks, 200);
     });
 
     // Инициализация для интервалов без скролла
