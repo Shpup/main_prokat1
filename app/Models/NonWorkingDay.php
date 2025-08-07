@@ -11,11 +11,15 @@ class NonWorkingDay extends Model
 
     protected $fillable = [
         'employee_id',
-        'date'
+        'date',
+        'start_time',
+        'end_time'
     ];
 
     protected $casts = [
-        'date' => 'date'
+        'date' => 'date',
+        'start_time' => 'datetime',
+        'end_time' => 'datetime'
     ];
 
     public function employee()

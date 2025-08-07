@@ -12,15 +12,17 @@ class Assignment extends Model
     protected $fillable = [
         'employee_id',
         'project_id',
-        'start',
-        'end',
+        'date',
+        'start_time',
+        'end_time',
         'sum',
         'comment'
     ];
 
     protected $casts = [
-        'start' => 'datetime',
-        'end' => 'datetime',
+        'date' => 'date',
+        'start_time' => 'datetime',
+        'end_time' => 'datetime',
         'sum' => 'decimal:2'
     ];
 
