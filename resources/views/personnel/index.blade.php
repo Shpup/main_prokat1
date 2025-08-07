@@ -1,5 +1,4 @@
-
-
+<!--fdsfsf -->
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -501,9 +500,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function restoreBlocks() {
         const date = document.getElementById('calendarDate').value;
         const cells = document.querySelectorAll('.calendar-cell');
-        
+
         console.log('Загружаем блоки из БД для даты:', date);
-        
+
         // Загружаем данные из БД
         fetch(`/personnel/data?date=${date}`, {
             method: 'GET',
@@ -515,24 +514,24 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             console.log('Получены данные из БД:', data);
-            
+
             cells.forEach(cell => {
                 // Очищаем существующие блоки
                 const existingBlocks = cell.querySelectorAll('.calendar-block');
                 existingBlocks.forEach(block => block.remove());
-                
+
                 const cellId = cell.dataset.cellId;
                 const employeeId = cell.dataset.employeeId;
                 const timeSlot = cell.dataset.timeSlot;
-                
+
                 // Проверяем нерабочие блоки из БД
-                const nonWorkingDay = data.nonWorkingDays.find(nwd => 
-                    nwd.employee_id == employeeId && 
+                const nonWorkingDay = data.nonWorkingDays.find(nwd =>
+                    nwd.employee_id == employeeId &&
                     nwd.date === date &&
-                    nwd.start_time <= timeSlot && 
+                    nwd.start_time <= timeSlot &&
                     nwd.end_time > timeSlot
                 );
-                
+
                 if (nonWorkingDay) {
                     console.log('Найден нерабочий блок для ячейки:', cellId);
                     // Создаем красный блок
@@ -541,15 +540,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     block.innerHTML = ``;
                     cell.appendChild(block);
                 }
-                
+
                 // Проверяем блоки проектов из БД
-                const assignment = data.assignments.find(ass => 
-                    ass.employee_id == employeeId && 
+                const assignment = data.assignments.find(ass =>
+                    ass.employee_id == employeeId &&
                     ass.date === date &&
-                    ass.start_time <= timeSlot && 
+                    ass.start_time <= timeSlot &&
                     ass.end_time > timeSlot
                 );
-                
+
                 if (assignment) {
                     console.log('Найден блок проекта для ячейки:', cellId, 'с ID проекта:', assignment.project_id);
                     // Создаем зеленый блок
@@ -560,7 +559,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     cell.appendChild(block);
                 }
             });
-            
+
             console.log('Восстановление блоков завершено для даты:', date);
         })
         .catch(error => {
@@ -570,13 +569,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Вызываем восстановление блоков
     setTimeout(restoreBlocks, 100);
-    
+
     // Обработчик для кнопки "Назад" в браузере
     window.addEventListener('beforeunload', function() {
         // Сохраняем текущее состояние перед уходом со страницы
         console.log('Сохранение состояния перед уходом со страницы');
     });
-    
+
     // Обработчик для восстановления при возврате на страницу
     window.addEventListener('pageshow', function(event) {
         if (event.persisted) {
@@ -585,7 +584,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(restoreBlocks, 200);
         }
     });
-    
+
     // Обработчик для восстановления при возврате на страницу (всегда)
     window.addEventListener('focus', function() {
         // Восстанавливаем блоки при возврате фокуса на страницу
@@ -763,7 +762,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Переподключаем обработчики событий
             attachCellEventHandlers();
-            
+
             // Восстанавливаем блоки после обновления таблицы
             setTimeout(restoreBlocks, 100);
 
@@ -952,13 +951,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // Проверяем тип блока
             const isProjectBlock = hasBlock.classList.contains('bg-green-500');
             const isNonWorkingBlock = hasBlock.classList.contains('bg-red-500');
-            
+
             if (isProjectBlock) {
                 // Для зеленых блоков (проекты) показываем "Перейти в проект" и "Удалить"
                 deleteBlockBtn.classList.remove('hidden');
                 assignProjectBtn.classList.add('hidden');
                 markNonWorkingBtn.classList.add('hidden');
-                
+
                 // Добавляем кнопку "Перейти в проект"
                 if (!document.getElementById('goToProjectBtn')) {
                     const goToProjectBtn = document.createElement('button');
@@ -1059,7 +1058,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const block = cell.querySelector('.calendar-block');
                 return block && block.classList.contains('bg-green-500');
             });
-            
+
             const hasNonWorkingBlocks = cells.some(cell => {
                 const block = cell.querySelector('.calendar-block');
                 return block && block.classList.contains('bg-red-500');
@@ -1070,7 +1069,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 deleteBlockBtn.classList.remove('hidden');
                 assignProjectBtn.classList.add('hidden');
                 markNonWorkingBtn.classList.add('hidden');
-                
+
                 // Добавляем кнопку "Перейти в проект"
                 if (!document.getElementById('goToProjectBtn')) {
                     const goToProjectBtn = document.createElement('button');
@@ -1205,7 +1204,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Определяем тип блока и удаляем из localStorage
                 const cellId = cell.dataset.cellId;
                 const date = document.getElementById('calendarDate').value;
-                
+
                 if (block.classList.contains('bg-red-500')) {
                     // Удаляем нерабочий блок
                     const userId = {{ auth()->id() ?? 0 }};
@@ -1219,7 +1218,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     localStorage.removeItem(projectKey);
                     console.log('Удален блок проекта из localStorage:', projectKey);
                 }
-                
+
                 block.remove();
                 console.log('Удален блок из ячейки:', cell.dataset.cellId);
             }
@@ -1244,18 +1243,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target.id === 'goToProjectBtn') {
             const selectedCellIds = JSON.parse(contextMenu.dataset.selectedCells || '[]');
             const cells = selectedCellIds.map(id => document.querySelector(`[data-cell-id="${id}"]`));
-            
+
             if (cells.length > 0) {
                 const cell = cells[0];
                 const block = cell.querySelector('.calendar-block');
-                
+
                 // Получаем ID проекта из блока
                 const projectId = block.dataset.projectId;
-                
+
                 if (projectId) {
                     // Сохраняем текущее состояние перед переходом
                     console.log('Переход к проекту:', projectId);
-                    
+
                     // Переходим на страницу проекта
                     window.location.href = `/project/${projectId}`;
                 } else {
@@ -1263,7 +1262,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast('ID проекта не найден');
                 }
             }
-            
+
             hideContextMenu();
         }
     });
@@ -1591,7 +1590,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Обновляем таблицу при изменении даты
         updateTable();
-        
+
         // Восстанавливаем блоки для новой даты
         setTimeout(restoreBlocks, 200);
     });
