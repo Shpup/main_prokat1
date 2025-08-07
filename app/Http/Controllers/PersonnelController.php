@@ -43,14 +43,76 @@ class PersonnelController extends Controller
 
     public function assign(Request $request)
     {
-        // Просто возвращаем успех без сохранения в БД
-        return redirect()->route('personnel.index')->with('success', 'Назначение успешно создано (тестовый режим)');
+        // Валидация данных
+        $validated = $request->validate([
+            'employee_id' => 'required|exists:users,id',
+            'project_id' => 'required|exists:projects,id',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'date' => 'required|date',
+        ]);
+
+                    // Создаем назначение
+            Assignment::create([
+                'employee_id' => $validated['employee_id'],
+                'project_id' => $validated['project_id'],
+                'start_time' => $validated['start_time'],
+                'end_time' => $validated['end_time'],
+                'date' => $validated['date'],
+            ]);
+
+        return response()->json(['success' => true, 'message' => 'Назначение успешно создано']);
     }
 
     public function addNonWorkingDay(Request $request)
     {
-        // Просто возвращаем успех без сохранения в БД
-        return redirect()->route('personnel.index')->with('success', 'Нерабочий день добавлен (тестовый режим)');
+        try {
+            // Валидация данных
+            $validated = $request->validate([
+                'employee_id' => 'required|exists:users,id',
+                'date' => 'required|date',
+                'start_time' => 'required|date_format:H:i',
+                'end_time' => 'required|date_format:H:i|after:start_time',
+            ]);
+
+            // Создаем нерабочий день
+            NonWorkingDay::create([
+                'employee_id' => $validated['employee_id'],
+                'date' => $validated['date'],
+                'start_time' => $validated['start_time'],
+                'end_time' => $validated['end_time'],
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Нерабочий день добавлен']);
+        } catch (\Exception $e) {
+            \Log::error('Error in addNonWorkingDay: ' . $e->getMessage());
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getData(Request $request)
+    {
+        try {
+            $date = $request->query('date', date('Y-m-d'));
+            
+            // Получаем назначения для указанной даты
+            $assignments = Assignment::where('date', $date)->get();
+            
+            // Получаем нерабочие дни для указанной даты
+            $nonWorkingDays = NonWorkingDay::where('date', $date)->get();
+            
+            return response()->json([
+                'assignments' => $assignments,
+                'nonWorkingDays' => $nonWorkingDays
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in getData: ' . $e->getMessage());
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function getTimeSlots(Request $request)
