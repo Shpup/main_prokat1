@@ -64,10 +64,18 @@
                     title: "{{ $project->name }}",
                     start: "{{ $project->start_date }}",
                     end: "{{ $project->end_date }}",
-                    url: "{{ route('projects.show', $project->id) }}"
+                    url: "{{ route('projects.show', $project->id) }}",
+                    color: "{{ match ($project->status) {
+            'active' => '#22c55e',     // зелёный
+            'new' => '#facc15',        // жёлтый
+            'completed' => '#3b82f6',  // синий
+            'cancelled' => '#ef4444',  // красный
+            default => '#9ca3af'       // серый как запасной вариант
+        } }}"
                 },
                 @endforeach
             ],
+
             dateClick: function(info) {
                 @can('create projects')
                 document.getElementById('start_date').value = info.dateStr;

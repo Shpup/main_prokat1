@@ -19,6 +19,7 @@ Route::get('/', function () {
 require __DIR__.'/auth.php';
 
 Route::middleware(['auth', 'subscription'])->group(function () {
+    Route::patch('/projects/{project}/status', [ProjectController::class, 'updateStatus'])->name('projects.updateStatus');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -44,6 +45,23 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::post('/personnel/assign', [PersonnelController::class, 'assign'])->name('personnel.assign');
     Route::post('/personnel/non-working', [PersonnelController::class, 'addNonWorkingDay'])->name('personnel.non-working');
     Route::get('/personnel/time-slots', [PersonnelController::class, 'getTimeSlots'])->name('personnel.time-slots');
+
+
+
+    Route::get('/projects/{project}/equipment-list', [ProjectController::class, 'equipmentList'])
+        ->name('projects.equipmentList');
+    Route::post('/projects/{project}/equipment/{equipment}', [ProjectController::class, 'attachEquipment'])
+        ->name('projects.equipment.attach');
+    Route::delete('/projects/{project}/equipment/{equipment}', [ProjectController::class, 'detachEquipment'])
+        ->name('projects.equipment.detach');
+    Route::get('/categories', [CategoryController::class, 'index'])->name('categories');
+    Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::get('/categories/{id}', [CategoryController::class, 'show'])->name('categories.show');
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+    Route::post('/equipment', [EquipmentController::class, 'store'])->name('equipment.store');
+    Route::get('/equipment/{id}/edit', [EquipmentController::class, 'edit'])->name('equipment.edit');
+    Route::put('/equipment/{id}', [EquipmentController::class, 'update'])->name('equipment.update');
+    Route::delete('/equipment/{id}', [EquipmentController::class, 'destroy'])->name('equipment.destroy');
 });
 
 Route::get('/subscription/payment', [SubscriptionController::class, 'showPaymentPage'])->name('subscription.payment');

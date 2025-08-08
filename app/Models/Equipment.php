@@ -9,30 +9,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Equipment extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'name',
-        'category_id',
-        'description',
-        'price',
-        'specifications',
-        'image',
-        'qrcode',
+        'name', 'description', 'price', 'specifications', 'image',
+        'category_id', 'barcode', 'qrcode', 'status',
     ];
 
     protected $casts = [
         'specifications' => 'array',
+        'price' => 'decimal:2',
     ];
 
-    public function category(): BelongsTo
+    public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
-    public function projects(): BelongsToMany
+    // Используем одну таблицу pivot: project_equipment
+    public function projects()
     {
-        return $this->belongsToMany(Project::class, 'equipment_project')
+        return $this->belongsToMany(Project::class, 'project_equipment')
             ->withPivot('status')
             ->withTimestamps();
     }
