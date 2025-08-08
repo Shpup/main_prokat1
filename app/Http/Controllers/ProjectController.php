@@ -43,7 +43,9 @@ class ProjectController extends Controller
             'manager_id' => 'required|exists:users,id',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after:start_date',
+            'status' => 'required|in:new,active,completed,cancelled' // добавлено
         ]);
+
         $validated['admin_id'] = auth()->id();
 
         $project = Project::create($validated);
@@ -55,10 +57,76 @@ class ProjectController extends Controller
 
         return redirect()->route('dashboard')->with('success', 'Проект создан.');
     }
+    public function equipmentList(Request $request, Project $project)
+    {
+        $categoryId = $request->query('category_id');
+
+        $equipment = Equipment::when($categoryId, fn($q) => $q->where('category_id', $categoryId))
+            ->with('projects') // чтобы видеть, где уже прикреплено
+            ->get();
+
+        // Возвращаем ТОЛЬКО HTML-фрагмент
+        return view('projects.partials.equipment_table', [
+            'equipment' => $equipment,
+            'project'   => $project,
+        ])->render();
+    }
+    public function attachEquipment(Project $project, Equipment $equipment): JsonResponse
+    {
+        $this->authorize('edit projects');
+
+        // Проверка занятости по пересечению дат
+        $overlap = $equipment->projects()
+            ->where(function($q) use ($project) {
+                $q->whereNull('projects.end_date')
+                    ->orWhere(function($w) use ($project) {
+                        $w->whereDate('projects.start_date', '<=', $project->end_date ?? $project->start_date)
+                            ->where(function($z) use ($project) {
+                                $z->whereNull('projects.end_date')
+                                    ->orWhereDate('projects.end_date', '>=', $project->start_date);
+                            });
+                    });
+            })
+            ->where('projects.id', '!=', $project->id)
+            ->exists();
+
+        if ($overlap) {
+            return response()->json(['error' => 'Оборудование уже занято в пересекающемся проекте'], 422);
+        }
+
+        // Прикрепляем
+        $project->equipment()->syncWithoutDetaching([
+            $equipment->id => ['status' => 'assigned']
+        ]);
+
+        return response()->json(['success' => 'Оборудование прикреплено']);
+    }
+
+    public function detachEquipment(Project $project, Equipment $equipment): JsonResponse
+    {
+        $this->authorize('edit projects');
+
+        $project->equipment()->detach($equipment->id);
+
+        return response()->json(['success' => 'Оборудование убрано из проекта']);
+    }
 
     /**
      * Отображает детали проекта и смету.
      */
+    public function updateStatus(Request $request, Project $project): RedirectResponse
+    {
+        $this->authorize('edit projects');
+
+        $validated = $request->validate([
+            'status' => 'required|in:new,active,completed,cancelled',
+        ]);
+
+        $project->update(['status' => $validated['status']]);
+
+        return back()->with('success', 'Статус проекта обновлён.');
+    }
+
     public function show(Project $project): View
     {
         $project->load(['equipment', 'manager']);
