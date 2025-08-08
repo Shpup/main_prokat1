@@ -157,20 +157,23 @@
     /* Специальные стили для интервалов недели */
     .time-slot-header-12h,
     .time-slot-cell-12h {
-        width: 80px !important;
-        min-width: 80px !important;
-        max-width: 80px !important;
-        flex: 0 0 80px !important;
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+        flex: 0 0 100px !important;
         box-sizing: border-box !important;
     }
 
     #calendarTable th.time-slot-header-12h,
     #calendarTable td.time-slot-cell-12h {
-        width: 80px !important;
-        min-width: 80px !important;
-        max-width: 80px !important;
-        flex: 0 0 80px !important;
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+        flex: 0 0 100px !important;
     }
+
+    /* Чуть меньший шрифт для недельного вида с 12ч */
+    .time-slot-header-12h { font-size: 10px !important; }
 
     .time-slot-header-1d,
     .time-slot-cell-1d {
@@ -690,7 +693,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     width = '100px';
                 } else if (currentInterval === '12h') {
                     className = className.replace('time-slot-header', 'time-slot-header-12h');
-                    width = '80px';
+                    width = '100px';
                 } else if (currentInterval === '1d') {
                     className = className.replace('time-slot-header', 'time-slot-header-1d');
                     width = '100px';
