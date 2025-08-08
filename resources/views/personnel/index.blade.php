@@ -1,4 +1,4 @@
-<!--fdsfsfsdsd -->
+<!--as-->
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -93,6 +93,18 @@
     #toast {
         z-index: 9999;
     }
+
+    /* Отключаем горизонтальный скролл всей страницы */
+    html, body {
+        overflow-x: hidden;
+    }
+
+    /* Горизонтальный скролл только внутри контейнера таблицы */
+    .table-scroll {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
 </style>
 
 <style>
@@ -104,6 +116,15 @@
         max-width: 50px !important;
         flex: 0 0 50px !important;
         box-sizing: border-box !important;
+    }
+
+    /* Не даём заголовкам времени наезжать друг на друга при сужении */
+    .time-slot-header-4h,
+    .time-slot-header-12h,
+    .time-slot-header-1d {
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
     }
 
     /* Принудительно устанавливаем ширину для всех ячеек времени */
@@ -136,20 +157,23 @@
     /* Специальные стили для интервалов недели */
     .time-slot-header-12h,
     .time-slot-cell-12h {
-        width: 80px !important;
-        min-width: 80px !important;
-        max-width: 80px !important;
-        flex: 0 0 80px !important;
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+        flex: 0 0 100px !important;
         box-sizing: border-box !important;
     }
 
     #calendarTable th.time-slot-header-12h,
     #calendarTable td.time-slot-cell-12h {
-        width: 80px !important;
-        min-width: 80px !important;
-        max-width: 80px !important;
-        flex: 0 0 80px !important;
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+        flex: 0 0 100px !important;
     }
+
+    /* Чуть меньший шрифт для недельного вида с 12ч */
+    .time-slot-header-12h { font-size: 10px !important; }
 
     .time-slot-header-1d,
     .time-slot-cell-1d {
@@ -224,14 +248,14 @@
          <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-4 lg:space-y-0">
              <!-- Блок фильтров -->
              <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                 <select id="employeeFilter" class="w-full sm:w-auto rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm">
+                 <select id="employeeFilter" class="w-full sm:w-auto rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary pl-3 pr-10 py-2 text-sm">
                      <option value="">Все сотрудники</option>
                      @foreach($employees as $employee)
                          <option value="{{ $employee->id }}">{{ $employee->name }}</option>
                      @endforeach
                  </select>
 
-                 <select id="specialtyFilter" class="w-full sm:w-auto rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm">
+                 <select id="specialtyFilter" class="w-full sm:w-auto rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary pl-3 pr-10 py-2 text-sm">
                      <option value="">Все специальности</option>
                      @foreach($specialties as $specialty)
                          <option value="{{ $specialty->id }}">{{ $specialty->name }}</option>
@@ -240,7 +264,7 @@
 
                  <div class="flex items-center space-x-2 w-full sm:w-auto">
                      <span class="text-sm text-gray-600">Дата:</span>
-                     <input type="date" id="calendarDate" class="flex-1 sm:flex-none rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm" value="{{ date('Y-m-d') }}">
+                     <input type="date" id="calendarDate" class="flex-1 sm:flex-none rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary pl-3 pr-10 py-2 text-sm" value="{{ date('Y-m-d') }}">
                  </div>
              </div>
 
@@ -257,7 +281,7 @@
 
                  <div class="flex items-center space-x-2 w-full sm:w-auto">
                      <span class="text-sm text-gray-600">Интервал:</span>
-                     <select id="timeInterval" class="flex-1 sm:flex-none rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm">
+                     <select id="timeInterval" class="flex-1 sm:flex-none rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary pl-3 pr-10 py-2 text-sm">
                          <option value="30m">30 минут</option>
                          <option value="60m" selected>1 час</option>
                          <option value="4h">4 часа</option>
@@ -270,17 +294,17 @@
      <!-- Таблица календаря -->
      <div class="px-2 sm:px-8 py-4 sm:py-6">
          <div class="table-scroll overflow-x-auto whitespace-nowrap">
-             <table class="divide-y divide-gray-200" id="calendarTable" style="min-width: max-content;">
+            <table class="divide-y divide-gray-200" id="calendarTable" style="width: 100%; min-width: max-content;">
                  <thead class="bg-gray-50">
                      <tr>
                          <th class="px-4 sm:px-8 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider w-48 sm:w-64 sticky left-0 bg-gray-50 z-10">
                              Сотрудник
                          </th>
-                         @foreach($timeSlots as $slot)
-                             <th class="px-1 sm:px-2 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider time-slot-header" style="width: 50px !important; min-width: 50px !important;">
-                                 {{ $slot }}
-                             </th>
-                         @endforeach
+                          @foreach($timeSlots as $slot)
+                              <th class="px-1 sm:px-2 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-normal time-slot-header" style="width: 50px !important; min-width: 50px !important;">
+                                  {{ $slot }}
+                              </th>
+                          @endforeach
                      </tr>
                  </thead>
                  <tbody class="bg-white divide-y divide-gray-200">
@@ -354,12 +378,7 @@
     </div>
 </div>
 
-<!-- Toast уведомления -->
-<div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-y-full transition-transform duration-300">
-    <div class="flex items-center">
-        <span id="toastMessage"></span>
-    </div>
-</div>
+<!-- Toast уведомления отключены -->
 
 
 
@@ -495,6 +514,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let mouseStartX = 0; // Начальная позиция мыши
     let currentMouseX = 0; // Текущая позиция мыши
     let lastDirection = null; // Последнее направление движения
+    let isContextMenuOpen = false; // Флаг открытого контекстного меню
 
     // Функция восстановления блоков из БД
     function restoreBlocks() {
@@ -598,17 +618,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const markNonWorkingBtn = document.getElementById('markNonWorkingBtn');
     const deleteBlockBtn = document.getElementById('deleteBlockBtn');
 
-    // Toast уведомления
-    const toast = document.getElementById('toast');
-    const toastMessage = document.getElementById('toastMessage');
-
-    function showToast(message) {
-        toastMessage.textContent = message;
-        toast.classList.remove('translate-y-full');
-        setTimeout(() => {
-            toast.classList.add('translate-y-full');
-        }, 2000);
-    }
+    // Toast уведомления отключены
+    function showToast(message) { return; }
 
     // Функция для обновления доступных интервалов
     function updateIntervalOptions() {
@@ -662,18 +673,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const thead = table.querySelector('thead tr');
             const tbody = table.querySelector('tbody');
 
-            // Управляем скроллом в зависимости от интервала
-            if (currentInterval === '60m' || currentInterval === '4h' || currentInterval === '12h' || (currentView === 'week' && currentInterval === '1d')) {
-                tableScroll.classList.remove('overflow-x-auto', 'whitespace-nowrap');
-                table.style.minWidth = '100%';
-            } else if (currentView === 'month' && currentInterval === '1d') {
-                // Для месяца с интервалом "День" включаем горизонтальный скролл
-                tableScroll.classList.add('overflow-x-auto', 'whitespace-nowrap');
-                table.style.minWidth = 'max-content';
-            } else {
-                tableScroll.classList.add('overflow-x-auto', 'whitespace-nowrap');
-                table.style.minWidth = 'max-content';
-            }
+            // Всегда включаем горизонтальный скролл; таблица занимает всю ширину, но может расширяться
+            tableScroll.classList.add('overflow-x-auto', 'whitespace-nowrap');
+            table.style.width = '100%';
+            table.style.minWidth = 'max-content';
 
             // Обновляем заголовки
             const timeHeader = thead.querySelector('th:first-child');
@@ -682,7 +685,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             data.timeSlots.forEach(slot => {
                 const th = document.createElement('th');
-                let className = 'px-2 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider time-slot-header';
+                let className = 'px-2 py-4 text-center text-xs font-medium text-gray-500 tracking-normal time-slot-header';
                 let width = '50px';
 
                 if (currentInterval === '4h') {
@@ -690,7 +693,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     width = '100px';
                 } else if (currentInterval === '12h') {
                     className = className.replace('time-slot-header', 'time-slot-header-12h');
-                    width = '80px';
+                    width = '100px';
                 } else if (currentInterval === '1d') {
                     className = className.replace('time-slot-header', 'time-slot-header-1d');
                     width = '100px';
@@ -700,7 +703,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 th.style.width = width;
                 th.style.minWidth = width;
 
-                th.textContent = slot;
+                // Форматируем только значения времени. Для дат (месяц/день) оставляем как есть
+                const slotStr = String(slot);
+                const isTimeOnly = /^\d{1,2}(:\d{2})?$/.test(slotStr);
+                if (isTimeOnly) {
+                    const parts = slotStr.split(':');
+                    let hh = String(parts[0] ?? '').padStart(2, '0');
+                    let mm = String(parts[1] ?? '00').padStart(2, '0');
+                    th.textContent = `${hh}:${mm}`;
+                } else {
+                    th.textContent = slotStr;
+                }
                 thead.appendChild(th);
             });
 
@@ -1026,6 +1039,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
 
         contextMenu.classList.remove('hidden');
+        isContextMenuOpen = true;
 
         // Сохраняем выбранные ячейки
         contextMenu.dataset.selectedCells = JSON.stringify(Array.from(cells).map(c => c.dataset.cellId));
@@ -1108,9 +1122,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const centerX = (firstRect.left + lastRect.right) / 2;
         const centerY = (firstRect.top + lastRect.bottom) / 2;
 
-        // Позиционируем меню справа от выделенной области
-        const menuLeft = lastRect.right + 10;
-        const menuTop = firstRect.top;
+                // Позиционируем меню справа от выделенной области
+                const menuLeft = lastRect.right + 10;
+                const menuTop = Math.max(firstRect.top, 60); // не перекрывать панель управления
 
         // Проверяем, не выходит ли меню за пределы экрана
         const menuWidth = 200;
@@ -1154,6 +1168,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
 
         contextMenu.classList.remove('hidden');
+        isContextMenuOpen = true;
 
         // Сохраняем выбранные ячейки
         contextMenu.dataset.selectedCells = JSON.stringify(cells.map(c => c.dataset.cellId));
@@ -1168,6 +1183,7 @@ document.addEventListener('DOMContentLoaded', function() {
         contextMenu.style.display = 'none';
         contextMenu.style.visibility = 'hidden';
         contextMenu.style.opacity = '0';
+        isContextMenuOpen = false;
     }
 
     // Обработчики контекстного меню
@@ -1359,10 +1375,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Обработчик клика вне контекстного меню
+    // Обработчик клика: если меню открыто и клик вне его — скрываем и очищаем выделение
     document.addEventListener('click', function(e) {
-        if (!contextMenu.contains(e.target)) {
+        if (isContextMenuOpen && !contextMenu.contains(e.target)) {
             hideContextMenu();
+            if (!e.target.closest('.selectable-cell')) {
+                clearSelection();
+            }
         }
     });
 
@@ -1598,14 +1617,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Инициализация для интервалов без скролла
     const table = document.querySelector('#calendarTable');
     const tableScroll = document.querySelector('.table-scroll');
-    if (currentInterval === '60m' || currentInterval === '4h' || currentInterval === '12h' || (currentView === 'week' && currentInterval === '1d')) {
-        tableScroll.classList.remove('overflow-x-auto', 'whitespace-nowrap');
-        table.style.minWidth = '100%';
-    } else if (currentView === 'month' && currentInterval === '1d') {
-        // Для месяца с интервалом "День" включаем горизонтальный скролл
-        tableScroll.classList.add('overflow-x-auto', 'whitespace-nowrap');
-        table.style.minWidth = 'max-content';
-    }
+    // Инициализация: всегда показываем горизонтальный скролл; таблица тянется на 100%, но при нехватке места активирует скролл
+    tableScroll.classList.add('overflow-x-auto', 'whitespace-nowrap');
+    table.style.width = '100%';
+    table.style.minWidth = 'max-content';
 
     // Обновляем интервалы и таблицу при загрузке страницы
     updateIntervalOptions();
