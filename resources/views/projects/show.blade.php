@@ -6,9 +6,75 @@
     <title>Склад оборудования</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-    <div class="container mx-auto p-6">
-        <h1 class="text-2xl font-bold text-gray-800 mb-4">{{ $project->name }}</h1>
-        <div class="text-sm text-gray-600 mb-2">Начало: {{ $project->start_date }} — Завершение: {{ $project->end_date }}</div>
+
+<div class="container mx-auto p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-semibold text-gray-800">
+            Проект: {{ $project->name }}
+        </h1>
+
+        <div class="flex items-center gap-3">
+            {{-- Бейдж текущего статуса --}}
+            @php
+                $status = $project->status ?? 'new';
+                $statusMap = [
+                    'new' => ['label' => 'Новый', 'class' => 'bg-yellow-100 text-yellow-800'],
+                    'active' => ['label' => 'В работе', 'class' => 'bg-green-100 text-green-800'],
+                    'completed' => ['label' => 'Завершён', 'class' => 'bg-blue-100 text-blue-800'],
+                    'cancelled' => ['label' => 'Отменён', 'class' => 'bg-red-100 text-red-800'],
+                ];
+                $badge = $statusMap[$status] ?? ['label' => ucfirst($status), 'class' => 'bg-gray-100 text-gray-800'];
+            @endphp
+            <span class="px-3 py-1 text-sm rounded-full font-medium {{ $badge['class'] }}">
+                    {{ $badge['label'] }}
+                </span>
+
+            @can('edit projects')
+                <button
+                    type="button"
+                    onclick="openModal('changeStatusModal')"
+                    class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+                >
+                    Сменить статус
+                </button>
+            @endcan
+            @can('edit projects')
+                <!-- Модалка смены статуса -->
+                <div id="changeStatusModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+                    <div class="bg-white rounded-lg p-6 w-full max-w-md">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Сменить статус проекта</h2>
+                        <form action="{{ route('projects.updateStatus', $project) }}" method="POST">
+                            @csrf
+                            @method('PATCH')
+                            <div class="mb-4">
+                                <label for="project_status" class="block text-sm font-medium text-gray-600">Новый статус</label>
+                                <select name="status" id="project_status" class="mt-1 block w-full border-gray-300 rounded-md" required>
+                                    <option value="new" {{ $project->status === 'new' ? 'selected' : '' }}>Новый</option>
+                                    <option value="active" {{ $project->status === 'active' ? 'selected' : '' }}>В работе</option>
+                                    <option value="completed" {{ $project->status === 'completed' ? 'selected' : '' }}>Завершён</option>
+                                    <option value="cancelled" {{ $project->status === 'cancelled' ? 'selected' : '' }}>Отменён</option>
+                                </select>
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="button" onclick="closeModal('changeStatusModal')" class="mr-2 bg-gray-300 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-400">Отмена</button>
+                                <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Сохранить</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <script>
+                    function openModal(id) {
+                        document.getElementById(id)?.classList.remove('hidden');
+                    }
+                    function closeModal(id) {
+                        document.getElementById(id)?.classList.add('hidden');
+                    }
+                </script>
+            @endcan
+        </div>
+    </div>
+
 
         {{-- Вкладки --}}
         @php

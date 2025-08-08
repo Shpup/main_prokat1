@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PersonnelController;
+use App\Http\Controllers\ClientController;
 Route::get('/', function () {
     if (Auth::check()) {
         return redirect()->route('dashboard');
@@ -46,7 +47,8 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::post('/personnel/non-working', [PersonnelController::class, 'addNonWorkingDay'])->name('personnel.non-working');
     Route::get('/personnel/time-slots', [PersonnelController::class, 'getTimeSlots'])->name('personnel.time-slots');
 
-
+    Route::resource('clients', ClientController::class)->except(['create', 'show']);
+    Route::get('/clients', [ClientController::class, 'index'])->name('clients');
 
     Route::get('/projects/{project}/equipment-list', [ProjectController::class, 'equipmentList'])
         ->name('projects.equipmentList');
