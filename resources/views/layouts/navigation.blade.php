@@ -41,6 +41,10 @@
                             <x-dropdown-link :href="route('clients')">
                                 {{ __('Клиенты') }}
                             </x-dropdown-link>
+
+                            <x-dropdown-link :href="route('sites')">
+                                {{ __('Площадки') }}
+                            </x-dropdown-link>
                         </div>
                     </div>
                 </div>

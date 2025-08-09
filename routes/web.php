@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PersonnelController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\SiteController;
+
 Route::get('/', function () {
     if (Auth::check()) {
         return redirect()->route('dashboard');
@@ -50,6 +52,9 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::resource('clients', ClientController::class)->except(['create', 'show']);
     Route::get('/clients', [ClientController::class, 'index'])->name('clients');
 
+
+    Route::resource('sites', SiteController::class);
+    Route::get('/sites', [SiteController::class, 'index'])->name('sites');
     Route::get('/projects/{project}/equipment-list', [ProjectController::class, 'equipmentList'])
         ->name('projects.equipmentList');
     Route::post('/projects/{project}/equipment/{equipment}', [ProjectController::class, 'attachEquipment'])
