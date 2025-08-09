@@ -1,35 +1,28 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TripSheet extends Model
 {
     protected $fillable = [
-        'date_time',
-        'vehicle_id',
-        'driver_id',
-        'location_id',
-        'address',
-        'distance',
-        'cost',
-        'admin_id',
-        'status',
+        'date_time', 'site_id', 'address', 'vehicle_id', 'driver_id', 'distance',
+        'status', 'cost',
     ];
 
-    public function vehicle()
+    public function site(): BelongsTo
     {
-        return $this->belongsTo(Vehicle::class);
+        return $this->belongsTo(Site::class, 'site_id');
     }
 
-    public function driver()
+    public function vehicle(): BelongsTo
+    {
+        return $this->belongsTo(Vehicle::class, 'vehicle_id');
+    }
+
+    public function driver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'driver_id');
-    }
-
-    public function location()
-    {
-        return $this->belongsTo(Site::class);
     }
 }

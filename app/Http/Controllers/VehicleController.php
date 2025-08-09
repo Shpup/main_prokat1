@@ -7,47 +7,58 @@ use App\Models\TripSheet;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
+use App\Models\Site;
 class VehicleController extends Controller
 {
     public function index(Request $request)
     {
-        $vehiclesQuery = Vehicle::query();
-        $tripSheetsQuery = TripSheet::where('admin_id', Auth::id());
+        $search = $request->input('search', '');
+        $sort = $request->input('sort', 'brand');
+        $direction = $request->input('direction', 'asc');
 
-        // Поиск
-        if ($request->has('search')) {
-            $search = $request->input('search');
-            $vehiclesQuery->where(function ($query) use ($search) {
-                $query->where('brand', 'like', "%$search%")
-                    ->orWhere('model', 'like', "%$search%")
-                    ->orWhere('license_plate', 'like', "%$search%");
-            });
-            $tripSheetsQuery->where(function ($query) use ($search) {
-                $query->where('address', 'like', "%$search%")
-                    ->orWhereHas('vehicle', function ($q) use ($search) {
-                        $q->where('brand', 'like', "%$search%")
-                            ->orWhere('model', 'like', "%$search%");
+        if ($request->ajax()) {
+            if ($request->path() === 'vehicles') {
+                $vehicles = Vehicle::with('site')
+                    ->where(function ($query) use ($search) {
+                        $query->where('brand', 'like', "%$search%")
+                            ->orWhere('model', 'like', "%$search%")
+                            ->orWhere('license_plate', 'like', "%$search%");
                     })
-                    ->orWhereHas('driver', function ($q) use ($search) {
-                        $q->where('name', 'like', "%$search%");
-                    });
-            });
+                    ->orderBy($sort, $direction)
+                    ->paginate(10);
+
+                return response()->json([
+                    'view' => view('vehicles.partials.table', compact('vehicles'))->render()
+                ]);
+            } elseif ($request->path() === 'trip-sheets') {
+                $tripSheets = TripSheet::with(['site', 'vehicle', 'driver'])
+                    ->where(function ($query) use ($search) {
+                        $query->where('date_time', 'like', "%$search%")
+                            ->orWhere('address', 'like', "%$search%")
+                            ->orWhereHas('vehicle', function ($q) use ($search) {
+                                $q->where('brand', 'like', "%$search%")
+                                    ->orWhere('model', 'like', "%$search%");
+                            })
+                            ->orWhereHas('driver', function ($q) use ($search) {
+                                $q->where('name', 'like', "%$search%");
+                            });
+                    })
+                    ->orderBy($sort, $direction) // Используем sort из запроса
+                    ->paginate(10);
+
+                return response()->json([
+                    'view' => view('vehicles.partials.trip_sheets_table', compact('tripSheets'))->render()
+                ]);
+            }
         }
 
-        // Сортировка
-        $sortField = $request->input('sort_field', 'id');
-        $sortDirection = $request->input('sort_direction', 'desc');
-        $vehiclesQuery->orderBy($sortField, $sortDirection);
-        $tripSheetsQuery->orderBy($sortField, $sortDirection);
+        $vehicles = Vehicle::with('site')->paginate(10);
+        $tripSheets = TripSheet::with(['site', 'vehicle', 'driver'])->paginate(10);
+        $sites = Site::all();
+        $adminId = Auth::id();
+        $drivers = User::where('role', 'driver')->where('admin_id', $adminId)->get();
 
-        $vehicles = $vehiclesQuery->paginate(10);
-        $tripSheets = $tripSheetsQuery->paginate(10);
-        $drivers = User::where('admin_id', Auth::id())->whereHas('roles', function ($query) {
-            $query->where('name', 'driver');
-        })->get();
-
-        return view('vehicles.index', compact('vehicles', 'tripSheets', 'drivers'));
+        return view('vehicles.index', compact('vehicles', 'tripSheets', 'sites', 'drivers'));
     }
 
     public function store(Request $request)

@@ -106,9 +106,9 @@
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-semibold text-gray-700"></h2>
 
-                    <button onclick="openCreate()" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
-                        Добавить транспорт
-                    </button>
+                <button onclick="openCreate()" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                    Добавить транспорт
+                </button>
 
             </div>
 
@@ -161,9 +161,9 @@
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-semibold text-gray-700"></h2>
 
-                    <button onclick="openCreateTripSheet()" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
-                        Добавить путеводный лист
-                    </button>
+                <button onclick="openCreateTripSheet()" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                    Добавить путеводный лист
+                </button>
 
             </div>
 
@@ -366,118 +366,118 @@
         </div>
     </div>
 </div>
-    <script>
-        let vehicles = @json($vehicles->items());
-        let tripSheets = @json($tripSheets->items());
-        const createUrl = '{{ route('vehicles.store') }}';
-        const updateUrlTemplate = '{{ route('vehicles.update', ['vehicle' => ':id']) }}'.replace(':id', 'VEHICLE_ID');
-        const destroyUrlTemplate = '{{ route('vehicles.destroy', ['vehicle' => 'VEHICLE_ID']) }}';
-        const tripSheetUrl = '{{ route('tripSheets.store') }}';
-        const tripSheetUpdateUrlTemplate = '{{ route('tripSheets.update', ['tripSheet' => 'TRIP_SHEET_ID']) }}';
-        const tripSheetDestroyUrlTemplate = '{{ route('tripSheets.destroy', ['tripSheet' => 'TRIP_SHEET_ID']) }}';
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+<script>
+    let vehicles = @json($vehicles->items());
+    let tripSheets = @json($tripSheets->items());
+    const createUrl = '{{ route('vehicles.store') }}';
+    const updateUrlTemplate = '{{ route('vehicles.update', ['vehicle' => ':id']) }}'.replace(':id', 'VEHICLE_ID');
+    const destroyUrlTemplate = '{{ route('vehicles.destroy', ['vehicle' => 'VEHICLE_ID']) }}';
+    const tripSheetUrl = '{{ route('tripSheets.store') }}';
+    const tripSheetUpdateUrlTemplate = '{{ route('tripSheets.update', ['tripSheet' => 'TRIP_SHEET_ID']) }}';
+    const tripSheetDestroyUrlTemplate = '{{ route('tripSheets.destroy', ['tripSheet' => 'TRIP_SHEET_ID']) }}';
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-        const fuelPrices = {
-            '92': 56.62,
-            '95': 61.87,
-            '100': 84.10,
-            'diesel': 71.36,
-            'electric': 5.86
+    const fuelPrices = {
+        '92': 56.62,
+        '95': 61.87,
+        '100': 84.10,
+        'diesel': 71.36,
+        'electric': 5.86
+    };
+
+    function openTab(tabName) {
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.querySelector(`.tab-button[onclick="openTab('${tabName}')"]`).classList.add('active');
+        document.getElementById(`${tabName}Tab`).classList.add('active');
+    }
+
+    function openCreate() {
+        document.getElementById('createVehicleForm').reset();
+        document.getElementById('createVehicleModal').classList.remove('hidden');
+        document.getElementById('modalTitle').textContent = 'Добавить транспорт';
+        document.getElementById('vehicle_id').value = '';
+        document.getElementById('submitVehicle').textContent = 'Добавить';
+        document.getElementById('createVehicleForm').action = createUrl;
+        toggleFuelFields();
+    }
+
+    function openEdit(vehicleId) {
+        const vehicle = vehicles.find(v => v.id === vehicleId);
+        if (!vehicle) return alert('Транспорт не найден');
+        document.getElementById('createVehicleModal').classList.remove('hidden');
+        document.getElementById('modalTitle').textContent = 'Редактировать транспорт';
+        document.getElementById('vehicle_id').value = vehicle.id;
+        document.getElementById('brand').value = vehicle.brand || '—';
+        document.getElementById('model').value = vehicle.model || '—';
+        document.getElementById('year').value = vehicle.year || 0;
+        document.getElementById('license_plate').value = vehicle.license_plate || '—';
+        document.getElementById('status').value = vehicle.status || 'available';
+        document.getElementById('mileage').value = vehicle.mileage || 0;
+        document.getElementById('fuel_type').value = vehicle.fuel_type || '';
+        document.getElementById('fuel_grade').value = vehicle.fuel_grade || '95';
+        document.getElementById('fuel_consumption').value = vehicle.fuel_consumption || 0;
+        document.getElementById('diesel_consumption').value = vehicle.diesel_consumption || 0;
+        document.getElementById('battery_capacity').value = vehicle.battery_capacity || 0;
+        document.getElementById('range').value = vehicle.range || 0;
+        document.getElementById('hybrid_consumption').value = vehicle.hybrid_consumption || 0;
+        document.getElementById('hybrid_range').value = vehicle.hybrid_range || 0;
+        document.getElementById('comment').value = vehicle.comment || '';
+        document.getElementById('submitVehicle').textContent = 'Сохранить';
+        document.getElementById('createVehicleForm').action = updateUrlTemplate.replace('VEHICLE_ID', vehicle.id);
+        let methodInput = document.querySelector('#createVehicleForm input[name="_method"]');
+        if (!methodInput) {
+            methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            document.getElementById('createVehicleForm').appendChild(methodInput);
+        }
+        methodInput.value = 'PUT';
+        toggleFuelFields();
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function toggleFuelFields() {
+        const fuelType = document.getElementById('fuel_type').value;
+        const fields = {
+            'petrol': 'petrol-fields',
+            'diesel': 'diesel-fields',
+            'electric': 'electric-fields',
+            'hybrid': 'hybrid-fields'
         };
-
-        function openTab(tabName) {
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.querySelector(`.tab-button[onclick="openTab('${tabName}')"]`).classList.add('active');
-            document.getElementById(`${tabName}Tab`).classList.add('active');
+        for (let key in fields) {
+            document.getElementById(fields[key]).classList.remove('active');
         }
-
-        function openCreate() {
-            document.getElementById('createVehicleForm').reset();
-            document.getElementById('createVehicleModal').classList.remove('hidden');
-            document.getElementById('modalTitle').textContent = 'Добавить транспорт';
-            document.getElementById('vehicle_id').value = '';
-            document.getElementById('submitVehicle').textContent = 'Добавить';
-            document.getElementById('createVehicleForm').action = createUrl;
-            toggleFuelFields();
+        if (fields[fuelType]) {
+            document.getElementById(fields[fuelType]).classList.add('active');
         }
+    }
 
-        function openEdit(vehicleId) {
-            const vehicle = vehicles.find(v => v.id === vehicleId);
-            if (!vehicle) return alert('Транспорт не найден');
-            document.getElementById('createVehicleModal').classList.remove('hidden');
-            document.getElementById('modalTitle').textContent = 'Редактировать транспорт';
-            document.getElementById('vehicle_id').value = vehicle.id;
-            document.getElementById('brand').value = vehicle.brand || '—';
-            document.getElementById('model').value = vehicle.model || '—';
-            document.getElementById('year').value = vehicle.year || 0;
-            document.getElementById('license_plate').value = vehicle.license_plate || '—';
-            document.getElementById('status').value = vehicle.status || 'available';
-            document.getElementById('mileage').value = vehicle.mileage || 0;
-            document.getElementById('fuel_type').value = vehicle.fuel_type || '';
-            document.getElementById('fuel_grade').value = vehicle.fuel_grade || '95';
-            document.getElementById('fuel_consumption').value = vehicle.fuel_consumption || 0;
-            document.getElementById('diesel_consumption').value = vehicle.diesel_consumption || 0;
-            document.getElementById('battery_capacity').value = vehicle.battery_capacity || 0;
-            document.getElementById('range').value = vehicle.range || 0;
-            document.getElementById('hybrid_consumption').value = vehicle.hybrid_consumption || 0;
-            document.getElementById('hybrid_range').value = vehicle.hybrid_range || 0;
-            document.getElementById('comment').value = vehicle.comment || '';
-            document.getElementById('submitVehicle').textContent = 'Сохранить';
-            document.getElementById('createVehicleForm').action = updateUrlTemplate.replace('VEHICLE_ID', vehicle.id);
-            let methodInput = document.querySelector('#createVehicleForm input[name="_method"]');
-            if (!methodInput) {
-                methodInput = document.createElement('input');
-                methodInput.type = 'hidden';
-                methodInput.name = '_method';
-                document.getElementById('createVehicleForm').appendChild(methodInput);
+    function destroy(vehicleId) {
+        if (!confirm('Уверены?')) return;
+        const url = destroyUrlTemplate.replace('VEHICLE_ID', vehicleId);
+        fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
             }
-            methodInput.value = 'PUT';
-            toggleFuelFields();
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.add('hidden');
-        }
-
-        function toggleFuelFields() {
-            const fuelType = document.getElementById('fuel_type').value;
-            const fields = {
-                'petrol': 'petrol-fields',
-                'diesel': 'diesel-fields',
-                'electric': 'electric-fields',
-                'hybrid': 'hybrid-fields'
-            };
-            for (let key in fields) {
-                document.getElementById(fields[key]).classList.remove('active');
+        }).then(response => {
+            if (response.ok) {
+                vehicles = vehicles.filter(v => v.id !== vehicleId);
+                updateTable();
+            } else {
+                alert('Ошибка удаления');
             }
-            if (fields[fuelType]) {
-                document.getElementById(fields[fuelType]).classList.add('active');
-            }
-        }
+        }).catch(() => alert('Ошибка сети'));
+    }
 
-        function destroy(vehicleId) {
-            if (!confirm('Уверены?')) return;
-            const url = destroyUrlTemplate.replace('VEHICLE_ID', vehicleId);
-            fetch(url, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                }
-            }).then(response => {
-                if (response.ok) {
-                    vehicles = vehicles.filter(v => v.id !== vehicleId);
-                    updateTable();
-                } else {
-                    alert('Ошибка удаления');
-                }
-            }).catch(() => alert('Ошибка сети'));
-        }
-
-        function updateTable() {
-            const tbody = document.getElementById('vehiclesTableBody');
-            tbody.innerHTML = vehicles.map(vehicle => `
+    function updateTable() {
+        const tbody = document.getElementById('vehiclesTableBody');
+        tbody.innerHTML = vehicles.map(vehicle => `
                 <tr class="hover:bg-gray-50" data-id="${vehicle.id}">
                     <td class="px-6 py-4">${vehicle.brand || '—'}</td>
                     <td class="px-6 py-4">${vehicle.model || '—'}</td>
@@ -492,162 +492,162 @@
                     </td>
                 </tr>
             `).join('') || '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-600">Нет транспорта</td></tr>';
+    }
+
+    function openCreateTripSheet() {
+        document.getElementById('createTripSheetForm').reset();
+        document.getElementById('createTripSheetModal').classList.remove('hidden');
+        document.getElementById('tripSheetModalTitle').textContent = 'Добавить путеводный лист';
+        document.getElementById('trip_sheet_id').value = '';
+        document.getElementById('submitTripSheet').textContent = 'Добавить';
+        document.getElementById('createTripSheetForm').action = tripSheetUrl;
+        updateAddress();
+        calculateTripCost();
+    }
+
+    function openEditTripSheet(tripSheetId) {
+        const tripSheet = tripSheets.find(ts => ts.id === tripSheetId);
+        if (!tripSheet) return alert('Путеводный лист не найден');
+        document.getElementById('createTripSheetModal').classList.remove('hidden');
+        document.getElementById('tripSheetModalTitle').textContent = 'Редактировать путеводный лист';
+        document.getElementById('trip_sheet_id').value = tripSheet.id;
+        document.getElementById('date_time').value = tripSheet.date_time ? tripSheet.date_time.replace(' ', 'T') : '';
+        document.getElementById('location_id').value = tripSheet.location_id || '';
+        document.getElementById('address').value = tripSheet.address || '';
+        document.getElementById('vehicle_id').value = tripSheet.vehicle_id || '';
+        document.getElementById('driver_id').value = tripSheet.driver_id || '';
+        document.getElementById('distance').value = tripSheet.distance || '';
+        document.getElementById('status').value = tripSheet.status || 'in_progress';
+        document.getElementById('cost').value = tripSheet.cost || '';
+        document.getElementById('submitTripSheet').textContent = 'Сохранить';
+        document.getElementById('createTripSheetForm').action = tripSheetUpdateUrlTemplate.replace('TRIP_SHEET_ID', tripSheet.id);
+        let methodInput = document.querySelector('#createTripSheetForm input[name="_method"]');
+        if (!methodInput) {
+            methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            document.getElementById('createTripSheetForm').appendChild(methodInput);
+        }
+        methodInput.value = 'PUT';
+        updateAddress();
+        calculateTripCost();
+    }
+
+    function updateAddress() {
+        const locationId = document.getElementById('location_id').value;
+        const location = @json($locations ?? [])?.find(l => l.id == locationId);
+        document.getElementById('address').value = location?.address || '';
+        calculateTripCost();
+    }
+
+    function calculateTripCost() {
+        const vehicleId = document.getElementById('vehicle_id').value;
+        const distance = parseFloat(document.getElementById('distance').value) || 0;
+        if (!vehicleId || !distance) {
+            document.getElementById('cost').value = '';
+            return;
+        }
+        const vehicle = vehicles.find(v => v.id == vehicleId);
+        if (!vehicle) return;
+
+        const consumption = vehicle.fuel_consumption || vehicle.diesel_consumption || vehicle.hybrid_consumption || 0;
+        const fuelPrice = fuelPrices[vehicle.fuel_grade || vehicle.fuel_type || '95'] || 61.87;
+        const cost = (distance / 100) * consumption * fuelPrice;
+        document.getElementById('cost').value = cost.toFixed(2);
+    }
+
+    document.getElementById('createVehicleForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.append('_token', csrfToken);
+        if (document.getElementById('vehicle_id').value) {
+            formData.append('_method', 'PUT');
         }
 
-        function openCreateTripSheet() {
-            document.getElementById('createTripSheetForm').reset();
-            document.getElementById('createTripSheetModal').classList.remove('hidden');
-            document.getElementById('tripSheetModalTitle').textContent = 'Добавить путеводный лист';
-            document.getElementById('trip_sheet_id').value = '';
-            document.getElementById('submitTripSheet').textContent = 'Добавить';
-            document.getElementById('createTripSheetForm').action = tripSheetUrl;
-            updateAddress();
-            calculateTripCost();
-        }
-
-        function openEditTripSheet(tripSheetId) {
-            const tripSheet = tripSheets.find(ts => ts.id === tripSheetId);
-            if (!tripSheet) return alert('Путеводный лист не найден');
-            document.getElementById('createTripSheetModal').classList.remove('hidden');
-            document.getElementById('tripSheetModalTitle').textContent = 'Редактировать путеводный лист';
-            document.getElementById('trip_sheet_id').value = tripSheet.id;
-            document.getElementById('date_time').value = tripSheet.date_time ? tripSheet.date_time.replace(' ', 'T') : '';
-            document.getElementById('location_id').value = tripSheet.location_id || '';
-            document.getElementById('address').value = tripSheet.address || '';
-            document.getElementById('vehicle_id').value = tripSheet.vehicle_id || '';
-            document.getElementById('driver_id').value = tripSheet.driver_id || '';
-            document.getElementById('distance').value = tripSheet.distance || '';
-            document.getElementById('status').value = tripSheet.status || 'in_progress';
-            document.getElementById('cost').value = tripSheet.cost || '';
-            document.getElementById('submitTripSheet').textContent = 'Сохранить';
-            document.getElementById('createTripSheetForm').action = tripSheetUpdateUrlTemplate.replace('TRIP_SHEET_ID', tripSheet.id);
-            let methodInput = document.querySelector('#createTripSheetForm input[name="_method"]');
-            if (!methodInput) {
-                methodInput = document.createElement('input');
-                methodInput.type = 'hidden';
-                methodInput.name = '_method';
-                document.getElementById('createTripSheetForm').appendChild(methodInput);
-            }
-            methodInput.value = 'PUT';
-            updateAddress();
-            calculateTripCost();
-        }
-
-        function updateAddress() {
-            const locationId = document.getElementById('location_id').value;
-            const location = @json($locations ?? [])?.find(l => l.id == locationId);
-            document.getElementById('address').value = location?.address || '';
-            calculateTripCost();
-        }
-
-        function calculateTripCost() {
-            const vehicleId = document.getElementById('vehicle_id').value;
-            const distance = parseFloat(document.getElementById('distance').value) || 0;
-            if (!vehicleId || !distance) {
-                document.getElementById('cost').value = '';
-                return;
-            }
-            const vehicle = vehicles.find(v => v.id == vehicleId);
-            if (!vehicle) return;
-
-            const consumption = vehicle.fuel_consumption || vehicle.diesel_consumption || vehicle.hybrid_consumption || 0;
-            const fuelPrice = fuelPrices[vehicle.fuel_grade || vehicle.fuel_type || '95'] || 61.87;
-            const cost = (distance / 100) * consumption * fuelPrice;
-            document.getElementById('cost').value = cost.toFixed(2);
-        }
-
-        document.getElementById('createVehicleForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            formData.append('_token', csrfToken);
-            if (document.getElementById('vehicle_id').value) {
-                formData.append('_method', 'PUT');
-            }
-
-            const url = this.action;
-            const response = await fetch(url, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.id) {
-                    let vehicleIndex = vehicles.findIndex(v => v.id === data.id);
-                    if (vehicleIndex !== -1) {
-                        vehicles[vehicleIndex] = data;
-                    } else {
-                        vehicles.unshift(data);
-                    }
-                    updateTable();
-                    closeModal('createVehicleModal');
-                }
-            } else {
-                const error = await response.json();
-                alert('Ошибка сохранения: ' + (error.message || 'Неизвестная ошибка'));
-            }
+        const url = this.action;
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
         });
 
-        document.getElementById('createTripSheetForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            formData.append('_token', csrfToken);
-            if (document.getElementById('trip_sheet_id').value) {
-                formData.append('_method', 'PUT');
-            }
-
-            const address = formData.get('address');
-            if (!formData.get('location_id') && !address) {
-                alert('Укажите адрес, если площадка не выбрана!');
-                return;
-            }
-
-            const url = this.action;
-            const response = await fetch(url, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.id) {
-                    let tripSheetIndex = tripSheets.findIndex(ts => ts.id === data.id);
-                    if (tripSheetIndex !== -1) {
-                        tripSheets[tripSheetIndex] = data;
-                    } else {
-                        tripSheets.unshift(data);
-                    }
-                    updateTripSheetTable();
-                    closeModal('createTripSheetModal');
-                }
-            } else {
-                const error = await response.json();
-                alert('Ошибка сохранения: ' + (error.message || 'Неизвестная ошибка'));
-            }
-        });
-
-        function destroyTripSheet(tripSheetId) {
-            if (!confirm('Уверены?')) return;
-            const url = tripSheetDestroyUrlTemplate.replace('TRIP_SHEET_ID', tripSheetId);
-            fetch(url, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                }
-            }).then(response => {
-                if (response.ok) {
-                    tripSheets = tripSheets.filter(ts => ts.id !== tripSheetId);
-                    updateTripSheetTable();
+        if (response.ok) {
+            const data = await response.json();
+            if (data.id) {
+                let vehicleIndex = vehicles.findIndex(v => v.id === data.id);
+                if (vehicleIndex !== -1) {
+                    vehicles[vehicleIndex] = data;
                 } else {
-                    alert('Ошибка удаления');
+                    vehicles.unshift(data);
                 }
-            }).catch(() => alert('Ошибка сети'));
+                updateTable();
+                closeModal('createVehicleModal');
+            }
+        } else {
+            const error = await response.json();
+            alert('Ошибка сохранения: ' + (error.message || 'Неизвестная ошибка'));
+        }
+    });
+
+    document.getElementById('createTripSheetForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.append('_token', csrfToken);
+        if (document.getElementById('trip_sheet_id').value) {
+            formData.append('_method', 'PUT');
         }
 
-        function updateTripSheetTable() {
-            const tbody = document.getElementById('tripSheetsTableBody');
-            tbody.innerHTML = tripSheets.map(tripSheet => `
+        const address = formData.get('address');
+        if (!formData.get('location_id') && !address) {
+            alert('Укажите адрес, если площадка не выбрана!');
+            return;
+        }
+
+        const url = this.action;
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.id) {
+                let tripSheetIndex = tripSheets.findIndex(ts => ts.id === data.id);
+                if (tripSheetIndex !== -1) {
+                    tripSheets[tripSheetIndex] = data;
+                } else {
+                    tripSheets.unshift(data);
+                }
+                updateTripSheetTable();
+                closeModal('createTripSheetModal');
+            }
+        } else {
+            const error = await response.json();
+            alert('Ошибка сохранения: ' + (error.message || 'Неизвестная ошибка'));
+        }
+    });
+
+    function destroyTripSheet(tripSheetId) {
+        if (!confirm('Уверены?')) return;
+        const url = tripSheetDestroyUrlTemplate.replace('TRIP_SHEET_ID', tripSheetId);
+        fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                tripSheets = tripSheets.filter(ts => ts.id !== tripSheetId);
+                updateTripSheetTable();
+            } else {
+                alert('Ошибка удаления');
+            }
+        }).catch(() => alert('Ошибка сети'));
+    }
+
+    function updateTripSheetTable() {
+        const tbody = document.getElementById('tripSheetsTableBody');
+        tbody.innerHTML = tripSheets.map(tripSheet => `
                 <tr class="hover:bg-gray-50" data-id="${tripSheet.id}">
                     <td class="px-6 py-4">${tripSheet.date_time}</td>
                     <td class="px-6 py-4">${tripSheet.location ? tripSheet.location.name : tripSheet.address}</td>
@@ -662,29 +662,29 @@
                     </td>
                 </tr>
             `).join('') || '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-600">Нет путеводных листов</td></tr>';
-        }
+    }
 
-        function sortTable(field = null) {
-            if (field) {
-                document.getElementById('sort_field').value = field;
-            }
-            const sortField = document.getElementById('sort_field').value;
-            const sortDirection = document.getElementById('sort_direction').value;
-            window.location.href = `{{ url()->current() }}?sort_field=${sortField}&sort_direction=${sortDirection}&search=${encodeURIComponent(document.getElementById('search').value)}`;
+    function sortTable(field = null) {
+        if (field) {
+            document.getElementById('sort_field').value = field;
         }
+        const sortField = document.getElementById('sort_field').value;
+        const sortDirection = document.getElementById('sort_direction').value;
+        window.location.href = `{{ url()->current() }}?sort_field=${sortField}&sort_direction=${sortDirection}&search=${encodeURIComponent(document.getElementById('search').value)}`;
+    }
 
-        function searchTable() {
-            const search = document.getElementById('search').value;
-            const sortField = document.getElementById('sort_field').value;
-            const sortDirection = document.getElementById('sort_direction').value;
-            window.location.href = `{{ url()->current() }}?search=${encodeURIComponent(search)}&sort_field=${sortField}&sort_direction=${sortDirection}`;
-        }
+    function searchTable() {
+        const search = document.getElementById('search').value;
+        const sortField = document.getElementById('sort_field').value;
+        const sortDirection = document.getElementById('sort_direction').value;
+        window.location.href = `{{ url()->current() }}?search=${encodeURIComponent(search)}&sort_field=${sortField}&sort_direction=${sortDirection}`;
+    }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            updateTable();
-            updateTripSheetTable();
-            toggleFuelFields();
-        });
-    </script>
+    document.addEventListener('DOMContentLoaded', function() {
+        updateTable();
+        updateTripSheetTable();
+        toggleFuelFields();
+    });
+</script>
 </body>
 </html>
