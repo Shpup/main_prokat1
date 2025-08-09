@@ -11,6 +11,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\PersonnelController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\SiteController;
+use App\Http\Controllers\VehicleController;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -54,6 +55,15 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::resource('clients', ClientController::class)->except(['create', 'show']);
     Route::get('/clients', [ClientController::class, 'index'])->name('clients');
 
+    Route::get('/vehicles', [VehicleController::class, 'index'])->name('vehicles.index');
+    Route::post('/vehicles', [VehicleController::class, 'store'])->name('vehicles.store');
+    Route::put('/vehicles/{vehicle}', [VehicleController::class, 'update'])->name('vehicles.update');
+    Route::delete('/vehicles/{vehicle}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
+
+    Route::get('/trip-sheets', [VehicleController::class, 'index'])->name('tripSheets.index');
+    Route::post('/trip-sheets', [VehicleController::class, 'storeTripSheet'])->name('tripSheets.store');
+    Route::put('/trip-sheets/{tripSheet}', [VehicleController::class, 'updateTripSheet'])->name('tripSheets.update');
+    Route::delete('/trip-sheets/{tripSheet}', [VehicleController::class, 'destroyTripSheet'])->name('tripSheets.destroy');
 
     Route::resource('sites', SiteController::class);
     Route::get('/sites', [SiteController::class, 'index'])->name('sites');

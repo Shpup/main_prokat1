@@ -1,4 +1,3 @@
-@include('layouts.navigation')
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,6 +7,7 @@
 </head>
 
 <div class="container mx-auto p-6">
+    @include('layouts.navigation')
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-semibold text-gray-800">
             Проект: {{ $project->name }}
@@ -132,7 +132,7 @@
         @elseif ($tab === 'staff')
             {{-- Заглушка --}}
             <div class="bg-white rounded-lg shadow p-6">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Персонал</h2>
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">Сотрудники</h2>
                 <p class="text-gray-600">Пока не реализовано</p>
             </div>
         @elseif ($tab === 'equipment')
