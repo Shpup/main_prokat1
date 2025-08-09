@@ -63,7 +63,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::get('/trip-sheets', [VehicleController::class, 'index'])->name('tripSheets.index');
     Route::post('/trip-sheets', [VehicleController::class, 'storeTripSheet'])->name('tripSheets.store');
     Route::put('/trip-sheets/{tripSheet}', [VehicleController::class, 'updateTripSheet'])->name('tripSheets.update');
-    Route::delete('/trip-sheets/{tripSheet}', [VehicleController::class, 'destroyTripSheet'])->name('tripSheets.destroy');
+    Route::delete('/trip-sheets/{tripSheet}', [VehicleController::class, 'destroyTripSheet'])->name('trip-sheets.destroy');
 
     Route::resource('sites', SiteController::class);
     Route::get('/sites', [SiteController::class, 'index'])->name('sites');

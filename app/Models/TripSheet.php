@@ -8,7 +8,13 @@ class TripSheet extends Model
 {
     protected $fillable = [
         'date_time', 'site_id', 'address', 'vehicle_id', 'driver_id', 'distance',
-        'status', 'cost',
+        'status', 'cost', 'admin_id',
+    ];
+
+    protected $casts = [
+        'date_time' => 'datetime',
+        'distance' => 'float',
+        'cost' => 'float',
     ];
 
     public function site(): BelongsTo
