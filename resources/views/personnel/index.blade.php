@@ -340,7 +340,7 @@
                                                              onclick="deleteAssignment({{ $assignment->id }})">×</button>
                                                  </div>
                                                  <div class="absolute bottom-0 right-0 hidden group-hover:block">
-                                                     <a href="/project/{{ $assignment->project_id }}"
+                                                      <a href="/projects/{{ $assignment->project_id }}"
                                                         class="text-white text-xs underline">Перейти в проект</a>
                                                  </div>
                                              </div>
@@ -514,6 +514,100 @@ document.addEventListener('DOMContentLoaded', function() {
     let mouseStartX = 0; // Начальная позиция мыши
     let currentMouseX = 0; // Текущая позиция мыши
     let lastDirection = null; // Последнее направление движения
+    
+    // Вспомогательные функции для расчёта конца интервала
+    function getStepMinutes() {
+        switch (currentInterval) {
+            case '30m': return 30;
+            case '60m': return 60;
+            case '4h': return 240;
+            case '12h': return 720;
+            case '1d': return 1440;
+            default: return 60;
+        }
+    }
+
+    function timeToMinutes(hhmm) {
+        const m = String(hhmm).match(/^(\d{1,2}):(\d{2})/);
+        if (!m) return NaN;
+        return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    }
+
+    function minutesToHHMM(total) {
+        const h = Math.floor(total / 60);
+        const m = total % 60;
+        return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+
+    function addMinutesToHHMM(hhmm, minutes) {
+        if (!/^[0-2]?\d:\d{2}$/.test(String(hhmm))) return hhmm; // для подписей типа "Пт 08 авг" оставляем как есть
+        const [h, m] = String(hhmm).split(':').map(Number);
+        let total = h * 60 + m + minutes;
+        total = ((total % (24*60)) + (24*60)) % (24*60); // по кругу суток
+        const nh = String(Math.floor(total / 60)).padStart(2, '0');
+        const nm = String(total % 60).padStart(2, '0');
+        return `${nh}:${nm}`;
+    }
+
+    function addMinutesClampToDay(hhmm, minutes) {
+        const base = timeToMinutes(hhmm);
+        if (isNaN(base)) return hhmm;
+        let total = base + minutes;
+        if (total >= 24*60) total = 24*60 - 1; // 23:59 включительно
+        return minutesToHHMM(total);
+    }
+
+    function getSortedCellsByTime(cells) {
+        return [...cells].sort((a, b) => timeToMinutes(a.dataset.timeSlot) - timeToMinutes(b.dataset.timeSlot));
+    }
+
+    function computeRangeInclusive(cells, clampLast = false) {
+        const sorted = getSortedCellsByTime(cells);
+        const start = sorted[0].dataset.timeSlot;
+        const last  = sorted[sorted.length - 1].dataset.timeSlot;
+        const step  = getStepMinutes();
+        // Базовый конец
+        let end   = clampLast ? addMinutesClampToDay(last, step) : addMinutesToHHMM(last, step);
+        // Если вышли за предел суток (перешли на 00:00), то ограничиваем 23:59
+        const lastMin = timeToMinutes(last);
+        const endMin  = timeToMinutes(end);
+        if (!isNaN(lastMin) && !isNaN(endMin) && endMin <= lastMin) {
+            end = '23:59';
+        }
+        return { start, end };
+    }
+
+    // Парсинг метки недели 12ч вида: "Сб 09 авг, 12:00" -> {date: YYYY-MM-DD, time: HH:MM}
+    function parseWeek12hLabel(label, baseDateStr) {
+        const months = { 'янв':1,'фев':2,'мар':3,'апр':4,'май':5,'июн':6,'июл':7,'авг':8,'сен':9,'окт':10,'ноя':11,'дек':12 };
+        const m = String(label).match(/(\d{1,2})\s+([а-я]{3}),\s*(\d{2}:\d{2})$/i);
+        const base = new Date(baseDateStr);
+        if (!m) return { date: baseDateStr, time: '00:00' };
+        const d = parseInt(m[1],10);
+        const mon = months[m[2].toLowerCase()] || (base.getMonth()+1);
+        let y = base.getFullYear();
+        if (mon === 1 && (base.getMonth()+1) === 12) y += 1; // янв после дек
+        if (mon === 12 && (base.getMonth()+1) === 1) y -= 1; // дек перед янв
+        const mm = String(mon).padStart(2,'0');
+        const dd = String(d).padStart(2,'0');
+        return { date: `${y}-${mm}-${dd}`, time: m[3] };
+    }
+
+    // Парсинг метки недели 1д: "Сб 09 авг" -> YYYY-MM-DD (используем год от выбранной даты)
+    function parseWeek1dDate(label, baseDateStr) {
+        const months = { 'янв':1,'фев':2,'мар':3,'апр':4,'май':5,'июн':6,'июл':7,'авг':8,'сен':9,'окт':10,'ноя':11,'дек':12 };
+        const m = String(label).match(/\b(\d{1,2})\s+([а-я]{3})$/i);
+        const base = new Date(baseDateStr);
+        if (!m) return baseDateStr;
+        const d = parseInt(m[1],10);
+        const mon = months[m[2].toLowerCase()] || (base.getMonth()+1);
+        let y = base.getFullYear();
+        if (mon === 1 && (base.getMonth()+1) === 12) y += 1;
+        if (mon === 12 && (base.getMonth()+1) === 1) y -= 1;
+        const mm = String(mon).padStart(2,'0');
+        const dd = String(d).padStart(2,'0');
+        return `${y}-${mm}-${dd}`;
+    }
     let isContextMenuOpen = false; // Флаг открытого контекстного меню
 
     // Функция восстановления блоков из БД
@@ -524,7 +618,27 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Загружаем блоки из БД для даты:', date);
 
         // Загружаем данные из БД
-        fetch(`/personnel/data?date=${date}`, {
+        // Собираем все даты, присутствующие в текущей сетке (для недели/месяца)
+        const gridDates = new Set();
+        document.querySelectorAll('#calendarTable thead th').forEach((th, idx) => {
+            if (idx === 0) return; // пропустить первый столбец "Сотрудник"
+            const label = th.textContent.trim();
+            if (currentView === 'week') {
+                if (currentInterval === '12h') {
+                    gridDates.add(parseWeek12hLabel(label, date).date);
+                } else if (currentInterval === '1d') {
+                    gridDates.add(parseWeek1dDate(label, date));
+                }
+            } else if (currentView === 'month' && currentInterval === '1d') {
+                gridDates.add(parseWeek1dDate(label, date));
+            } else {
+                gridDates.add(date);
+            }
+        });
+
+        const datesParam = Array.from(gridDates).join(',');
+
+        fetch(`/personnel/data?dates=${encodeURIComponent(datesParam)}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -535,6 +649,15 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             console.log('Получены данные из БД:', data);
 
+            // Вспомогательная: переводит 'HH:MM' или 'HH:MM:SS' в минуты
+            const toMinutes = (t) => {
+                if (!t) return NaN;
+                const parts = String(t).split(':');
+                const h = parseInt(parts[0] || '0', 10);
+                const m = parseInt(parts[1] || '0', 10);
+                return h * 60 + m;
+            };
+
             cells.forEach(cell => {
                 // Очищаем существующие блоки
                 const existingBlocks = cell.querySelectorAll('.calendar-block');
@@ -543,39 +666,108 @@ document.addEventListener('DOMContentLoaded', function() {
                 const cellId = cell.dataset.cellId;
                 const employeeId = cell.dataset.employeeId;
                 const timeSlot = cell.dataset.timeSlot;
+                const stepMins = getStepMinutes();
+                const slotStartMinutes = /^[0-2]?\d:\d{2}$/.test(timeSlot)
+                    ? toMinutes(timeSlot)
+                    : toMinutes(parseWeek12hLabel(timeSlot, date).time);
+                const slotEndMinutes = Math.min(slotStartMinutes + stepMins, 24*60);
 
                 // Проверяем нерабочие блоки из БД
-                const nonWorkingDay = data.nonWorkingDays.find(nwd =>
-                    nwd.employee_id == employeeId &&
-                    nwd.date === date &&
-                    nwd.start_time <= timeSlot &&
-                    nwd.end_time > timeSlot
-                );
+                const nonWorkingDay = data.nonWorkingDays.find(nwd => {
+                    // Отбрасываем нулевые/вырожденные интервалы
+                    if (nwd.start_time === nwd.end_time) return false;
+                    if (currentView === 'week' && currentInterval === '12h') {
+                        // Для недели сравниваем по дате из метки
+                        return (
+                            nwd.employee_id == employeeId &&
+                            nwd.date === parseWeek12hLabel(timeSlot, date).date &&
+                            toMinutes(nwd.start_time) < slotEndMinutes &&
+                            toMinutes(nwd.end_time) > slotStartMinutes
+                        );
+                    } else if (currentView === 'week' && currentInterval === '1d') {
+                        const d = parseWeek1dDate(timeSlot, date);
+                        return nwd.employee_id == employeeId && nwd.date === d;
+                    } else if (currentView === 'month' && currentInterval === '1d') {
+                        const d = parseWeek1dDate(timeSlot, date);
+                        return nwd.employee_id == employeeId && nwd.date === d;
+                    } else {
+                        // Если на стороне дня нет ни одного "мелкого" слота, то суточные/крупные слоты не должны рисоваться
+                        // Проверяем строгую привязку к дате
+                        const sameDate = nwd.date === date;
+                        return sameDate && (
+                            nwd.employee_id == employeeId &&
+                            toMinutes(nwd.start_time) < slotEndMinutes &&
+                            toMinutes(nwd.end_time) > slotStartMinutes
+                        );
+                    }
+                });
 
-                if (nonWorkingDay) {
-                    console.log('Найден нерабочий блок для ячейки:', cellId);
-                    // Создаем красный блок
-                    const block = document.createElement('div');
-                    block.className = 'calendar-block bg-red-500 border border-red-600 rounded p-1 h-full flex items-center justify-center relative group';
-                    block.innerHTML = ``;
-                    cell.appendChild(block);
-                }
+                // Не добавляем блок прямо сейчас — дождёмся проверки пересечений с проектами, чтобы
+                // в агрегированных слотах (4ч/12ч/1д) отрисовать смешанный блок при конфликте
 
                 // Проверяем блоки проектов из БД
-                const assignment = data.assignments.find(ass =>
-                    ass.employee_id == employeeId &&
-                    ass.date === date &&
-                    ass.start_time <= timeSlot &&
-                    ass.end_time > timeSlot
-                );
+                const assignment = data.assignments.find(ass => {
+                    // Отбрасываем нулевые/вырожденные интервалы
+                    if (ass.start_time === ass.end_time) return false;
+                    if (currentView === 'week' && currentInterval === '12h') {
+                        return (
+                            ass.employee_id == employeeId &&
+                            ass.date === parseWeek12hLabel(timeSlot, date).date &&
+                            toMinutes(ass.start_time) < slotEndMinutes &&
+                            toMinutes(ass.end_time) > slotStartMinutes
+                        );
+                    } else if (currentView === 'week' && currentInterval === '1d') {
+                        // Для недели/день каждая ячейка — день; отображаем, если есть любой интервал в этот день
+                        const d = parseWeek1dDate(timeSlot, date);
+                        return ass.employee_id == employeeId && ass.date === d;
+                    } else if (currentView === 'month' && currentInterval === '1d') {
+                        // Для месяца/день аналогично: берем день из метки "Пн 18 авг"
+                        const d = parseWeek1dDate(timeSlot, date);
+                        return ass.employee_id == employeeId && ass.date === d;
+                    } else {
+                        const sameDate = ass.date === date;
+                        return sameDate && (
+                            ass.employee_id == employeeId &&
+                            toMinutes(ass.start_time) < slotEndMinutes &&
+                            toMinutes(ass.end_time) > slotStartMinutes
+                        );
+                    }
+                });
 
-                if (assignment) {
-                    console.log('Найден блок проекта для ячейки:', cellId, 'с ID проекта:', assignment.project_id);
-                    // Создаем зеленый блок
+                // Рендер: смешанный блок для агрегированных слотов, иначе одиночный
+                const isAggregatedSlot = (currentView === 'day' && currentInterval === '4h') ||
+                    (currentView === 'week' && (currentInterval === '12h' || currentInterval === '1d')) ||
+                    (currentView === 'month' && currentInterval === '1d');
+
+                if (isAggregatedSlot && nonWorkingDay && assignment) {
+                    // Контейнер без отступов, заполняет всю ячейку
+                    const block = document.createElement('div');
+                    block.className = 'calendar-block rounded h-full w-full flex overflow-hidden relative group';
+                    block.style.margin = '0';
+                    block.style.padding = '0';
+                    block.style.width = '100%';
+                    block.style.height = '100%';
+                    // Левая половина (off)
+                    const left = document.createElement('div');
+                    left.style.width = '50%';
+                    left.style.height = '100%';
+                    left.style.backgroundColor = '#ef4444';
+                    // Правая половина (busy)
+                    const right = document.createElement('div');
+                    right.style.width = '50%';
+                    right.style.height = '100%';
+                    right.style.backgroundColor = '#22c55e';
+                    block.appendChild(left);
+                    block.appendChild(right);
+                    cell.appendChild(block);
+                } else if (nonWorkingDay) {
+                    const block = document.createElement('div');
+                    block.className = 'calendar-block bg-red-500 border border-red-600 rounded p-1 h-full flex items-center justify-center relative group';
+                    cell.appendChild(block);
+                } else if (assignment) {
                     const block = document.createElement('div');
                     block.className = 'calendar-block bg-green-500 border border-green-600 rounded p-1 h-full flex items-center justify-center relative group';
                     block.setAttribute('data-project-id', assignment.project_id);
-                    block.innerHTML = ``;
                     cell.appendChild(block);
                 }
             });
@@ -703,17 +895,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 th.style.width = width;
                 th.style.minWidth = width;
 
-                // Форматируем только значения времени. Для дат (месяц/день) оставляем как есть
+                // Формат заголовка: время HH:MM, а для 4ч (день) показываем диапазон "HH:MM - HH:MM"
                 const slotStr = String(slot);
                 const isTimeOnly = /^\d{1,2}(:\d{2})?$/.test(slotStr);
+                let startLabel = slotStr;
                 if (isTimeOnly) {
                     const parts = slotStr.split(':');
-                    let hh = String(parts[0] ?? '').padStart(2, '0');
-                    let mm = String(parts[1] ?? '00').padStart(2, '0');
-                    th.textContent = `${hh}:${mm}`;
-                } else {
-                    th.textContent = slotStr;
+                    const hh = String(parts[0] ?? '').padStart(2, '0');
+                    const mm = String(parts[1] ?? '00').padStart(2, '0');
+                    startLabel = `${hh}:${mm}`;
                 }
+                let headerLabel = startLabel;
+                if (currentView === 'day' && currentInterval === '4h' && isTimeOnly) {
+                    headerLabel = `${startLabel} - ${addMinutesToHHMM(startLabel, 240)}`;
+                }
+                th.textContent = headerLabel;
                 thead.appendChild(th);
             });
 
@@ -791,6 +987,10 @@ document.addEventListener('DOMContentLoaded', function() {
         cells.forEach(cell => {
             // Обработчик mousedown для начала выделения
             cell.addEventListener('mousedown', function(e) {
+                if (isContextMenuOpen) {
+                    // пока открыто меню — не начинаем новое выделение
+                    return;
+                }
                 if (e.button === 0) { // Левая кнопка мыши
                     e.preventDefault();
                     e.stopPropagation();
@@ -820,6 +1020,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Обработчик mouseenter для выделения при перетаскивании
             cell.addEventListener('mouseenter', function(e) {
+                if (isContextMenuOpen) return; // при открытом меню не расширяем выделение
                 if (isSelecting && selectionStart) {
                     // Обновляем текущую позицию мыши
                     const newMouseX = e.clientX;
@@ -867,6 +1068,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Обработчик клика для одиночного выбора (если не было перетаскивания)
             cell.addEventListener('click', function(e) {
+                if (isContextMenuOpen) return; // игнор кликов, пока меню открыто
                 if (!isSelecting) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1040,6 +1242,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         contextMenu.classList.remove('hidden');
         isContextMenuOpen = true;
+        isContextMenuOpen = true;
 
         // Сохраняем выбранные ячейки
         contextMenu.dataset.selectedCells = JSON.stringify(Array.from(cells).map(c => c.dataset.cellId));
@@ -1169,6 +1372,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         contextMenu.classList.remove('hidden');
         isContextMenuOpen = true;
+        isContextMenuOpen = true;
 
         // Сохраняем выбранные ячейки
         contextMenu.dataset.selectedCells = JSON.stringify(cells.map(c => c.dataset.cellId));
@@ -1213,45 +1417,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
         console.log('Удаляем блоки из', cells.length, 'ячеек');
 
-        // Удаляем блоки из всех ячеек и очищаем выделение
+        // Определяем общий диапазон по выбранным ячейкам
+        if (cells.length > 0) {
+            const sorted = getSortedCellsByTime(cells);
+            const first = sorted[0];
+            const last  = sorted[sorted.length - 1];
+            const date = document.getElementById('calendarDate').value;
+            const employeeId = first.dataset.employeeId;
+            const step = getStepMinutes();
+            const start = first.dataset.timeSlot;
+            const end   = addMinutesClampToDay(last.dataset.timeSlot, step); // включительно последнюю
+
+            fetch('/personnel/clear', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ employee_id: employeeId, date, start_time: start, end_time: end })
+            })
+            .then(r => r.json())
+            .then(() => { setTimeout(restoreBlocks, 150); })
+            .catch(() => {});
+        }
+
+        // Очистим визуальное выделение и меню
         cells.forEach(cell => {
-            const block = cell.querySelector('.calendar-block');
-            if (block) {
-                // Определяем тип блока и удаляем из localStorage
-                const cellId = cell.dataset.cellId;
-                const date = document.getElementById('calendarDate').value;
-
-                if (block.classList.contains('bg-red-500')) {
-                    // Удаляем нерабочий блок
-                    const userId = {{ auth()->id() ?? 0 }};
-                    const nonWorkingKey = `nonworking_${userId}_${date}_${cellId}`;
-                    localStorage.removeItem(nonWorkingKey);
-                    console.log('Удален нерабочий блок из localStorage:', nonWorkingKey);
-                } else if (block.classList.contains('bg-green-500')) {
-                    // Удаляем блок проекта
-                    const userId = {{ auth()->id() ?? 0 }};
-                    const projectKey = `project_${userId}_${date}_${cellId}`;
-                    localStorage.removeItem(projectKey);
-                    console.log('Удален блок проекта из localStorage:', projectKey);
-                }
-
-                block.remove();
-                console.log('Удален блок из ячейки:', cell.dataset.cellId);
-            }
-
-            // Очищаем выделение с ячейки
             cell.classList.remove('selected');
             cell.style.backgroundColor = '';
             cell.style.borderColor = '';
             cell.style.color = '';
-            console.log('Очищено выделение ячейки:', cell.dataset.cellId);
         });
-
-        // Очищаем глобальное выделение
         selectedCells.clear();
-
         hideContextMenu();
-        showToast('Блоки удалены, выделение очищено');
     });
 
     // Обработчик для кнопки "Перейти в проект"
@@ -1271,8 +1471,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Сохраняем текущее состояние перед переходом
                     console.log('Переход к проекту:', projectId);
 
-                    // Переходим на страницу проекта
-                    window.location.href = `/project/${projectId}`;
+                    // Переходим на страницу проекта (plural)
+                    window.location.href = `/projects/${projectId}`;
                 } else {
                     // Если ID проекта не найден, показываем уведомление
                     showToast('ID проекта не найден');
@@ -1315,17 +1515,68 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Создаем блоки нерабочего времени для', cells.length, 'ячеек');
 
         // Получаем данные для отправки на сервер
-        const firstCell = cells[0];
-        const employeeId = firstCell.dataset.employeeId;
-        const date = document.getElementById('calendarDate').value;
-        const startTime = firstCell.dataset.timeSlot;
-        const endTime = cells[cells.length - 1].dataset.timeSlot;
+        const selectedDate = document.getElementById('calendarDate').value;
+        const sorted = getSortedCellsByTime(cells);
+        let date = selectedDate;
+        let startTime, endTime;
+        const employeeId = sorted[0].dataset.employeeId;
+
+        if (currentView === 'week' && currentInterval === '12h') {
+            const firstParsed = (function(lbl){
+                const months = { 'янв':1,'фев':2,'мар':3,'апр':4,'май':5,'июн':6,'июл':7,'авг':8,'сен':9,'окт':10,'ноя':11,'дек':12 };
+                const m = String(lbl).match(/(\d{1,2})\s+([а-я]{3}),\s*(\d{2}:\d{2})$/i);
+                const base = new Date(selectedDate);
+                if (!m) return { date: selectedDate, time: '00:00' };
+                const d = parseInt(m[1],10);
+                const mon = months[m[2].toLowerCase()] || (base.getMonth()+1);
+                let y = base.getFullYear();
+                if (mon === 1 && (base.getMonth()+1) === 12) y += 1;
+                if (mon === 12 && (base.getMonth()+1) === 1) y -= 1;
+                const mm = String(mon).padStart(2,'0');
+                const dd = String(d).padStart(2,'0');
+                return { date: `${y}-${mm}-${dd}`, time: m[3] };
+            })(sorted[0].dataset.timeSlot);
+
+            const lastParsed = (function(lbl){
+                const months = { 'янв':1,'фев':2,'мар':3,'апр':4,'май':5,'июн':6,'июл':7,'авг':8,'сен':9,'окт':10,'ноя':11,'дек':12 };
+                const m = String(lbl).match(/(\d{1,2})\s+([а-я]{3}),\s*(\d{2}:\d{2})$/i);
+                const base = new Date(selectedDate);
+                if (!m) return { date: selectedDate, time: '00:00' };
+                const d = parseInt(m[1],10);
+                const mon = months[m[2].toLowerCase()] || (base.getMonth()+1);
+                let y = base.getFullYear();
+                if (mon === 1 && (base.getMonth()+1) === 12) y += 1;
+                if (mon === 12 && (base.getMonth()+1) === 1) y -= 1;
+                const mm = String(mon).padStart(2,'0');
+                const dd = String(d).padStart(2,'0');
+                return { date: `${y}-${mm}-${dd}`, time: m[3] };
+            })(sorted[sorted.length - 1].dataset.timeSlot);
+
+            if (firstParsed.date !== lastParsed.date) {
+                alert('Выберите слоты в пределах одного дня');
+                return;
+            }
+            date = firstParsed.date;
+            startTime = firstParsed.time;
+            endTime   = addMinutesClampToDay(lastParsed.time, getStepMinutes());
+            const sMin = timeToMinutes(startTime);
+            const eMin = timeToMinutes(endTime);
+            if (!isNaN(sMin) && !isNaN(eMin) && eMin <= sMin) {
+                endTime = '23:59';
+            }
+        } else {
+            const range = computeRangeInclusive(sorted);
+            startTime = range.start;
+            endTime   = range.end;
+        }
 
         // Отправляем данные на сервер
         fetch('/personnel/non-working', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             body: JSON.stringify({
@@ -1338,6 +1589,14 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Синхронизируем выбранную дату с датой слота (важно для переключения на День)
+                if ((currentView === 'week' && (currentInterval === '12h' || currentInterval === '1d')) ||
+                    (currentView === 'month' && currentInterval === '1d')) {
+                    const dateInput = document.getElementById('calendarDate');
+                    if (dateInput && date) {
+                        dateInput.value = date;
+                    }
+                }
                 // Создаем блоки только после успешного сохранения
                 cells.forEach((cell, index) => {
                     // Очищаем ячейку
@@ -1376,7 +1635,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Обработчик клика: если меню открыто и клик вне его — скрываем и очищаем выделение
-    document.addEventListener('click', function(e) {
+        document.addEventListener('click', function(e) {
         if (isContextMenuOpen && !contextMenu.contains(e.target)) {
             hideContextMenu();
             if (!e.target.closest('.selectable-cell')) {
@@ -1384,6 +1643,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+        // Блокируем контекстное меню браузера на таблице, чтобы не прерывать выбор
+        const tableEl = document.getElementById('calendarTable');
+        if (tableEl) {
+            tableEl.addEventListener('contextmenu', (ev) => {
+                ev.preventDefault();
+                return false;
+            });
+        }
 
     // Обработка кнопок вида
     document.querySelectorAll('.view-btn').forEach(btn => {
@@ -1479,8 +1747,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const firstCell = cells[0];
         const employeeId = firstCell.dataset.employeeId;
         const date = document.getElementById('calendarDate').value;
-        const startTime = firstCell.dataset.timeSlot;
-        const endTime = cells[cells.length - 1].dataset.timeSlot;
+        const sorted = getSortedCellsByTime(cells);
+        const { start: startTime, end: endTime } = computeRangeInclusive(sorted);
         const sum = document.getElementById('sumInput').value || 0;
         const comment = document.getElementById('commentInput').value || '';
 

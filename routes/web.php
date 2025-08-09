@@ -44,7 +44,9 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::get('/personnel', [PersonnelController::class, 'index'])->name('personnel');
     Route::post('/personnel/assign', [PersonnelController::class, 'assign'])->name('personnel.assign');
     Route::post('/personnel/non-working', [PersonnelController::class, 'addNonWorkingDay'])->name('personnel.non-working');
+    Route::post('/personnel/clear', [PersonnelController::class, 'clearInterval'])->name('personnel.clear');
     Route::get('/personnel/time-slots', [PersonnelController::class, 'getTimeSlots'])->name('personnel.time-slots');
+    Route::get('/personnel/data', [PersonnelController::class, 'getData'])->name('personnel.data');
 
 
 
