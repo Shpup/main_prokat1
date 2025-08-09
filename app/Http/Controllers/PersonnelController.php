@@ -6,6 +6,8 @@ use App\Models\Assignment;
 use App\Models\Employee;
 use App\Models\NonWorkingDay;
 use App\Models\Project;
+use App\Models\WorkInterval;
+use App\Services\ScheduleService;
 use App\Models\Role;
 use App\Models\Specialty;
 use App\Models\User;
@@ -41,7 +43,7 @@ class PersonnelController extends Controller
         return view('personnel.index', compact('employees', 'specialties', 'projects', 'timeSlots', 'assignments', 'nonWorkingDays'));
     }
 
-    public function assign(Request $request)
+    public function assign(Request $request, ScheduleService $scheduleService)
     {
         // Валидация данных
         $validated = $request->validate([
@@ -52,19 +54,26 @@ class PersonnelController extends Controller
             'date' => 'required|date',
         ]);
 
-                    // Создаем назначение
-            Assignment::create([
-                'employee_id' => $validated['employee_id'],
-                'project_id' => $validated['project_id'],
-                'start_time' => $validated['start_time'],
-                'end_time' => $validated['end_time'],
-                'date' => $validated['date'],
-            ]);
+        // Красим интервал как busy (или work, по бизнес-логике). Здесь считаю project=busy
+        $scheduleService->paintInterval(
+            (int)$validated['employee_id'],
+            $validated['date'],
+            $validated['start_time'],
+            $validated['end_time'],
+            'busy'
+        );
 
-        return response()->json(['success' => true, 'message' => 'Назначение успешно создано']);
+        // Можно дополнительно связать project_id в work_intervals при необходимости
+        WorkInterval::where('employee_id', $validated['employee_id'])
+            ->where('date', $validated['date'])
+            ->where('start_time', $validated['start_time'])
+            ->where('end_time', $validated['end_time'])
+            ->update(['project_id' => $validated['project_id']]);
+
+        return response()->json(['success' => true, 'message' => 'Назначение сохранено']);
     }
 
-    public function addNonWorkingDay(Request $request)
+    public function addNonWorkingDay(Request $request, ScheduleService $scheduleService)
     {
         try {
             // Валидация данных
@@ -72,16 +81,24 @@ class PersonnelController extends Controller
                 'employee_id' => 'required|exists:users,id',
                 'date' => 'required|date',
                 'start_time' => 'required|date_format:H:i',
-                'end_time' => 'required|date_format:H:i|after:start_time',
+                'end_time' => 'required|date_format:H:i',
             ]);
 
-            // Создаем нерабочий день
-            NonWorkingDay::create([
-                'employee_id' => $validated['employee_id'],
-                'date' => $validated['date'],
-                'start_time' => $validated['start_time'],
-                'end_time' => $validated['end_time'],
-            ]);
+            // Красим интервал как off в новой таблице
+            $start = $validated['start_time'];
+            $end   = $validated['end_time'];
+            if (strtotime($end) <= strtotime($start)) {
+                $t = strtotime($start) + 60 * 60; // +60 минут
+                $end = date('H:i', min($t, strtotime('23:59')));
+            }
+
+            $scheduleService->paintInterval(
+                (int)$validated['employee_id'],
+                $validated['date'],
+                $start,
+                $end,
+                'off'
+            );
 
             return response()->json(['success' => true, 'message' => 'Нерабочий день добавлен']);
         } catch (\Exception $e) {
@@ -92,20 +109,79 @@ class PersonnelController extends Controller
         }
     }
 
+    // Очистка выбранного диапазона (вернуть к "work")
+    public function clearInterval(Request $request, ScheduleService $scheduleService)
+    {
+        $validated = $request->validate([
+            'employee_id' => 'required|exists:users,id',
+            'date'        => 'required|date',
+            'start_time'  => 'required|date_format:H:i',
+            'end_time'    => 'required|date_format:H:i',
+        ]);
+
+        // Fail-safe: если по какой-то причине конец не больше начала, расширим на 60 минут (и не выйдем за день)
+        $start = $validated['start_time'];
+        $end   = $validated['end_time'];
+        if (strtotime($end) <= strtotime($start)) {
+            $t = strtotime($start) + 60 * 60; // +60 минут
+            $end = date('H:i', min($t, strtotime('23:59')));
+        }
+
+        $scheduleService->paintInterval(
+            (int)$validated['employee_id'],
+            $validated['date'],
+            $start,
+            $end,
+            'work'
+        );
+
+        return response()->json(['success' => true]);
+    }
+
     public function getData(Request $request)
     {
         try {
-            $date = $request->query('date', date('Y-m-d'));
-            
-            // Получаем назначения для указанной даты
-            $assignments = Assignment::where('date', $date)->get();
-            
-            // Получаем нерабочие дни для указанной даты
-            $nonWorkingDays = NonWorkingDay::where('date', $date)->get();
-            
+            $date = $request->query('date');
+            $datesParam = $request->query('dates');
+            $dates = [];
+            if ($datesParam) {
+                $dates = array_filter(array_map('trim', explode(',', $datesParam)));
+            } elseif ($date) {
+                $dates = [$date];
+            } else {
+                $dates = [date('Y-m-d')];
+            }
+
+            // Не возвращаем нулевые интервалы (start_time == end_time), чтобы точечные записи
+            // не подсвечивали агрегированные слоты (4ч/12ч/1д)
+            $intervals = WorkInterval::whereIn('date', $dates)
+                ->whereColumn('start_time', '<>', 'end_time')
+                ->get();
+
+            // Временная совместимость со старым фронтом
+            $assignments = $intervals->where('type', 'busy')->map(function ($i) {
+                return [
+                    'employee_id' => (int) $i->employee_id,
+                    'project_id'  => $i->project_id ? (int) $i->project_id : null,
+                    'date'        => (string) $i->date,
+                    'start_time'  => (string) $i->start_time,
+                    'end_time'    => (string) $i->end_time,
+                ];
+            })->values();
+
+            $nonWorkingDays = $intervals->where('type', 'off')->map(function ($i) {
+                return [
+                    'employee_id' => (int) $i->employee_id,
+                    'date'        => (string) $i->date,
+                    'start_time'  => (string) $i->start_time,
+                    'end_time'    => (string) $i->end_time,
+                ];
+            })->values();
+
             return response()->json([
-                'assignments' => $assignments,
-                'nonWorkingDays' => $nonWorkingDays
+                'intervals'      => $intervals,
+                'assignments'    => $assignments,
+                'nonWorkingDays' => $nonWorkingDays,
             ]);
         } catch (\Exception $e) {
             \Log::error('Error in getData: ' . $e->getMessage());
