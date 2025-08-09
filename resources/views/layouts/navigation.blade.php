@@ -45,6 +45,9 @@
                             <x-dropdown-link :href="route('sites')">
                                 {{ __('Площадки') }}
                             </x-dropdown-link>
+                            <x-dropdown-link :href="route('vehicles.index')">
+                                {{ __('Транспорт') }}
+                            </x-dropdown-link>
                         </div>
                     </div>
                 </div>
