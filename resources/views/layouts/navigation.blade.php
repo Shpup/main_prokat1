@@ -27,14 +27,28 @@
                                 </svg>
                             </div>
                         </button>
-                        <div x-show="open" @click.outside="open = false" x-transition class="absolute origin-center-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50">
+
+                        <div
+                            x-show="open"
+                            @click.outside="open = false"
+                            x-transition
+                            class="absolute mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50"
+                        >
                             <x-dropdown-link :href="route('equipment')">
                                 {{ __('Склад') }}
                             </x-dropdown-link>
-                            </form>
+
+                            <x-dropdown-link :href="route('clients')">
+                                {{ __('Клиенты') }}
+                            </x-dropdown-link>
+
+                            <x-dropdown-link :href="route('sites')">
+                                {{ __('Площадки') }}
+                            </x-dropdown-link>
                         </div>
                     </div>
                 </div>
+
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="route('personnel')" :active="request()->routeIs('personnel')">
                         {{ __('Персонал') }}
