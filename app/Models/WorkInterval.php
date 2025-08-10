@@ -16,7 +16,7 @@ class WorkInterval extends Model
         'start_time',
         'end_time',
         'type',
-        'comment',
+        'summ',
     ];
 }
 

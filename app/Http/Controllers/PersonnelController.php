@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\NonWorkingDay;
 use App\Models\Project;
 use App\Models\WorkInterval;
+use App\Models\Comment;
 use App\Services\ScheduleService;
 use App\Models\Role;
 use App\Models\Specialty;
@@ -52,6 +53,8 @@ class PersonnelController extends Controller
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'date' => 'required|date',
+            'sum' => 'nullable|numeric|min:0',
+            'comment' => 'nullable|string|max:2000',
         ]);
 
         // Красим интервал как busy (или work, по бизнес-логике). Здесь считаю project=busy
@@ -63,12 +66,30 @@ class PersonnelController extends Controller
             'busy'
         );
 
-        // Можно дополнительно связать project_id в work_intervals при необходимости
+        // Запишем проект и финансовые/комментарии в интервалы, которые в итоге пересекаются с исходным диапазоном
         WorkInterval::where('employee_id', $validated['employee_id'])
             ->where('date', $validated['date'])
-            ->where('start_time', $validated['start_time'])
-            ->where('end_time', $validated['end_time'])
-            ->update(['project_id' => $validated['project_id']]);
+            ->where('type', 'busy')
+            ->where(function ($q) use ($validated) {
+                $q->where('start_time', '<', $validated['end_time'])
+                  ->where('end_time', '>', $validated['start_time']);
+            })
+            ->update([
+                'project_id' => $validated['project_id'],
+                'summ'       => $validated['sum'] ?? null,
+            ]);
+
+        // Если передали комментарий — сохраняем его как отдельную запись в comments
+        if (!empty($validated['comment'])) {
+            Comment::create([
+                'employee_id' => (int)$validated['employee_id'],
+                'project_id'  => (int)$validated['project_id'],
+                'date'        => $validated['date'],
+                'start_time'  => $validated['start_time'],
+                'end_time'    => $validated['end_time'],
+                'comment'     => $validated['comment'],
+            ]);
+        }
 
         return response()->json(['success' => true, 'message' => 'Назначение сохранено']);
     }
@@ -143,6 +164,7 @@ class PersonnelController extends Controller
         try {
             $date = $request->query('date');
             $datesParam = $request->query('dates');
+            $projectId = $request->query('project_id');
             $dates = [];
             if ($datesParam) {
                 $dates = array_filter(array_map('trim', explode(',', $datesParam)));
@@ -156,6 +178,9 @@ class PersonnelController extends Controller
             // не подсвечивали агрегированные слоты (4ч/12ч/1д)
             $intervals = WorkInterval::whereIn('date', $dates)
                 ->whereColumn('start_time', '<>', 'end_time')
+                ->when($projectId, function ($q) use ($projectId) {
+                    $q->where('project_id', $projectId);
+                })
                 ->get();
 
             // Временная совместимость со старым фронтом
@@ -178,10 +203,27 @@ class PersonnelController extends Controller
                 ];
             })->values();
 
+            // Комментарии для выбранных дат
+            $comments = Comment::whereIn('date', $dates)
+                ->when($projectId, function ($q) use ($projectId) {
+                    $q->where('project_id', $projectId);
+                })
+                ->get()->map(function($c){
+                return [
+                    'employee_id' => (int)$c->employee_id,
+                    'project_id'  => $c->project_id ? (int)$c->project_id : null,
+                    'date'        => (string)$c->date,
+                    'start_time'  => (string)$c->start_time,
+                    'end_time'    => (string)$c->end_time,
+                    'comment'     => (string)$c->comment,
+                ];
+            })->values();
+
             return response()->json([
                 'intervals'      => $intervals,
                 'assignments'    => $assignments,
                 'nonWorkingDays' => $nonWorkingDays,
+                'comments'       => $comments,
             ]);
         } catch (\Exception $e) {
             \Log::error('Error in getData: ' . $e->getMessage());
@@ -189,6 +231,54 @@ class PersonnelController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    // ===== Комментарии API =====
+    public function listComments(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_id' => 'required|integer',
+            'date'        => 'required|date',
+            'start_time'  => 'nullable|date_format:H:i',
+            'end_time'    => 'nullable|date_format:H:i',
+        ]);
+        $query = Comment::where('employee_id', $validated['employee_id'])
+            ->whereDate('date', $validated['date']);
+        if (!empty($validated['start_time']) && !empty($validated['end_time'])) {
+            $query->where('start_time', '>=', $validated['start_time'])
+                  ->where('end_time',   '<=', $validated['end_time']);
+        }
+        return response()->json($query->orderBy('start_time')->get());
+    }
+
+    public function storeComment(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_id' => 'required|exists:users,id',
+            'project_id'  => 'nullable|exists:projects,id',
+            'date'        => 'required|date',
+            'start_time'  => 'required|date_format:H:i',
+            'end_time'    => 'required|date_format:H:i',
+            'comment'     => 'required|string|max:2000',
+        ]);
+        $c = Comment::create($validated);
+        return response()->json(['success'=>true, 'comment'=>$c]);
+    }
+
+    public function deleteComments(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_id' => 'required|exists:users,id',
+            'date'        => 'required|date',
+            'start_time'  => 'required|date_format:H:i',
+            'end_time'    => 'required|date_format:H:i',
+        ]);
+        Comment::where('employee_id',$validated['employee_id'])
+            ->whereDate('date',$validated['date'])
+            ->where('start_time','>=',$validated['start_time'])
+            ->where('end_time','<=',$validated['end_time'])
+            ->delete();
+        return response()->json(['success'=>true]);
     }
 
     public function getTimeSlots(Request $request)
