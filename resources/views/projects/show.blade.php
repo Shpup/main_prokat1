@@ -5,9 +5,8 @@
     <title>Склад оборудования</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-
+@include('layouts.navigation')
 <div class="container mx-auto p-6">
-    @include('layouts.navigation')
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-semibold text-gray-800">
             Проект: {{ $project->name }}
