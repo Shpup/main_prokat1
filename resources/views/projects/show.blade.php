@@ -38,7 +38,7 @@
                 </button>
             @endcan
             @can('edit projects')
-                <!-- Модалка смены статуса -->
+                <!-- Модалка смены статусаа -->
                 <div id="changeStatusModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
                     <div class="bg-white rounded-lg p-6 w-full max-w-md">
                         <h2 class="text-xl font-semibold text-gray-800 mb-4">Сменить статус проекта</h2>
