@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,14 +16,13 @@ class ClientController extends Controller
 
     public function index(Request $request)
     {
-        if (!\Auth::user()->hasRole(['admin', 'manager'])) {
-            abort(403, 'Доступ запрещен');
-        }
-
         $query = Client::query();
 
-        if (!\Auth::user()->hasRole('admin')) {
-            $query->where('admin_id', \Auth::user()->admin_id);
+        // Фильтрация по admin_id для всех пользователей
+        if (Auth::user()->hasRole('admin')) {
+            $query->where('admin_id', Auth::id());
+        } else {
+            $query->where('admin_id', Auth::user()->admin_id);
         }
 
         // Поиск (PostgreSQL ILIKE)
@@ -54,21 +54,18 @@ class ClientController extends Controller
 
         $query->orderBy($sortColumn, $sortDirection);
 
-        // Пагинация на 15 строк (как у тебя)
+        // Пагинация на 15 строк
         $clients = $query->paginate(15);
 
         if ($request->ajax()) {
             return response()->json([
-                // оставлю, если вдруг захочешь использовать для пагинации на фронте
                 'clients' => $clients,
-                // главное — HTML строк таблицы:
                 'view' => view('clients.partials.table', compact('clients'))->render(),
             ]);
         }
 
         return view('clients.index', compact('clients'));
     }
-
 
     public function store(Request $request)
     {
@@ -91,7 +88,7 @@ class ClientController extends Controller
 
         Client::create($validated);
 
-        return redirect()->route('clients.index')->with('success', 'Клиент добавлен');
+        return redirect()->route('clients')->with('success', 'Клиент добавлен');
     }
 
     public function edit(Client $client)
@@ -130,7 +127,7 @@ class ClientController extends Controller
 
         $client->update($validated);
 
-        return redirect()->route('clients.index')->with('success', 'Клиент обновлен');
+        return redirect()->route('clients')->with('success', 'Клиент обновлен');
     }
 
     public function destroy(Client $client)
@@ -145,6 +142,6 @@ class ClientController extends Controller
 
         $client->delete();
 
-        return redirect()->route('clients.index')->with('success', 'Клиент удален');
+        return redirect()->route('clients')->with('success', 'Клиент удален');
     }
 }

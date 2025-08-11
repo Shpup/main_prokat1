@@ -39,6 +39,7 @@ class ManagerController extends Controller
         $this->authorize('create projects');
         $request->validate([
             'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
         ]);
@@ -46,6 +47,7 @@ class ManagerController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
+            'phone' => $request->phone,
             'password' => Hash::make($request->password),
             'admin_id' => auth()->id(),
         ]);

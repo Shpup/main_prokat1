@@ -22,7 +22,7 @@
                 <label for="category_id" class="block text-sm font-medium text-gray-600">Категория</label>
                 <select name="category_id" id="category_id" class="mt-1 block w-full border-gray-300 rounded-md">
                     <option value="">Нет</option>
-                    @foreach ($categories as $category)
+                    @foreach (\App\Models\Category::where('admin_id', auth()->user()->hasRole('admin') ? auth()->id() : auth()->user()->admin_id)->get() as $category)
                         <option value="{{ $category->id }}" {{ $equipment->category_id == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
                     @endforeach
                 </select>
@@ -54,3 +54,4 @@
 </div>
 </body>
 </html>
+```

@@ -18,6 +18,15 @@
                 <input type="text" name="name" id="name" class="mt-1 block w-full border-gray-300 rounded-md" required>
             </div>
             <div class="mb-4">
+                <label for="category_id" class="block text-sm font-medium text-gray-600">Категория</label>
+                <select name="category_id" id="category_id" class="mt-1 block w-full border-gray-300 rounded-md">
+                    <option value="">Нет</option>
+                    @foreach (\App\Models\Category::where('admin_id', auth()->user()->hasRole('admin') ? auth()->id() : auth()->user()->admin_id)->get() as $category)
+                        <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="mb-4">
                 <label for="description" class="block text-sm font-medium text-gray-600">Описание</label>
                 <textarea name="description" id="description" class="mt-1 block w-full border-gray-300 rounded-md"></textarea>
             </div>
@@ -41,3 +50,4 @@
 </div>
 </body>
 </html>
+```

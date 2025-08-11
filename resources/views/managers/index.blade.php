@@ -19,6 +19,7 @@
                 <tr>
                     <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Имя</th>
                     <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Email</th>
+                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Телефон</th>
                     <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Подписка</th>
                 </tr>
                 </thead>
@@ -27,6 +28,7 @@
                     <tr class="border-t">
                         <td class="px-6 py-4">{{ $manager->name }}</td>
                         <td class="px-6 py-4">{{ $manager->email }}</td>
+                        <td class="px-6 py-4">{{ $manager->phone }}</td>
                         <td class="px-6 py-4">{{ $manager->hasActiveSubscription() ? 'Активна' : 'Не активна' }}</td>
                     </tr>
                 @endforeach
@@ -43,6 +45,10 @@
                     <div class="mb-4">
                         <label for="name" class="block text-sm font-medium text-gray-600">Имя</label>
                         <input type="text" name="name" id="name" class="mt-1 block w-full border-gray-300 rounded-md" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="phone" class="block text-sm font-medium text-gray-600">Телефон</label>
+                        <input type="text" name="phone" id="phone" class="mt-1 block w-full border-gray-300 rounded-md" required>
                     </div>
                     <div class="mb-4">
                         <label for="email" class="block text-sm font-medium text-gray-600">Email</label>

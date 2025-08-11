@@ -68,7 +68,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::post('/trip-sheets', [VehicleController::class, 'storeTripSheet'])->name('tripSheets.store');
     Route::put('/trip-sheets/{tripSheet}', [VehicleController::class, 'updateTripSheet'])->name('tripSheets.update');
     Route::delete('/trip-sheets/{tripSheet}', [VehicleController::class, 'destroyTripSheet'])->name('trip-sheets.destroy');
-
+    Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
     Route::resource('sites', SiteController::class);
     Route::get('/sites', [SiteController::class, 'index'])->name('sites');
     Route::get('/projects/{project}/equipment-list', [ProjectController::class, 'equipmentList'])
