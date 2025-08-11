@@ -16,7 +16,8 @@ class WorkInterval extends Model
         'start_time',
         'end_time',
         'type',
-        'summ',
+        'hour_rate',
+        'project_rate',
     ];
 }
 
