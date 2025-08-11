@@ -130,11 +130,11 @@
             </div>
         @elseif ($tab === 'staff')
             @php
-                // Список сотрудников как сущностей — оставляем для колонок Имя/Спец.
-                $employeesList = \App\Models\User::where('admin_id', auth()->id())->get(['id','name','role']);
+                // Сотрудники проекта по прямой привязке (project_user)
+                $employeesList = $project->staff()->get(['users.id','users.name','users.role']);
                 // Для раздела проекта «Сотрудники» данные по сумме тянем из work_intervals по текущему проекту
                 $projectIntervals = \App\Models\WorkInterval::where('project_id', $project->id)
-                    ->select(['id','employee_id','project_id','summ','updated_at'])
+                    ->select(['id','employee_id','project_id','type','hour_rate','project_rate','start_time','end_time','updated_at'])
                     ->orderByDesc('updated_at')
                     ->get()
                     ->groupBy('employee_id');
@@ -146,8 +146,8 @@
                 $userPhones = \App\Models\User::where('admin_id', auth()->id())
                     ->get(['id','phone'])
                     ->pluck('phone','id');
-                // Полный пул сотрудников админа для модалки «Добавить сотрудника»
-                $adminUsersPool = \App\Models\User::where('admin_id', auth()->id())->get(['id','name','role','phone']);
+                 // Полный пул сотрудников админа для модалки «Добавить сотрудника»
+                 $adminUsersPool = \App\Models\User::where('admin_id', auth()->id())->get(['id','name','role','phone']);
                 // Список ролей (как в «Персонале»)
                 $adminRoles = \App\Models\User::where('admin_id', auth()->id())
                     ->whereNotNull('role')
@@ -159,7 +159,7 @@
                     <h2 class="text-xl font-semibold text-gray-700">Сотрудники</h2>
                     <div class="space-x-2">
                         <button id="openStaffScheduleModal" class="px-3 py-2 text-sm rounded-lg border bg-white text-gray-700">Расписание</button>
-                        <button id="openAddStaffModal" class="px-3 py-2 text-sm rounded-lg border bg-blue-600 text-white">Добавить сотрудника</button>
+                        <button id="openAddStaffModal" class="px-3 py-2 text-sm rounded-lg border bg-white text-gray-700">Добавить сотрудника</button>
                     </div>
                 </div>
 
@@ -177,16 +177,41 @@
                         </thead>
                         <tbody id="staffTableBody" class="bg-white divide-y divide-gray-200">
                         @foreach($employeesList as $emp)
-                            <tr data-emp-id="{{ $emp->id }}" class="group staff-grid hover:bg-gray-50">
+                            @php
+                                $empIvs = $projectIntervals->get($emp->id) ?? collect();
+                                $empProjectRate = optional($empIvs->firstWhere('project_rate','!=',null))->project_rate;
+                                $empHourRate    = optional($empIvs->firstWhere('hour_rate','!=',null))->hour_rate;
+                                $empRateType    = !is_null($empProjectRate) ? 'project' : (!is_null($empHourRate) ? 'hour' : '');
+                                $empRateValue   = !is_null($empProjectRate) ? (float)$empProjectRate : (!is_null($empHourRate) ? (float)$empHourRate : '');
+                            @endphp
+                            <tr data-emp-id="{{ $emp->id }}" data-rate-type="{{ $empRateType }}" data-rate="{{ $empRateValue }}" class="group staff-grid hover:bg-gray-50">
                                 <td class="staff-cell truncate min-w-[140px]" title="{{ $emp->name }}">{{ $emp->name }}</td>
                                 <td class="staff-cell truncate" title="{{ $emp->role ?? '' }}">{{ $emp->role ?? '' }}</td>
-                                @php
-                                    $ivs = $projectIntervals->get($emp->id) ?? collect();
-                                    $iv  = $ivs->first(function($x){ return !is_null($x->summ); }) ?? $ivs->first();
-                                    $pc  = ($projectComments->get($emp->id) ?? collect())->first();
-                                @endphp
+                                 @php
+                                     $ivs = $projectIntervals->get($emp->id) ?? collect();
+                                     $pc  = ($projectComments->get($emp->id) ?? collect())->first();
+                                     // Рассчитываем сумму: если есть project_rate — берём её; иначе hour_rate * часы
+                                     $displaySumm = null;
+                                     if ($ivs->isNotEmpty()) {
+                                         $minutes = 0;
+                                         $projectRate = null;
+                                         $hourRate = null;
+                                         foreach ($ivs as $x) {
+                                             if ((int)$x->project_id !== (int)$project->id) continue;
+                                             if ((string)$x->type !== 'busy') continue; // учитываем только рабочие интервалы
+                                             $s = strtotime($x->start_time);
+                                             $e = strtotime($x->end_time);
+                                             if ($e > $s) { $minutes += ($e - $s) / 60; }
+                                             if (!is_null($x->project_rate)) { $projectRate = (float)$x->project_rate; }
+                                             if (!is_null($x->hour_rate) && $hourRate === null) { $hourRate = (float)$x->hour_rate; }
+                                              
+                                         }
+                                         if ($projectRate !== null) { $displaySumm = $projectRate; }
+                                          elseif ($hourRate !== null) { $displaySumm = $hourRate * ($minutes/60.0); }
+                                     }
+                                 @endphp
                                 <td class="staff-cell staff-shift whitespace-nowrap tabular-nums">{{ $userPhones[$emp->id] ?? '' }}</td>
-                                <td class="staff-cell staff-shift whitespace-nowrap tabular-nums">{{ isset($iv) && $iv && $iv->summ !== null ? number_format((float)$iv->summ, 2, ',', ' ') : '' }}</td>
+                                 <td class="staff-cell staff-shift whitespace-nowrap tabular-nums">{{ $displaySumm !== null ? number_format((float)$displaySumm, 2, ',', ' ') : '' }}</td>
                                 <td class="staff-cell staff-shift break-words line-clamp-2" title="{{ $pc->comment ?? '' }}">{{ $pc->comment ?? '' }}</td>
                                 <td class="staff-cell text-right">
                                     <div class="icon-row justify-end">
@@ -219,10 +244,16 @@
                         <h3 class="text-lg font-medium text-gray-900">Добавить сотрудника</h3>
                         <button onclick="closeAddStaff()" class="text-gray-400 hover:text-gray-600">✕</button>
                     </div>
-                    <form id="addStaffForm" class="space-y-3">
+                     <form id="addStaffForm" class="space-y-3">
                         <select id="staffSpecialty" class="w-full rounded-md border-gray-300" required></select>
                         <select id="staffUser" class="w-full rounded-md border-gray-300" required></select>
-                        <input id="staffAmount" type="number" min="0" class="w-full rounded-md border-gray-300 no-spin" placeholder="Сумма" value="0" required />
+                         <div class="grid grid-cols-2 gap-2">
+                             <select id="staffRateType" class="w-full rounded-md border-gray-300">
+                                 <option value="hour">Часовая</option>
+                                 <option value="project">За проект</option>
+                             </select>
+                             <input id="staffAmount" type="number" min="0" class="w-full rounded-md border-gray-300 no-spin" placeholder="Ставка" value="0" />
+                         </div>
                         <div class="flex justify-end space-x-2 pt-2">
                             <button type="button" onclick="closeAddStaff()" class="px-3 py-2 text-sm rounded-lg border bg-white text-gray-700">Отмена</button>
                             <button type="submit" class="px-3 py-2 text-sm rounded-lg border bg-blue-600 text-white">Сохранить</button>
@@ -347,7 +378,8 @@
             });
             staffSortDir*=-1; rows.forEach(r=>tbody.appendChild(r));
         }
-        function openAddStaff(){ document.getElementById('addStaffModal').classList.remove('hidden'); document.getElementById('addStaffModal').classList.add('flex'); }
+        let editingStaffId = null;
+        function openAddStaff(){ editingStaffId = null; document.getElementById('addStaffModal').classList.remove('hidden'); document.getElementById('addStaffModal').classList.add('flex'); }
         function closeAddStaff(){ document.getElementById('addStaffModal').classList.add('hidden'); document.getElementById('addStaffModal').classList.remove('flex'); }
         document.getElementById('openAddStaffModal')?.addEventListener('click', openAddStaff);
         // Инициализация селектов в модалке «Добавить сотрудника»
@@ -387,24 +419,74 @@
         });
         // Наполняем при открытии
         document.getElementById('openAddStaffModal')?.addEventListener('click', populateAddStaffModal);
+        // Базовые URL для привязки/отвязки сотрудников (Laravel routes)
+        const attachStaffBase = `{{ route('projects.staff.attach', ['project' => $project->id, 'user' => 0]) }}`; // .../staff/0
+        const detachStaffBase = `{{ route('projects.staff.detach', ['project' => $project->id, 'user' => 0]) }}`;
+
         document.getElementById('addStaffForm')?.addEventListener('submit', async (e)=>{
             e.preventDefault();
             const userId = document.getElementById('staffUser').value;
             const specialtyId = document.getElementById('staffSpecialty').value;
             const amount = document.getElementById('staffAmount').value || 0;
+            const rateType = document.getElementById('staffRateType').value;
             if(!userId || !specialtyId){ return; }
-            // Оптимистичное добавление строки (визуально). Бэкенд-эндпоинт можно подключить позже.
             const tbody = document.getElementById('staffTableBody');
+            if (editingStaffId && String(editingStaffId) === String(userId)) {
+                // Редактирование существующей строки — обновляем без дублирования и без повторной привязки
+                const row = document.querySelector(`#staffTableBody tr[data-emp-id="${userId}"]`);
+                if (row) {
+                    row.dataset.rateType = rateType;
+                    row.dataset.rate = String(amount || 0);
+                    // Получим актуальную сумму с сервера и обновим ячейку
+                    const sumCell = row.cells[3];
+                    try {
+                        const u = `{{ route('projects.staff.summary', ['project'=>$project->id, 'user'=>0]) }}`.replace(/0$/, String(userId));
+                        const r = await fetch(u);
+                        const j = await r.json();
+                        if (sumCell) {
+                            const val = (j && j.sum!=null) ? Number(j.sum).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}) : '';
+                            sumCell.textContent = val;
+                        }
+                    } catch(_e) { /* no-op */ }
+                }
+                closeAddStaff();
+                return;
+            }
+            // Создание новой строки или обновление, если уже есть такая строка (на случай рассинхронизации)
+            try {
+                const url = attachStaffBase.replace(/\/0$/, `/${userId}`);
+                await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ rate_type: rateType, rate: Number(amount) || null })
+                });
+            } catch (err) { /* no-op */ }
+            const existing = document.querySelector(`#staffTableBody tr[data-emp-id="${userId}"]`);
+            if (existing) {
+                existing.dataset.rateType = rateType;
+                existing.dataset.rate = String(amount || 0);
+                const sumCell = existing.cells[3];
+                if (sumCell) sumCell.textContent = rateType==='project' ? Number(amount).toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
+                closeAddStaff();
+                return;
+            }
             const tr = document.createElement('tr');
             tr.className = 'group staff-grid hover:bg-gray-50';
             tr.dataset.empId = userId;
+            tr.dataset.rateType = rateType;
+            tr.dataset.rate = String(amount || 0);
             const user = adminUsersPool.find(u=>String(u.id)===String(userId));
             const specLabel = specialtyId==='__all__' ? '' : (specialtyId==='__none__' ? 'нет специальности' : specialtyId);
             tr.innerHTML = `
                 <td class="staff-cell truncate min-w-[140px]" title="${user?.name||''}">${user?.name||''}</td>
                 <td class="staff-cell truncate" title="${specLabel}">${specLabel}</td>
                 <td class="staff-cell staff-shift whitespace-nowrap tabular-nums">${user?.phone||''}</td>
-                <td class="staff-cell staff-shift whitespace-nowrap text-right">${Number(amount).toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                <td class="staff-cell staff-shift whitespace-nowrap text-right">${rateType==='project' ? Number(amount).toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2}) : ''}</td>
                 <td class="staff-cell staff-shift break-words line-clamp-2" title=""></td>
                 <td class="staff-cell text-right">
                     <div class="icon-row justify-end">
@@ -422,6 +504,18 @@
         async function deleteStaff(id){
             const row = document.querySelector(`#staffTableBody tr[data-emp-id="${id}"]`);
             if(row){ row.remove(); }
+            try {
+                const url = detachStaffBase.replace(/\/0$/, `/${id}`);
+                await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-HTTP-Method-Override': 'DELETE'
+                    }
+                });
+            } catch (err) { /* no-op */ }
         }
         function editStaff(id){
             populateAddStaffModal();
@@ -429,14 +523,18 @@
             const userSel = document.getElementById('staffUser');
             const specSel = document.getElementById('staffSpecialty');
             const amountInput = document.getElementById('staffAmount');
+            const rateTypeSel = document.getElementById('staffRateType');
             userSel.value = String(id);
+            editingStaffId = id;
             const currentRole = (row?.cells[1]?.textContent || '').trim();
             specSel.value = currentRole
                 ? (currentRole === 'нет специальности' ? '__none__' : currentRole)
                 : '__all__';
-            const sumText = (row?.cells[3]?.textContent||'').trim().replace(/\s/g,'').replace(',', '.');
-            const sumVal = parseFloat(sumText||'0') || 0;
-            amountInput.value = sumVal;
+            // Подставим тип/ставку из data-атрибутов строки (заполняются с сервера)
+            const rowRateType = row?.dataset.rateType || 'hour';
+            const rowRateVal  = row?.dataset.rate || '';
+            rateTypeSel.value = rowRateType;
+            amountInput.value = rowRateVal;
             openAddStaff();
         }
 
@@ -469,7 +567,14 @@
             thead.appendChild(htr); table.appendChild(thead);
             const tbody = document.createElement('tbody');
 
-            const users = (Array.isArray(adminUsersPool)? adminUsersPool: []).slice(0,10);
+            // Берём сотрудников прямо из таблицы проекта (только прикреплённые к проекту)
+            const users = Array.from(document.querySelectorAll('#staffTableBody tr')).map(tr=>{
+                return {
+                    id: parseInt(tr.dataset.empId, 10),
+                    name: (tr.cells[0]?.textContent||'').trim(),
+                    role: (tr.cells[1]?.textContent||'').trim()
+                };
+            });
             const res = await fetch(`/personnel/data?date=${date}&project_id={{ $project->id }}`);
             const data = await res.json();
             function timeToMin(t){ const [h,m]=String(t).split(':').map(Number); return (isNaN(h)||isNaN(m))?0:(h*60+m); }
@@ -498,7 +603,6 @@
                     tr.appendChild(td);
                 });
                 tbody.appendChild(tr);
-                // узкая разделительная строка
                 const spacer = document.createElement('tr');
                 const spacerTd = document.createElement('td');
                 spacerTd.colSpan = slots.length + 1;
@@ -516,13 +620,34 @@
             const closeComments = ()=>{ commentsModal.classList.add('hidden'); commentsModal.classList.remove('flex'); };
             document.getElementById('schedCommentsCloseBtn').onclick = closeComments;
             document.getElementById('schedCommentsOkBtn').onclick = closeComments;
-            const openDelete = (metaText)=>{ document.getElementById('schedDeleteText').textContent = metaText||'Вы действительно хотите удалить выбранный интервал?'; deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex'); };
+            const openDelete = (metaText, payload)=>{ 
+                document.getElementById('schedDeleteText').textContent = metaText||'Вы действительно хотите удалить выбранный интервал?';
+                deleteModal.dataset.payload = JSON.stringify(payload||{});
+                deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex'); 
+            };
             const closeDelete = ()=>{ deleteModal.classList.add('hidden'); deleteModal.classList.remove('flex'); };
             document.getElementById('schedDeleteCancel').onclick = closeDelete;
-            document.getElementById('schedDeleteConfirm').onclick = ()=>{ closeDelete(); };
+            document.getElementById('schedDeleteConfirm').onclick = async ()=>{ 
+                try{
+                    const p = JSON.parse(deleteModal.dataset.payload||'{}');
+                    await fetch('/personnel/clear', { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(p)});
+                    closeDelete();
+                    await renderStaffSchedule();
+                }catch(e){ closeDelete(); }
+            };
 
             // Выделение диапазона мышью (похоже на «Персонал»)
             let isSelecting = false; let startCell = null; let currentRow = null;
+            // Инлайн-меню для пустых слотов
+            const inlineMenu = document.createElement('div');
+            inlineMenu.className='fixed bg-white border rounded shadow-lg text-sm hidden';
+            inlineMenu.style.zIndex = '1001';
+            inlineMenu.innerHTML = `<div class="py-1">
+                <button id=\"schedAddWork\" class=\"px-4 py-2 hover:bg-gray-100 w-full text-left\">Добавить рабочее время</button>
+                <button id=\"schedAddOff\" class=\"px-4 py-2 hover:bg-gray-100 w-full text-left\">Отметить нерабочее время</button>
+            </div>`;
+            document.body.appendChild(inlineMenu);
+            const hideInline = ()=>{ inlineMenu.classList.add('hidden'); };
             function clearSelection(){ tbody.querySelectorAll('.sched-selected').forEach(c=>c.classList.remove('sched-selected')); }
             tbody.querySelectorAll('td.sched-cell').forEach(td=>{
                 td.addEventListener('mousedown', ()=>{ isSelecting=true; currentRow=td.parentElement; startCell=td; clearSelection(); td.classList.add('sched-selected'); });
@@ -546,41 +671,44 @@
                 const employeeName = currentRow.firstChild?.textContent || 'Сотрудник';
                 const empId = parseInt(currentRow.dataset.empId,10);
                 if(allGreen){
-                    // Загружаем комментарии для диапазона, удаляем дубли
-                    const params = new URLSearchParams({ employee_id: String(empId), date, start_time: from, end_time: to, project_id: String({{ $project->id }}) });
-                    try{
-                        const res = await fetch(`/comments?${params.toString()}`);
-                        const list = await res.json();
-                        const seen = new Set();
-                        const items = (Array.isArray(list)?list:[]).map(x=>({time:x.start_time, text:x.comment||''}))
-                          .filter(x=>x.text.trim().length>0)
-                          .filter(x=>{ const k = x.time+"|"+x.text.trim(); if(seen.has(k)) return false; seen.add(k); return true; });
-                        // отрисуем
-                        const meta = `${employeeName}: ${from} – ${to}`;
-                        document.getElementById('schedCommentsMeta').textContent = meta;
-                        const ul = document.getElementById('schedCommentsList'); ul.innerHTML='';
-                        items.forEach((it, idx)=>{
-                            const row = document.createElement('div'); row.className='comment-item';
-                            row.innerHTML = `<span class="text-sm text-gray-700">${it.time} — ${it.text}</span><button data-idx="${idx}" title="Удалить">✕</button>`;
-                            row.querySelector('button').onclick = async ()=>{
-                                // удаляем комментарии, совпадающие по времени/тексту в этом диапазоне
-                                await fetch('/comments', { method:'DELETE', headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ employee_id: empId, date, start_time: from, end_time: to })});
-                                closeComments();
-                            };
-                            ul.appendChild(row);
-                        });
-                        // Добавление нового
-                        document.getElementById('schedCommentAddBtn').onclick = async ()=>{
-                            const t = (document.getElementById('schedCommentTime').value || from);
-                            const txt = (document.getElementById('schedCommentText').value||'').trim();
-                            if(!txt) return;
-                            await fetch('/comments', { method:'POST', headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ employee_id: empId, project_id: {{ $project->id }}, date, start_time: t, end_time: to, comment: txt })});
-                            closeComments();
-                        };
-                        commentsModal.classList.remove('hidden'); commentsModal.classList.add('flex');
-                    }catch(e){ commentsModal.classList.remove('hidden'); commentsModal.classList.add('flex'); }
+                    // Упрощённая форма добавления комментария
+                    document.getElementById('schedCommentsMeta').textContent = `${employeeName}: ${from} – ${to}`;
+                    const ul = document.getElementById('schedCommentsList'); ul.innerHTML='';
+                    document.getElementById('schedCommentAddBtn').onclick = async ()=>{
+                        const t = (document.getElementById('schedCommentTime').value || from);
+                        const txt = (document.getElementById('schedCommentText').value||'').trim();
+                        if(!txt) return;
+                        await fetch('/comments', { method:'POST', headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ employee_id: empId, project_id: {{ $project->id }}, date, start_time: t, end_time: to, comment: txt })});
+                        closeComments();
+                    };
+                    commentsModal.classList.remove('hidden'); commentsModal.classList.add('flex');
                 } else if(allRed){
-                    openDelete(`Удалить интервал ${from} – ${to} для ${employeeName}?`);
+                    openDelete(`Удалить интервал ${from} – ${to} для ${employeeName}?`, { employee_id: empId, date, start_time: from, end_time: to });
+                } else {
+                    // Пустые ячейки — показать инлайн меню
+                    const rect = selected[selected.length-1].getBoundingClientRect();
+                    inlineMenu.style.left = `${rect.right + 8}px`;
+                    inlineMenu.style.top = `${Math.max(rect.top, 60)}px`;
+                    inlineMenu.classList.remove('hidden');
+                    const clearHandlers = ()=>{
+                        document.getElementById('schedAddWork').onclick = null;
+                        document.getElementById('schedAddOff').onclick = null;
+                    };
+                    document.getElementById('schedAddWork').onclick = async ()=>{
+                        try{
+                            await fetch('/personnel/assign', { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ employee_id: empId, project_id: {{ $project->id }}, date, start_time: from, end_time: to, sum: null, comment: '' })});
+                            hideInline(); clearHandlers(); await renderStaffSchedule();
+                        }catch(e){ hideInline(); }
+                    };
+                    document.getElementById('schedAddOff').onclick = async ()=>{
+                        try{
+                            // Пишем off напрямую в work_intervals
+                            await fetch('/personnel/non-working', { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ employee_id: empId, date, start_time: from, end_time: to })});
+                            hideInline(); clearHandlers(); await renderStaffSchedule();
+                        }catch(e){ hideInline(); }
+                    };
+                    const onDocClick = (ev)=>{ if(!inlineMenu.contains(ev.target)) { hideInline(); document.removeEventListener('click', onDocClick, true); } };
+                    setTimeout(()=>document.addEventListener('click', onDocClick, true), 0);
                 }
                 clearSelection(); currentRow=null; startCell=null;
             };
