@@ -1,7 +1,7 @@
 <?php
-
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Equipment;
 use Picqer\Barcode\BarcodeGeneratorPNG;
 use Illuminate\Http\Request;
@@ -13,64 +13,67 @@ class EquipmentController extends Controller
 {
     public function index(Request $request)
     {
-        // Временное отключение authorize для отладки
-        // $this->authorize('view projects');
 
-        Log::info('Доступ к /equipment', ['user' => auth()->check() ? auth()->user()->email : 'неавторизован']);
 
         $categoryId = $request->query('category_id');
-        $equipment = Equipment::when($categoryId, fn ($query) => $query->where('category_id', $categoryId))
-            ->with('category', 'projects')
-            ->get();
+        $user = auth()->user();
+        $adminId = $user->hasRole('admin') ? $user->id : $user->admin_id;
+
+        $query = Equipment::where('admin_id', $adminId)
+            ->with('category', 'projects');
+
+        if ($categoryId) {
+            $category = Category::find($categoryId);
+            if ($category && $category->admin_id !== $adminId) {
+                return response()->json(['error' => 'У вас нет доступа к этой категории'], 403);
+            }
+            $query->where('category_id', $categoryId);
+        }
+
+        $equipment = $query->get();
+
+        if ($request->ajax()) {
+            return view('equipment._table', compact('equipment', 'categoryId'));
+        }
 
         return view('equipment.index', compact('equipment', 'categoryId'));
     }
-    public function edit($id)
+
+    public function create(Request $request)
     {
-        $equipment = Equipment::with('category')->findOrFail($id);
-        \Log::info('Equipment data for edit: ', $equipment->toArray()); // Добавим лог для отладки
-        return response()->json($equipment);
-    }
+        $this->authorize('create projects');
 
-    public function update(Request $request, $id)
-    {
-        $equipment = Equipment::findOrFail($id);
+        $user = auth()->user();
+        $adminId = $user->hasRole('admin') ? $user->id : $user->admin_id;
+        $categories = Category::where('admin_id', $adminId)->get();
+        $categoryId = $request->query('category_id');
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'category_id' => 'nullable|exists:categories,id',
-            'description' => 'nullable|string',
-            'price' => 'nullable|numeric',
-            'specifications' => 'nullable|json',
-            'image' => 'nullable|image|max:2048',
-        ]);
-
-        $equipment->update($request->all());
-        if ($request->hasFile('image')) {
-            $equipment->image = $request->file('image')->store('equipment', 'public');
-            $equipment->save();
+        if ($request->ajax()) {
+            return response()->json([
+                'categories' => $categories->map(function ($category) {
+                    return ['id' => $category->id, 'name' => $category->name];
+                }),
+                'canViewPrices' => $user->hasPermissionTo('view prices'),
+                'categoryId' => $categoryId
+            ]);
         }
 
-        return response()->json(['success' => 'Оборудование успешно обновлено']);
-    }
-    public function destroy($id)
-    {
-        $equipment = Equipment::findOrFail($id);
-        $equipment->delete();
-
-        return response()->json(['success' => 'Оборудование успешно удалено']);
+        return view('equipment.create', compact('categories', 'categoryId'));
     }
 
     public function store(Request $request): JsonResponse
     {
         $this->authorize('create projects');
 
+        $user = auth()->user();
+        $adminId = $user->hasRole('admin') ? $user->id : $user->admin_id;
+
         $barcodePath = null;
 
         try {
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
-                'category_id' => 'nullable|exists:categories,id',
+                'category_id' => 'nullable|exists:categories,id,admin_id,' . $adminId,
                 'description' => 'nullable|string',
                 'price' => 'nullable|numeric|min:0',
                 'specifications' => 'nullable|json',
@@ -80,11 +83,12 @@ class EquipmentController extends Controller
             Log::info('Создание оборудования', ['data' => $validated]);
 
             $data = $validated;
+            $data['admin_id'] = $adminId;
             $barcodeContent = $request->name . '-' . uniqid();
             $barcodePath = 'barcodes/' . uniqid() . '.png';
 
-            $generator = new BarcodeGeneratorPNG();
-            $barcodeImage = $generator->getBarcode($barcodeContent, $generator::TYPE_CODE_128);
+
+            $barcodeImage = 1;
             Storage::put('public/' . $barcodePath, $barcodeImage);
             $data['barcode'] = $barcodePath;
 
@@ -114,5 +118,77 @@ class EquipmentController extends Controller
             }
             return response()->json(['error' => 'Ошибка сервера: ' . $e->getMessage()], 500);
         }
+    }
+
+    public function edit($id)
+    {
+        $this->authorize('edit projects');
+
+        $equipment = Equipment::findOrFail($id);
+        $user = auth()->user();
+        $adminId = $user->hasRole('admin') ? $user->id : $user->admin_id;
+
+        if ($equipment->admin_id !== $adminId) {
+            return response()->json(['error' => 'У вас нет доступа к этому оборудованию'], 403);
+        }
+
+        Log::info('Equipment data for edit: ', $equipment->toArray());
+        return response()->json($equipment);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $this->authorize('edit projects');
+
+        $equipment = Equipment::findOrFail($id);
+        $user = auth()->user();
+        $adminId = $user->hasRole('admin') ? $user->id : $user->admin_id;
+
+        if ($equipment->admin_id !== $adminId) {
+            return response()->json(['error' => 'У вас нет доступа к этому оборудованию'], 403);
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'category_id' => 'nullable|exists:categories,id,admin_id,' . $adminId,
+            'description' => 'nullable|string',
+            'price' => 'nullable|numeric',
+            'specifications' => 'nullable|json',
+            'image' => 'nullable|image|max:2048',
+        ]);
+
+        $equipment->update($request->all());
+        if ($request->hasFile('image')) {
+            if ($equipment->image) {
+                Storage::delete('public/' . $equipment->image);
+            }
+            $equipment->image = $request->file('image')->store('equipment', 'public');
+            $equipment->save();
+        }
+
+        return response()->json(['success' => 'Оборудование успешно обновлено']);
+    }
+
+    public function destroy($id)
+    {
+        $this->authorize('delete projects');
+
+        $equipment = Equipment::findOrFail($id);
+        $user = auth()->user();
+        $adminId = $user->hasRole('admin') ? $user->id : $user->admin_id;
+
+        if ($equipment->admin_id !== $adminId) {
+            return response()->json(['error' => 'У вас нет доступа к этому оборудованию'], 403);
+        }
+
+        if ($equipment->image) {
+            Storage::delete('public/' . $equipment->image);
+        }
+        if ($equipment->barcode) {
+            Storage::delete('public/' . $equipment->barcode);
+        }
+        $equipment->delete();
+
+        return response()->json(['success' => 'Оборудование успешно удалено']);
     }
 }

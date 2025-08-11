@@ -17,7 +17,7 @@ class ProjectController extends Controller
      */
     public function index(): View
     {
-        $projects = Project::with('manager')->get();
+        $projects = Project::with('manager')->where('admin_id',auth()->id())->get();
         return view('projects.index', compact('projects'));
     }
 
@@ -50,12 +50,11 @@ class ProjectController extends Controller
 
         $project = Project::create($validated);
 
-        if ($request->ajax()) {
-            return response()->json(['success' => 'Проект создан.', 'project' => $project]);
-        }
+        return response()->json(['success' => 'Проект создан.', 'project' => $project]);
 
 
-        return redirect()->route('dashboard')->with('success', 'Проект создан.');
+
+        //return redirect()->route('dashboard')->with('success', 'Проект создан.');
     }
     public function equipmentList(Request $request, Project $project)
     {

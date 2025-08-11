@@ -18,14 +18,20 @@ class VehicleController extends Controller
         $direction = $request->input('direction', 'asc');
         $tab = $request->input('tab', 'vehicles');
 
+        $query = Vehicle::with('site');
+        if (!Auth::user()->hasRole('admin')) {
+            $query->where('admin_id', Auth::user()->admin_id);
+        } else {
+            $query->where('admin_id', Auth::id());
+        }
+
         if ($request->ajax()) {
             if ($tab === 'vehicles') {
-                $vehicles = Vehicle::with('site')
-                    ->where(function ($query) use ($search) {
-                        $query->where('brand', 'like', "%$search%")
-                            ->orWhere('model', 'like', "%$search%")
-                            ->orWhere('license_plate', 'like', "%$search%");
-                    })
+                $vehicles = $query->where(function ($query) use ($search) {
+                    $query->where('brand', 'like', "%$search%")
+                        ->orWhere('model', 'like', "%$search%")
+                        ->orWhere('license_plate', 'like', "%$search%");
+                })
                     ->orderBy($sort, $direction)
                     ->paginate(10);
 
@@ -47,6 +53,12 @@ class VehicleController extends Controller
                             });
                     });
 
+                if (!Auth::user()->hasRole('admin')) {
+                    $tripSheetsQuery->where('trip_sheets.admin_id', Auth::user()->admin_id);
+                } else {
+                    $tripSheetsQuery->where('trip_sheets.admin_id', Auth::id());
+                }
+
                 if ($sort === 'brand') {
                     $tripSheetsQuery->join('vehicles', 'trip_sheets.vehicle_id', '=', 'vehicles.id')
                         ->orderBy('vehicles.brand', $direction)
@@ -63,12 +75,11 @@ class VehicleController extends Controller
             }
         }
 
-        $vehicles = Vehicle::with('site')
-            ->where(function ($query) use ($search) {
-                $query->where('brand', 'like', "%$search%")
-                    ->orWhere('model', 'like', "%$search%")
-                    ->orWhere('license_plate', 'like', "%$search%");
-            })
+        $vehicles = $query->where(function ($query) use ($search) {
+            $query->where('brand', 'like', "%$search%")
+                ->orWhere('model', 'like', "%$search%")
+                ->orWhere('license_plate', 'like', "%$search%");
+        })
             ->orderBy($sort, $direction)
             ->paginate(10);
 
@@ -85,6 +96,12 @@ class VehicleController extends Controller
                     });
             });
 
+        if (!Auth::user()->hasRole('admin')) {
+            $tripSheetsQuery->where('trip_sheets.admin_id', Auth::user()->admin_id);
+        } else {
+            $tripSheetsQuery->where('trip_sheets.admin_id', Auth::id());
+        }
+
         if ($sort === 'brand') {
             $tripSheetsQuery->join('vehicles', 'trip_sheets.vehicle_id', '=', 'vehicles.id')
                 ->orderBy('vehicles.brand', $direction)
@@ -95,9 +112,21 @@ class VehicleController extends Controller
 
         $tripSheets = $tripSheetsQuery->paginate(10);
 
-        $sites = Site::all();
-        $adminId = Auth::id();
-        $drivers = User::where('role', 'driver')->where('admin_id', $adminId)->get();
+        $sitesQuery = Site::query();
+        if (!Auth::user()->hasRole('admin')) {
+            $sitesQuery->where('admin_id', Auth::user()->admin_id);
+        } else {
+            $sitesQuery->where('admin_id', Auth::id());
+        }
+        $sites = $sitesQuery->get();
+
+        $driversQuery = User::role('driver');
+        if (!Auth::user()->hasRole('admin')) {
+            $driversQuery->where('admin_id', Auth::user()->admin_id);
+        } else {
+            $driversQuery->where('admin_id', Auth::id());
+        }
+        $drivers = $driversQuery->get();
 
         return view('vehicles.index', compact('vehicles', 'tripSheets', 'sites', 'drivers'));
     }
@@ -107,45 +136,35 @@ class VehicleController extends Controller
         $data = $request->validate([
             'brand' => 'required|string|max:255',
             'model' => 'required|string|max:255',
-            'year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
-            'license_plate' => 'required|string|max:20',
-            'status' => 'required|in:available,in_use,maintenance',
-            'mileage' => 'nullable|integer|min:0',
-            'fuel_type' => 'nullable|in:petrol,diesel,electric,hybrid',
-            'fuel_grade' => 'nullable|string|in:92,95,98,diesel',
+            'license_plate' => 'required|string|max:255',
+            'fuel_type' => 'required|in:petrol,diesel,electric,hybrid',
+            'fuel_grade' => 'nullable|in:92,95,98,diesel',
             'fuel_consumption' => 'nullable|numeric|min:0',
             'diesel_consumption' => 'nullable|numeric|min:0',
-            'battery_capacity' => 'nullable|numeric|min:0',
-            'range' => 'nullable|integer|min:0',
             'hybrid_consumption' => 'nullable|numeric|min:0',
-            'hybrid_range' => 'nullable|integer|min:0',
-            'comment' => 'nullable|string',
             'site_id' => 'nullable|exists:sites,id',
         ]);
 
-        $data['admin_id'] = Auth::id();
+        $data['admin_id'] = Auth::user()->hasRole('admin') ? Auth::id() : Auth::user()->admin_id;
         $vehicle = Vehicle::create($data);
         return response()->json($vehicle);
     }
 
     public function update(Request $request, Vehicle $vehicle)
     {
+        if (!Auth::user()->hasRole('admin') && $vehicle->admin_id != Auth::user()->admin_id) {
+            abort(403, 'Доступ запрещен');
+        }
+
         $data = $request->validate([
             'brand' => 'required|string|max:255',
             'model' => 'required|string|max:255',
-            'year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
-            'license_plate' => 'required|string|max:20',
-            'status' => 'required|in:available,in_use,maintenance',
-            'mileage' => 'nullable|integer|min:0',
-            'fuel_type' => 'nullable|in:petrol,diesel,electric,hybrid',
-            'fuel_grade' => 'nullable|string|in:92,95,98,diesel',
+            'license_plate' => 'required|string|max:255',
+            'fuel_type' => 'required|in:petrol,diesel,electric,hybrid',
+            'fuel_grade' => 'nullable|in:92,95,98,diesel',
             'fuel_consumption' => 'nullable|numeric|min:0',
             'diesel_consumption' => 'nullable|numeric|min:0',
-            'battery_capacity' => 'nullable|numeric|min:0',
-            'range' => 'nullable|integer|min:0',
             'hybrid_consumption' => 'nullable|numeric|min:0',
-            'hybrid_range' => 'nullable|integer|min:0',
-            'comment' => 'nullable|string',
             'site_id' => 'nullable|exists:sites,id',
         ]);
 
@@ -155,6 +174,10 @@ class VehicleController extends Controller
 
     public function destroy(Vehicle $vehicle)
     {
+        if (!Auth::user()->hasRole('admin') && $vehicle->admin_id != Auth::user()->admin_id) {
+            abort(403, 'Доступ запрещен');
+        }
+
         $vehicle->delete();
         return response()->json(['deleted' => true]);
     }
@@ -171,23 +194,30 @@ class VehicleController extends Controller
             'status' => 'nullable|in:in_progress,completed,canceled',
         ]);
 
-        $data['admin_id'] = Auth::id();
         $vehicle = Vehicle::find($data['vehicle_id']);
-
-        // Ensure at least one of site_id or address is provided
-        if (empty($data['site_id']) && empty($data['address'])) {
-            return response()->json(['error' => 'Укажите адрес или выберите площадку!'], 422);
+        if (!Auth::user()->hasRole('admin') && $vehicle->admin_id != Auth::user()->admin_id) {
+            abort(403, 'Доступ запрещен');
         }
 
-        // Set default values for optional fields
+        $data['admin_id'] = Auth::user()->hasRole('admin') ? Auth::id() : Auth::user()->admin_id;
+
+        if (!empty($data['site_id']) && empty($data['address'])) {
+            $site = Site::find($data['site_id']);
+            $data['address'] = $site->address ?? '';
+        }
+
         $data['distance'] = $data['distance'] ?? 0;
         $data['status'] = $data['status'] ?? 'in_progress';
         $data['cost'] = $vehicle ? $this->calculateCost($vehicle, $data['distance']) : 0;
 
-        // If site_id is provided, use the site's address if address is not provided
-        if (!empty($data['site_id']) && empty($data['address'])) {
+        if (!empty($data['site_id'])) {
             $site = Site::find($data['site_id']);
-            $data['address'] = $site->address ?? '';
+            if (!Auth::user()->hasRole('admin') && $site->admin_id != Auth::user()->admin_id) {
+                abort(403, 'Доступ запрещен');
+            }
+            if (empty($data['address'])) {
+                $data['address'] = $site->address ?? '';
+            }
         }
 
         $tripSheet = TripSheet::create($data);
@@ -196,6 +226,10 @@ class VehicleController extends Controller
 
     public function updateTripSheet(Request $request, TripSheet $tripSheet)
     {
+        if (!Auth::user()->hasRole('admin') && $tripSheet->admin_id != Auth::user()->admin_id) {
+            abort(403, 'Доступ запрещен');
+        }
+
         $data = $request->validate([
             'date_time' => 'required|date',
             'vehicle_id' => 'required|exists:vehicles,id',
@@ -207,21 +241,26 @@ class VehicleController extends Controller
         ]);
 
         $vehicle = Vehicle::find($data['vehicle_id']);
+        if (!Auth::user()->hasRole('admin') && $vehicle->admin_id != Auth::user()->admin_id) {
+            abort(403, 'Доступ запрещен');
+        }
 
-        // Ensure at least one of site_id or address is provided
         if (empty($data['site_id']) && empty($data['address'])) {
             return response()->json(['error' => 'Укажите адрес или выберите площадку!'], 422);
         }
 
-        // Set default values for optional fields
         $data['distance'] = $data['distance'] ?? 0;
         $data['status'] = $data['status'] ?? 'in_progress';
         $data['cost'] = $vehicle ? $this->calculateCost($vehicle, $data['distance']) : 0;
 
-        // If site_id is provided, use the site's address if address is not provided
-        if (!empty($data['site_id']) && empty($data['address'])) {
+        if (!empty($data['site_id'])) {
             $site = Site::find($data['site_id']);
-            $data['address'] = $site->address ?? '';
+            if (!Auth::user()->hasRole('admin') && $site->admin_id != Auth::user()->admin_id) {
+                abort(403, 'Доступ запрещен');
+            }
+            if (empty($data['address'])) {
+                $data['address'] = $site->address ?? '';
+            }
         }
 
         $tripSheet->update($data);
@@ -230,6 +269,10 @@ class VehicleController extends Controller
 
     public function destroyTripSheet(TripSheet $tripSheet)
     {
+        if (!Auth::user()->hasRole('admin') && $tripSheet->admin_id != Auth::user()->admin_id) {
+            abort(403, 'Доступ запрещен');
+        }
+
         $tripSheet->delete();
         return response()->json(['deleted' => true]);
     }

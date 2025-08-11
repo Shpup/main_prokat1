@@ -44,8 +44,6 @@
         [x-cloak] {
             display: none !important;
         }
-        .fuel-extra-fields { display: none; margin-top: 0.5rem; }
-        .fuel-extra-fields.active { display: block; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         @media (max-width: 640px) {
@@ -214,11 +212,11 @@
                         </div>
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Тип топлива</label>
-                            <select name="fuel_type" x-model="vehicleForm.fuel_type" @change="toggleFuelFields" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                <option value="">Выберите тип</option>
+                            <select name="fuel_type" x-model="vehicleForm.fuel_type" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="">Выберите тип топлива</option>
                                 <option value="petrol">Бензин</option>
                                 <option value="diesel">Дизель</option>
-                                <option value="electric">Электрический</option>
+                                <option value="electric">Электро</option>
                                 <option value="hybrid">Гибрид</option>
                             </select>
                         </div>
@@ -318,7 +316,7 @@
                     </div>
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Площадка</label>
-                        <select name="location_id" x-model="tripSheetForm.location_id" @change="updateAddress" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <select name="site_id" x-model="tripSheetForm.site_id" @change="console.log('Select changed, site_id:', tripSheetForm.site_id); updateAddress()" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             <option value="">Выберите площадку</option>
                             @foreach ($sites as $site)
                                 <option value="{{ $site->id }}">{{ $site->name }}</option>
@@ -418,7 +416,7 @@
             },
             tripSheetForm: {
                 date_time: '',
-                location_id: '',
+                site_id: '',
                 address: '',
                 vehicle_id: '',
                 driver_id: '',
@@ -426,7 +424,7 @@
                 cost: 0,
                 status: 'in_progress',
             },
-            locations: @json($locations ?? []),
+            sites: @json($sites ?? []),
             vehicles: @json($vehicles->items() ?? []),
             fuelPrices: {
                 '92': 58.50,
@@ -452,25 +450,38 @@
                 this.isVehicleModalOpen = true;
                 if (vehicle) {
                     this.vehicleId = vehicle.id;
-                    this.vehicleForm = { ...vehicle };
+                    this.vehicleForm = {
+                        ...vehicle,
+                        fuel_type: vehicle.fuel_type || '', // Убедитесь, что fuel_type устанавливается
+                        fuel_grade: vehicle.fuel_grade || '95',
+                        fuel_consumption: vehicle.fuel_consumption || '',
+                        diesel_consumption: vehicle.diesel_consumption || '',
+                        battery_capacity: vehicle.battery_capacity || '',
+                        range: vehicle.range || '',
+                        hybrid_consumption: vehicle.hybrid_consumption || '',
+                        hybrid_range: vehicle.hybrid_range || '',
+                        comment: vehicle.comment || '',
+                        site_id: vehicle.site_id || '',
+                    };
                 } else {
                     this.vehicleId = null;
                     this.vehicleForm = {
                         brand: '',
                         model: '',
-                        year: 0,
+                        year: '',
                         license_plate: '',
                         status: 'available',
-                        mileage: 0,
-                        fuel_type: '',
+                        mileage: '',
+                        fuel_type: '', // Сброс при открытии нового
                         fuel_grade: '95',
-                        fuel_consumption: 0,
-                        diesel_consumption: 0,
-                        battery_capacity: 0,
-                        range: 0,
-                        hybrid_consumption: 0,
-                        hybrid_range: 0,
+                        fuel_consumption: '',
+                        diesel_consumption: '',
+                        battery_capacity: '',
+                        range: '',
+                        hybrid_consumption: '',
+                        hybrid_range: '',
                         comment: '',
+                        site_id: '',
                     };
                 }
             },
@@ -478,46 +489,47 @@
                 this.isVehicleModalOpen = false;
             },
             openTripSheetModal(tripSheet = null) {
-                this.isTripSheetModalOpen = true;
                 if (tripSheet) {
                     this.tripSheetId = tripSheet.id;
                     this.tripSheetForm = {
-                        ...tripSheet,
-                        date_time: tripSheet.date_time ? tripSheet.date_time.replace(' ', 'T') : '',
+                        id: tripSheet.id,
+                        date_time: tripSheet.date_time ? new Date(tripSheet.date_time).toISOString().slice(0, 16) : '',
+                        vehicle_id: tripSheet.vehicle_id || '',
+                        driver_id: tripSheet.driver_id || '',
                         site_id: tripSheet.site_id || '',
                         address: tripSheet.address || '',
-                        vehicle_id: tripSheet.vehicle_id || '',
-                        driver_id: tripSheet.driver_id || '', // Allow empty driver_id
-                        distance: tripSheet.distance || 0,
-                        cost: tripSheet.cost || 0,
+                        distance: tripSheet.distance || null,
                         status: tripSheet.status || 'in_progress',
                     };
-                    this.updateAddress();
-                    this.calculateTripCost();
                 } else {
                     this.tripSheetId = null;
                     this.tripSheetForm = {
+                        id: null,
                         date_time: '',
+                        vehicle_id: '',
+                        driver_id: '',
                         site_id: '',
                         address: '',
-                        vehicle_id: '',
-                        driver_id: '', // Allow empty driver_id
-                        distance: 0,
-                        cost: 0,
+                        distance: null,
                         status: 'in_progress',
                     };
                 }
+                this.isTripSheetModalOpen = true;
             },
             closeTripSheetModal() {
                 this.isTripSheetModalOpen = false;
             },
-            toggleFuelFields() {
-                // Поля автоматически показываются через x-show в шаблоне
-            },
             updateAddress() {
-                const location = this.locations.find(l => l.id == this.tripSheetForm.location_id);
-                this.tripSheetForm.address = location?.address || '';
-                this.calculateTripCost();
+                console.log('updateAddress called, site_id:', this.tripSheetForm.site_id, 'site_id type:', typeof this.tripSheetForm.site_id, 'sites:', this.sites);
+                if (!this.sites || !Array.isArray(this.sites)) {
+                    console.warn('Sites is undefined or not an array:', this.sites);
+                    this.tripSheetForm.address = '';
+                    return;
+                }
+                const siteId = parseInt(this.tripSheetForm.site_id, 10); // Приводим к числу
+                const selectedSite = this.sites.find(site => site.id === siteId);
+                this.tripSheetForm.address = selectedSite ? selectedSite.address || '' : '';
+                console.log('Selected site:', selectedSite, 'Updated address:', this.tripSheetForm.address);
             },
             calculateTripCost() {
                 const vehicleId = this.tripSheetForm.vehicle_id;
@@ -648,6 +660,22 @@
                     toast.classList.add('translate-y-full');
                 }, 2000);
             },
+            toggleFuelFields() {
+                const fuelType = document.getElementById('fuel_type').value;
+                const fields = {
+                    'petrol': 'petrol-fields',
+                    'diesel': 'diesel-fields',
+                    'electric': 'electric-fields',
+                    'hybrid': 'hybrid-fields'
+                };
+                for (let key in fields) {
+                    document.getElementById(fields[key]).classList.remove('active');
+                }
+                if (fields[fuelType]) {
+                    document.getElementById(fields[fuelType]).classList.add('active');
+                }
+            }
+
         };
     }
 </script>

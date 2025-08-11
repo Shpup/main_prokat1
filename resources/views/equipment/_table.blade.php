@@ -1,5 +1,3 @@
-<?php
-{{-- resources/views/equipment/_table.blade.php --}}
 <div id="equipmentList">
     <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-100">

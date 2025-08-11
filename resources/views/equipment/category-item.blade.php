@@ -2,6 +2,7 @@
     <div class="category-item">
         <div class="category-name">
             <a href="#" onclick="loadEquipment({{ $category->id }})" class="text-blue-600 hover:underline" style="margin-left: {{ $depth * 1 }}rem;">{{ $category->name }}</a>
+            <span class="text-sm text-gray-500 ml-2">(Владелец: {{ $category->admin->name ?? 'Неизвестно' }})</span>
         </div>
         @can('create projects')
             <button onclick="openCategoryModal({{ $category->id }})" class="add-button">+</button>
@@ -10,7 +11,7 @@
             <button class="expand-toggle">▼</button>
         @endif
         @can('delete projects')
-            @if (auth()->id() === $category->user_id || auth()->user()->hasRole('admin'))
+            @if (auth()->user()->hasRole('admin') && auth()->id() === $category->admin_id || !auth()->user()->hasRole('admin') && auth()->user()->admin_id === $category->admin_id)
                 <button onclick="deleteCategory({{ $category->id }})" class="text-red-600 hover:underline ml-2 delete-button">Удалить</button>
             @endif
         @endcan
