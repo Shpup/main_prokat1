@@ -433,8 +433,15 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Сумма</label>
-                    <input type="number" id="sumInput" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none no-spin" placeholder="Введите сумму" min="1" step="1" required>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Тип оплаты</label>
+                    <select id="rateTypeSelect" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none">
+                        <option value="hour">Часовая</option>
+                        <option value="project">За проект</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ставка</label>
+                    <input type="number" id="rateInput" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none no-spin" placeholder="Введите ставку" min="0" step="0.01">
                 </div>
 
                 <div class="mb-4">
@@ -1713,7 +1720,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Обработка отправки формы назначения
-    document.getElementById('assignmentForm').addEventListener('submit', function(e) {
+        document.getElementById('assignmentForm').addEventListener('submit', function(e) {
         e.preventDefault();
 
         const selectedCellIds = JSON.parse(document.getElementById('assignmentModal').dataset.selectedCells || '[]');
@@ -1724,17 +1731,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const projectName = document.getElementById('projectSelect').options[document.getElementById('projectSelect').selectedIndex].text;
         const sheetSelect = document.getElementById('sheetSelect').value;
         const employeeInput = document.getElementById('employeeInput').value;
-        const sum = document.getElementById('sumInput').value;
+        const rateType = document.getElementById('rateTypeSelect').value;
+        const rate = document.getElementById('rateInput').value;
         const comment = document.getElementById('commentInput').value;
 
         // Валидация
-        if (!projectId || !sum || sum < 1) {
-            alert('Пожалуйста, заполните все обязательные поля. Сумма должна быть не менее 1.');
-            return;
-        }
+        // Вариант B: ставку можно не указывать сразу (особенно для часовой)
 
         // Создаем блок проекта
-        createProjectBlockFromModal(cells, projectName, projectId);
+        createProjectBlockFromModal(cells, projectName, projectId, { rateType, rate, comment });
 
         // Закрываем модалку
         document.getElementById('assignmentModal').classList.add('hidden');
@@ -1755,7 +1760,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Функция создания блока проекта из модалки
-    function createProjectBlockFromModal(cells, projectName, projectId) {
+    function createProjectBlockFromModal(cells, projectName, projectId, extra) {
         if (cells.length === 0) return;
 
         console.log('Создаем блоки проекта для', cells.length, 'ячеек');
@@ -1766,8 +1771,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const date = document.getElementById('calendarDate').value;
         const sorted = getSortedCellsByTime(cells);
         const { start: startTime, end: endTime } = computeRangeInclusive(sorted);
-        const sum = document.getElementById('sumInput').value || 0;
-        const comment = document.getElementById('commentInput').value || '';
+        const rateType = extra?.rateType || document.getElementById('rateTypeSelect').value || null;
+        const rate = extra?.rate ?? (document.getElementById('rateInput').value || null);
+        const comment = extra?.comment ?? (document.getElementById('commentInput').value || '');
 
         // Отправляем данные на сервер
         fetch('/personnel/assign', {
@@ -1782,7 +1788,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 date: date,
                 start_time: startTime,
                 end_time: endTime,
-                sum: sum,
+                rate_type: rateType,
+                rate: rate ? parseFloat(rate) : null,
                 comment: comment
             })
         })
@@ -1829,11 +1836,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Функция очистки полей модалки
     function clearAssignmentModal() {
-        document.getElementById('projectSelect').value = '';
-        document.getElementById('sheetSelect').value = '';
-        document.getElementById('employeeInput').value = '';
-        document.getElementById('sumInput').value = '';
-        document.getElementById('commentInput').value = '';
+        const ps = document.getElementById('projectSelect'); if(ps) ps.value='';
+        const sh = document.getElementById('sheetSelect'); if(sh) sh.value='';
+        const ei = document.getElementById('employeeInput'); if(ei) ei.value='';
+        const rt = document.getElementById('rateTypeSelect'); if(rt) rt.value='hour';
+        const ri = document.getElementById('rateInput'); if(ri) ri.value='';
+        const ci = document.getElementById('commentInput'); if(ci) ci.value='';
     }
 
     // Закрытие модалки назначения
