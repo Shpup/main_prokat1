@@ -108,6 +108,10 @@
 </style>
 
 <style>
+    /* Убираем спиннеры у input[type=number] */
+    .no-spin::-webkit-outer-spin-button,
+    .no-spin::-webkit-inner-spin-button{ -webkit-appearance: none; margin: 0; }
+    .no-spin{ -moz-appearance: textfield; }
     /* БАЗОВЫЕ СТИЛИ ДЛЯ ЯЧЕЕК - КОМПАКТНЫЕ */
     .time-slot-header,
     .time-slot-cell {
@@ -255,10 +259,19 @@
                      @endforeach
                  </select>
 
+                 @php
+                     $personnelRoles = \App\Models\User::where('admin_id', auth()->id())
+                         ->distinct()
+                         ->pluck('role')
+                         ->filter()
+                         ->merge(['нет специальности','manager','admin'])
+                         ->unique()
+                         ->values();
+                 @endphp
                  <select id="specialtyFilter" class="w-full sm:w-auto rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary pl-3 pr-10 py-2 text-sm">
                      <option value="">Все специальности</option>
-                     @foreach($specialties as $specialty)
-                         <option value="{{ $specialty->id }}">{{ $specialty->name }}</option>
+                     @foreach($personnelRoles as $role)
+                         <option value="{{ $role }}">{{ $role }}</option>
                      @endforeach
                  </select>
 
@@ -309,11 +322,11 @@
                  </thead>
                  <tbody class="bg-white divide-y divide-gray-200">
                      @foreach($employees as $employee)
-                         <tr class="employee-row" data-employee-id="{{ $employee->id }}" data-specialty="{{ $employee->specialty?->name }}">
+                         <tr class="employee-row" data-employee-id="{{ $employee->id }}" data-specialty="{{ $employee->role }}">
                              <td class="px-4 sm:px-8 py-4 sm:py-6 whitespace-nowrap sticky left-0 bg-white z-10">
                                  <div class="flex items-center">
                                      <div class="text-sm sm:text-base font-medium text-gray-900">{{ $employee->name }}</div>
-                                     <div class="ml-2 text-xs sm:text-base text-gray-500">({{ $employee->specialty?->name }})</div>
+                                     <div class="ml-2 text-xs sm:text-base text-gray-500">({{ $employee->role }})</div>
                                  </div>
                              </td>
                              @foreach($timeSlots as $slot)
@@ -413,14 +426,6 @@
                     </select>
                 </div>
 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Специальность</label>
-                    <select id="specialtySelect" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" required>
-                        <option value="">Выберите специальность</option>
-                        <option value="administrator">Администратор</option>
-                        <option value="manager">Менеджер</option>
-                    </select>
-                </div>
 
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Сотрудник</label>
@@ -429,7 +434,7 @@
 
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Сумма</label>
-                    <input type="number" id="sumInput" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" placeholder="Введите сумму" min="1" step="1" required>
+                    <input type="number" id="sumInput" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none no-spin" placeholder="Введите сумму" min="1" step="1" required>
                 </div>
 
                 <div class="mb-4">
@@ -514,7 +519,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let mouseStartX = 0; // Начальная позиция мыши
     let currentMouseX = 0; // Текущая позиция мыши
     let lastDirection = null; // Последнее направление движения
-    
+    // Роли текущего админа (динамически из БД)
+    const rolesPersonnel = @json($personnelRoles);
+
     // Вспомогательные функции для расчёта конца интервала
     function getStepMinutes() {
         switch (currentInterval) {
@@ -742,7 +749,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (isAggregatedSlot && nonWorkingDay && assignment) {
                     // Контейнер без отступов, заполняет всю ячейку
                     const block = document.createElement('div');
-                    block.className = 'calendar-block rounded h-full w-full flex overflow-hidden relative group';
+                    block.className = 'calendar-block mixed-block rounded h-full w-full flex overflow-hidden relative group';
+                    // Сохраняем project_id, чтобы работать через контекстное меню
+                    block.setAttribute('data-project-id', assignment.project_id);
                     block.style.margin = '0';
                     block.style.padding = '0';
                     block.style.width = '100%';
@@ -1166,8 +1175,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Проверяем тип блока
             const isProjectBlock = hasBlock.classList.contains('bg-green-500');
             const isNonWorkingBlock = hasBlock.classList.contains('bg-red-500');
+            const isMixedBlock = hasBlock.classList.contains('mixed-block');
 
-            if (isProjectBlock) {
+            if (isProjectBlock || isMixedBlock) {
                 // Для зеленых блоков (проекты) показываем "Перейти в проект" и "Удалить"
                 deleteBlockBtn.classList.remove('hidden');
                 assignProjectBtn.classList.add('hidden');
@@ -1262,10 +1272,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const cells = Array.from(selectedCells);
 
         // Проверяем, есть ли уже блоки в выбранных ячейках
-        const hasBlocks = cells.some(cell => {
-            const block = cell.querySelector('.calendar-block');
-            return block !== null;
-        });
+        const hasBlocks = cells.some(cell => cell.querySelector('.calendar-block'));
 
         console.log('Проверка блоков в выбранных ячейках:', hasBlocks);
 
@@ -1273,7 +1280,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Проверяем тип блоков
             const hasProjectBlocks = cells.some(cell => {
                 const block = cell.querySelector('.calendar-block');
-                return block && block.classList.contains('bg-green-500');
+                return block && (block.classList.contains('bg-green-500') || block.classList.contains('mixed-block'));
             });
 
             const hasNonWorkingBlocks = cells.some(cell => {
@@ -1490,6 +1497,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Очищаем поля модалки перед открытием
         clearAssignmentModal();
 
+        // Заполняем список специальностей динамически из БД
+        populatePersonnelSpecialties();
+
         // Показываем модалку для выбора проекта
         document.getElementById('assignmentModal').classList.remove('hidden');
 
@@ -1506,6 +1516,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (employee) {
             document.getElementById('employeeInput').value = employee.name;
         }
+    }
+
+    function populatePersonnelSpecialties(){
+        const sel = document.getElementById('specialtySelect');
+        if(!sel) return;
+        const roles = Array.isArray(rolesPersonnel)? rolesPersonnel : [];
+        const options = ['<option value="" disabled selected hidden>Выберите специальность</option>']
+            .concat(roles.map(r=>`<option value="${r}">${r}</option>`));
+        sel.innerHTML = options.join('');
     }
 
     // Функция создания блока нерабочего времени
@@ -1704,13 +1723,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const projectId = document.getElementById('projectSelect').value;
         const projectName = document.getElementById('projectSelect').options[document.getElementById('projectSelect').selectedIndex].text;
         const sheetSelect = document.getElementById('sheetSelect').value;
-        const specialtySelect = document.getElementById('specialtySelect').value;
         const employeeInput = document.getElementById('employeeInput').value;
         const sum = document.getElementById('sumInput').value;
         const comment = document.getElementById('commentInput').value;
 
         // Валидация
-        if (!projectId || !specialtySelect || !sum || sum < 1) {
+        if (!projectId || !sum || sum < 1) {
             alert('Пожалуйста, заполните все обязательные поля. Сумма должна быть не менее 1.');
             return;
         }
@@ -1729,7 +1747,6 @@ document.addEventListener('DOMContentLoaded', function() {
             projectId,
             projectName,
             sheetSelect,
-            specialtySelect,
             employeeInput,
             sum,
             comment,
@@ -1814,7 +1831,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function clearAssignmentModal() {
         document.getElementById('projectSelect').value = '';
         document.getElementById('sheetSelect').value = '';
-        document.getElementById('specialtySelect').value = '';
         document.getElementById('employeeInput').value = '';
         document.getElementById('sumInput').value = '';
         document.getElementById('commentInput').value = '';

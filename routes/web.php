@@ -51,6 +51,10 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::post('/personnel/clear', [PersonnelController::class, 'clearInterval'])->name('personnel.clear');
     Route::get('/personnel/time-slots', [PersonnelController::class, 'getTimeSlots'])->name('personnel.time-slots');
     Route::get('/personnel/data', [PersonnelController::class, 'getData'])->name('personnel.data');
+    // Комментарии к интервалам (проект/персонал)
+    Route::get('/comments', [PersonnelController::class, 'listComments'])->name('comments.index');
+    Route::post('/comments', [PersonnelController::class, 'storeComment'])->name('comments.store');
+    Route::delete('/comments', [PersonnelController::class, 'deleteComments'])->name('comments.delete');
 
     Route::resource('clients', ClientController::class)->except(['create', 'show']);
     Route::get('/clients', [ClientController::class, 'index'])->name('clients');

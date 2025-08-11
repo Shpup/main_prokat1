@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class WorkInterval extends Model
+class Comment extends Model
 {
     use HasFactory;
 
@@ -15,8 +15,7 @@ class WorkInterval extends Model
         'date',
         'start_time',
         'end_time',
-        'type',
-        'summ',
+        'comment',
     ];
 }
 
