@@ -128,7 +128,7 @@ class ProjectController extends Controller
 
     public function show(Project $project): View
     {
-        $project->load(['equipment', 'manager']);
+        $project->load(['equipment', 'manager', 'staff']);
         $availableEquipment = Equipment::whereDoesntHave('projects', function ($query) use ($project) {
             $query->where('project_id', $project->id);
         })->get();

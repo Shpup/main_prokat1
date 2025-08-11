@@ -54,6 +54,8 @@ class PersonnelController extends Controller
             'end_time' => 'required|date_format:H:i|after:start_time',
             'date' => 'required|date',
             'sum' => 'nullable|numeric|min:0',
+            'rate_type' => 'nullable|in:hour,project',
+            'rate' => 'nullable|numeric|min:0',
             'comment' => 'nullable|string|max:2000',
         ]);
 
@@ -67,6 +69,19 @@ class PersonnelController extends Controller
         );
 
         // Запишем проект и финансовые/комментарии в интервалы, которые в итоге пересекаются с исходным диапазоном
+        $update = [
+            'project_id' => $validated['project_id'],
+        ];
+        if (($validated['rate_type'] ?? null) === 'hour') {
+            $update['hour_rate'] = $validated['rate'] ?? null;
+            $update['project_rate'] = null;
+        } elseif (($validated['rate_type'] ?? null) === 'project') {
+            $update['project_rate'] = $validated['rate'] ?? null;
+            $update['hour_rate'] = null;
+        } else {
+            // оставлено для обратной совместимости, но без поля summ
+        }
+
         WorkInterval::where('employee_id', $validated['employee_id'])
             ->where('date', $validated['date'])
             ->where('type', 'busy')
@@ -74,10 +89,7 @@ class PersonnelController extends Controller
                 $q->where('start_time', '<', $validated['end_time'])
                   ->where('end_time', '>', $validated['start_time']);
             })
-            ->update([
-                'project_id' => $validated['project_id'],
-                'summ'       => $validated['sum'] ?? null,
-            ]);
+            ->update($update);
 
         // Если передали комментарий — сохраняем его как отдельную запись в comments
         if (!empty($validated['comment'])) {
@@ -90,6 +102,14 @@ class PersonnelController extends Controller
                 'comment'     => $validated['comment'],
             ]);
         }
+
+        // Гарантируем привязку сотрудника к проекту (для раздела Проект → Сотрудники)
+        try {
+            $project = Project::find((int)$validated['project_id']);
+            if ($project) {
+                $project->staff()->syncWithoutDetaching([(int)$validated['employee_id']]);
+            }
+        } catch (\Exception $e) { /* no-op */ }
 
         return response()->json(['success' => true, 'message' => 'Назначение сохранено']);
     }
