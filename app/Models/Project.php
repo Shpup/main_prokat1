@@ -26,6 +26,15 @@ class Project extends Model
             ->withTimestamps();
     }
 
+    /**
+     * Сотрудники, прикрепленные к проекту (пивот project_user)
+     */
+    public function staff()
+    {
+        return $this->belongsToMany(User::class, 'project_user', 'project_id', 'user_id')
+            ->withTimestamps();
+    }
+
     public function assignments()
     {
         return $this->hasMany(Assignment::class);

@@ -62,4 +62,13 @@ class User extends Authenticatable
     {
         return $this->hasMany(Project::class, 'manager_id');
     }
+
+    /**
+     * Проекты, где пользователь прикреплён как сотрудник
+     */
+    public function projects()
+    {
+        return $this->belongsToMany(Project::class, 'project_user', 'user_id', 'project_id')
+            ->withTimestamps();
+    }
 }
