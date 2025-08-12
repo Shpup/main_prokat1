@@ -260,11 +260,10 @@
                  </select>
 
                  @php
-                     $personnelRoles = \App\Models\User::where('admin_id', auth()->id())
-                         ->distinct()
-                         ->pluck('role')
-                         ->filter()
-                         ->merge(['нет специальности','manager','admin'])
+                     // Роли берём из таблицы roles (для фильтра), но сотрудники сами хранят свою роль в users.role
+                     $personnelRoles = \Spatie\Permission\Models\Role::query()
+                         ->orderBy('name')
+                         ->pluck('name')
                          ->unique()
                          ->values();
                  @endphp
@@ -321,12 +320,12 @@
                      </tr>
                  </thead>
                  <tbody class="bg-white divide-y divide-gray-200">
-                     @foreach($employees as $employee)
-                         <tr class="employee-row" data-employee-id="{{ $employee->id }}" data-specialty="{{ $employee->role }}">
+                      @foreach($employees as $employee)
+                          <tr class="employee-row" data-employee-id="{{ $employee->id }}" data-specialty="{{ $employee->role }}">
                              <td class="px-4 sm:px-8 py-4 sm:py-6 whitespace-nowrap sticky left-0 bg-white z-10">
                                  <div class="flex items-center">
                                      <div class="text-sm sm:text-base font-medium text-gray-900">{{ $employee->name }}</div>
-                                     <div class="ml-2 text-xs sm:text-base text-gray-500">({{ $employee->role }})</div>
+                                      <div class="ml-2 text-xs sm:text-base text-gray-500">({{ $employee->role }})</div>
                                  </div>
                              </td>
                              @foreach($timeSlots as $slot)
@@ -937,15 +936,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 const row = document.createElement('tr');
                 row.className = 'employee-row';
                 row.dataset.employeeId = employee.id;
-                row.dataset.specialty = employee.role;
+                row.dataset.specialty = (employee.roles && employee.roles.length>0) ? (employee.roles[0]?.name||'') : (employee.role||'');
 
                 // Ячейка с именем сотрудника (sticky)
                 const nameCell = document.createElement('td');
                 nameCell.className = 'px-4 sm:px-8 py-4 sm:py-6 whitespace-nowrap sticky left-0 bg-white z-10';
                 nameCell.innerHTML = `
                     <div class="flex items-center">
-                        <div class="text-sm sm:text-base font-medium text-gray-900">${employee.name}</div>
-                        <div class="ml-2 text-xs sm:text-base text-gray-500">(${employee.role})</div>
+                         <div class="text-sm sm:text-base font-medium text-gray-900">${employee.name}</div>
+                         <div class="ml-2 text-xs sm:text-base text-gray-500">(${(employee.roles||[]).map(r=>r.name).join(', ') || (employee.role||'')})</div>
                     </div>
                 `;
                 row.appendChild(nameCell);
@@ -1485,8 +1484,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Сохраняем текущее состояние перед переходом
                     console.log('Переход к проекту:', projectId);
 
-                    // Переходим на страницу проекта (plural)
-                    window.location.href = `/projects/${projectId}`;
+                    // Переходим сразу на вкладку «Сотрудники»
+                    window.location.href = `/projects/${projectId}?tab=staff`;
                 } else {
                     // Если ID проекта не найден, показываем уведомление
                     showToast('ID проекта не найден');
