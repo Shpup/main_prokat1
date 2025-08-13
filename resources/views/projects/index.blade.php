@@ -74,10 +74,10 @@
                     url: "{{ route('projects.show', $project->id) }}",
                     allDay: true,
                     color: "{{ match ($project->status) {
-                        'active' => '#22c55e',
-                        'new' => '#facc15',
-                        'completed' => '#3b82f6',
-                        'cancelled' => '#ef4444',
+                        'active' => 'rgba(34,197,94,0.71)',
+                        'new' => 'rgba(248,233,95,0.72)',
+                        'completed' => 'rgba(105,159,255,0.74)',
+                        'cancelled' => 'rgba(255,87,87,0.76)',
                         default => '#9ca3af'
                     } }}"
                 },
@@ -137,10 +137,10 @@
                             end: data.project.end_date ? new Date(new Date(data.project.end_date).setDate(new Date(data.project.end_date).getDate() + 1)).toISOString().split('T')[0] : null,
                             url: "{{ route('projects.show', '') }}/" + data.project.id,
                             allDay: true,
-                            color: data.project.status === 'active' ? '#22c55e' :
-                                data.project.status === 'new' ? '#facc15' :
-                                    data.project.status === 'completed' ? '#3b82f6' :
-                                        data.project.status === 'cancelled' ? '#ef4444' : '#9ca3af'
+                            color: data.project.status === 'active' ? 'rgba(34,197,94,0.71)' :
+                                data.project.status === 'new' ? 'rgba(248,233,95,0.72)' :
+                                    data.project.status === 'completed' ? 'rgba(105,159,255,0.74)' :
+                                        data.project.status === 'cancelled' ? 'rgba(255,87,87,0.76)' : '#9ca3af'
                         });
                     } else {
                         alert('Ошибка: Календарь не инициализирован.');
