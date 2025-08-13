@@ -83,49 +83,10 @@ Route::middleware(['auth', 'subscription'])->group(function () {
         ->name('projects.equipment.attach');
     Route::delete('/projects/{project}/equipment/{equipment}', [ProjectController::class, 'detachEquipment'])
         ->name('projects.equipment.detach');
-    // Привязка/отвязка сотрудников к проекту
-    Route::post('/projects/{project}/staff/{user}', function(\Illuminate\Http\Request $request, \App\Models\Project $project, \App\Models\User $user){
-        // Привязываем к проекту
-        $project->staff()->syncWithoutDetaching([$user->id]);
-
-        // Если прилетел тип ставки — применяем его ко всем рабочим интервалам (busy) сотрудника в этом проекте
-        $rateType = $request->input('rate_type');
-        $rate     = $request->input('rate');
-        if (in_array($rateType, ['hour','project'], true)) {
-            \App\Models\WorkInterval::where('employee_id', $user->id)
-                ->where('project_id', $project->id)
-                ->where('type', 'busy')
-                ->update([
-                    'hour_rate'    => $rateType === 'hour' ? ($rate !== null ? (float)$rate : null) : null,
-                    'project_rate' => $rateType === 'project' ? ($rate !== null ? (float)$rate : null) : null,
-                ]);
-        }
-
-        return response()->json(['success'=>true]);
-    })->name('projects.staff.attach');
-
-    // Возвращает агрегированную сумму для сотрудника по проекту с учётом ставок/интервалов
-    Route::get('/projects/{project}/staff/{user}/summary', function(\App\Models\Project $project, \App\Models\User $user){
-        $ivs = \App\Models\WorkInterval::where('employee_id', $user->id)
-            ->where('project_id', $project->id)
-            ->where('type', 'busy')
-            ->get(['start_time','end_time','hour_rate','project_rate']);
-        $minutes = 0; $hourRate = null; $projectRate = null;
-        foreach ($ivs as $iv) {
-            $s = strtotime((string)$iv->start_time); $e = strtotime((string)$iv->end_time);
-            if ($e > $s) { $minutes += ($e - $s)/60; }
-            if (!is_null($iv->project_rate)) { $projectRate = (float)$iv->project_rate; }
-            if (is_null($hourRate) && !is_null($iv->hour_rate)) { $hourRate = (float)$iv->hour_rate; }
-        }
-        $sum = null; $rateType = null; $rate = null;
-        if (!is_null($projectRate)) { $sum = $projectRate; $rateType='project'; $rate=$projectRate; }
-        elseif (!is_null($hourRate)) { $sum = $hourRate*($minutes/60.0); $rateType='hour'; $rate=$hourRate; }
-        return response()->json(['success'=>true, 'sum'=>$sum, 'minutes'=>$minutes, 'rate_type'=>$rateType, 'rate'=>$rate]);
-    })->name('projects.staff.summary');
-    Route::delete('/projects/{project}/staff/{user}', function(\App\Models\Project $project, \App\Models\User $user){
-        $project->staff()->detach($user->id);
-        return response()->json(['success'=>true]);
-    })->name('projects.staff.detach');
+    // Привязка/отвязка сотрудников к проекту и сводка
+    Route::post('/projects/{project}/staff/{user}', [ProjectController::class, 'attachStaff'])->name('projects.staff.attach');
+    Route::get('/projects/{project}/staff/{user}/summary', [ProjectController::class, 'summary'])->name('projects.staff.summary');
+    Route::delete('/projects/{project}/staff/{user}', [ProjectController::class, 'detachStaff'])->name('projects.staff.detach');
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories');
     Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::get('/categories/{id}', [CategoryController::class, 'show'])->name('categories.show');

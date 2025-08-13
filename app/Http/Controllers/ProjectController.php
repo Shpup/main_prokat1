@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use App\Models\User;
+use App\Models\WorkInterval;
 
 class ProjectController extends Controller
 {
@@ -133,6 +135,49 @@ class ProjectController extends Controller
             $query->where('project_id', $project->id);
         })->get();
         return view('projects.show', compact('project', 'availableEquipment'));
+    }
+
+    // === Staff attach/detach and summary (moved from routes/web.php) ===
+    public function attachStaff(Request $request, Project $project, User $user): JsonResponse
+    {
+        $project->staff()->syncWithoutDetaching([$user->id]);
+        $rateType = $request->input('rate_type');
+        $rate     = $request->input('rate');
+        if (in_array($rateType, ['hour','project'], true)) {
+            WorkInterval::where('employee_id', $user->id)
+                ->where('project_id', $project->id)
+                ->where('type', 'busy')
+                ->update([
+                    'hour_rate'    => $rateType === 'hour' ? ($rate !== null ? (float)$rate : null) : null,
+                    'project_rate' => $rateType === 'project' ? ($rate !== null ? (float)$rate : null) : null,
+                ]);
+        }
+        return response()->json(['success'=>true]);
+    }
+
+    public function summary(Project $project, User $user): JsonResponse
+    {
+        $ivs = WorkInterval::where('employee_id', $user->id)
+            ->where('project_id', $project->id)
+            ->where('type', 'busy')
+            ->get(['start_time','end_time','hour_rate','project_rate']);
+        $minutes = 0; $hourRate = null; $projectRate = null;
+        foreach ($ivs as $iv) {
+            $s = strtotime((string)$iv->start_time); $e = strtotime((string)$iv->end_time);
+            if ($e > $s) { $minutes += ($e - $s)/60; }
+            if (!is_null($iv->project_rate)) { $projectRate = (float)$iv->project_rate; }
+            if (is_null($hourRate) && !is_null($iv->hour_rate)) { $hourRate = (float)$iv->hour_rate; }
+        }
+        $sum = null; $rateType = null; $rate = null;
+        if (!is_null($projectRate)) { $sum = $projectRate; $rateType='project'; $rate=$projectRate; }
+        elseif (!is_null($hourRate)) { $sum = $hourRate*($minutes/60.0); $rateType='hour'; $rate=$hourRate; }
+        return response()->json(['success'=>true, 'sum'=>$sum, 'minutes'=>$minutes, 'rate_type'=>$rateType, 'rate'=>$rate]);
+    }
+
+    public function detachStaff(Project $project, User $user): JsonResponse
+    {
+        $project->staff()->detach($user->id);
+        return response()->json(['success'=>true]);
     }
 
     /**

@@ -147,12 +147,13 @@
                     ->get(['id','phone'])
                     ->pluck('phone','id');
                  // Полный пул сотрудников админа для модалки «Добавить сотрудника»
-                 $adminUsersPool = \App\Models\User::where('admin_id', auth()->id())->get(['id','name','role','phone']);
-                // Список ролей (как в «Персонале»)
-                $adminRoles = \App\Models\User::where('admin_id', auth()->id())
-                    ->whereNotNull('role')
-                    ->distinct()
-                    ->pluck('role');
+                 $adminUsersPool = \App\Models\User::where('admin_id', auth()->id())
+                    ->get(['id','name','phone','role']);
+                 $adminUsersPoolMapped = $adminUsersPool->map(function($u){
+                     return [ 'id'=>$u->id, 'name'=>$u->name, 'phone'=>$u->phone, 'role'=>$u->role ];
+                 });
+                // Роли из Spatie (таблица roles)
+                $adminRoles = \Spatie\Permission\Models\Role::query()->orderBy('name')->pluck('name');
             @endphp
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center justify-between mb-4">
@@ -241,7 +242,7 @@
             <div id="addStaffModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 items-center justify-center">
                 <div class="bg-white rounded-lg shadow-lg w-11/12 max-w-lg p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-medium text-gray-900">Добавить сотрудника</h3>
+                        <h3 id="addStaffModalTitle" class="text-lg font-medium text-gray-900">Добавить сотрудника</h3>
                         <button onclick="closeAddStaff()" class="text-gray-400 hover:text-gray-600">✕</button>
                     </div>
                      <form id="addStaffForm" class="space-y-3">
@@ -379,25 +380,28 @@
             staffSortDir*=-1; rows.forEach(r=>tbody.appendChild(r));
         }
         let editingStaffId = null;
-        function openAddStaff(){ editingStaffId = null; document.getElementById('addStaffModal').classList.remove('hidden'); document.getElementById('addStaffModal').classList.add('flex'); }
-        function closeAddStaff(){ document.getElementById('addStaffModal').classList.add('hidden'); document.getElementById('addStaffModal').classList.remove('flex'); }
-        document.getElementById('openAddStaffModal')?.addEventListener('click', openAddStaff);
+        function openAddStaff(){
+            const titleEl = document.getElementById('addStaffModalTitle');
+            if (titleEl) titleEl.textContent = editingStaffId ? 'Редактировать сотрудника' : 'Добавить сотрудника';
+            document.getElementById('addStaffModal').classList.remove('hidden');
+            document.getElementById('addStaffModal').classList.add('flex');
+        }
+        function closeAddStaff(){ editingStaffId = null; document.getElementById('addStaffModal').classList.add('hidden'); document.getElementById('addStaffModal').classList.remove('flex'); }
+        document.getElementById('openAddStaffModal')?.addEventListener('click', ()=>{ editingStaffId=null; populateAddStaffModal(); openAddStaff(); });
         // Инициализация селектов в модалке «Добавить сотрудника»
-        const adminUsersPool = @json($adminUsersPool ?? []);
+        const adminUsersPool = @json($adminUsersPoolMapped ?? []);
         const rolesPool = @json($adminRoles ?? []);
+        const summaryBaseUrl = `{{ route('projects.staff.summary', ['project'=>$project->id, 'user'=>0]) }}`;
+        const buildSummaryUrl = (userId)=> summaryBaseUrl.replace(/\/staff\/0\//, `/staff/${String(userId)}/`);
         function populateAddStaffModal(){
             const specSel = document.getElementById('staffSpecialty');
             const userSel = document.getElementById('staffUser');
-            // Сформируем список ролей: добавим предустановленные и уникальные из БД
-            const builtin = ['manager','admin'];
-            // Исключаем роль 'нет специальности' из общего списка (её показываем отдельным пунктом)
-            const rolesOnly = (rolesPool||[]).filter(r=>r && String(r).toLowerCase() !== 'нет специальности');
-            const allRolesSet = new Set([...rolesOnly, ...builtin]);
+            // Роли из БД (без хардкода)
+            const rolesOnly = (rolesPool||[]).filter(r=>r);
+            const allRolesSet = new Set([...rolesOnly]);
             const roleOptions = Array.from(allRolesSet).map(r=>`<option value="${r}">${r}</option>`).join('');
-            // Заголовок: все специальности, потом нет специальности, затем роли
-            specSel.innerHTML = '<option value="__all__" selected>все специальности</option>' +
-                                '<option value="__none__">нет специальности</option>' +
-                                roleOptions;
+            // Заголовок: «все специальности» + роли из БД
+            specSel.innerHTML = '<option value="__all__" selected>все специальности</option>' + roleOptions;
             // Пользователи админа, доступные для выбора
             userSel.innerHTML = '<option value="">Имя</option>' + adminUsersPool.map(u=>`<option value="${u.id}" data-role="${u.role||''}">${u.name}</option>`).join('');
         }
@@ -409,9 +413,6 @@
             let filtered = all;
             if (role === '__all__') {
                 filtered = all;
-            } else if (role === '__none__') {
-                // Вариант 'нет специальности' — ищем пользователей с ролью 'нет специальности'
-                filtered = all.filter(u=>String(u.role||'').toLowerCase()==='нет специальности');
             } else if (role) {
                 filtered = all.filter(u=>String(u.role||'')===String(role));
             }
@@ -437,10 +438,24 @@
                 if (row) {
                     row.dataset.rateType = rateType;
                     row.dataset.rate = String(amount || 0);
-                    // Получим актуальную сумму с сервера и обновим ячейку
+                    // Сначала применим ставку в БД ко всем busy-интервалам сотрудника в проекте
+                    try {
+                        const url = attachStaffBase.replace(/\/0$/, `/${userId}`);
+                        await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({ rate_type: rateType, rate: Number(amount) || null })
+                        });
+                    } catch (_e) { /* no-op */ }
+                    // Затем получим актуальную сумму с сервера и обновим ячейку
                     const sumCell = row.cells[3];
                     try {
-                        const u = `{{ route('projects.staff.summary', ['project'=>$project->id, 'user'=>0]) }}`.replace(/0$/, String(userId));
+                        const u = buildSummaryUrl(userId);
                         const r = await fetch(u);
                         const j = await r.json();
                         if (sumCell) {
@@ -524,13 +539,12 @@
             const specSel = document.getElementById('staffSpecialty');
             const amountInput = document.getElementById('staffAmount');
             const rateTypeSel = document.getElementById('staffRateType');
-            userSel.value = String(id);
             editingStaffId = id;
+            userSel.value = String(id);
             const currentRole = (row?.cells[1]?.textContent || '').trim();
-            specSel.value = currentRole
-                ? (currentRole === 'нет специальности' ? '__none__' : currentRole)
-                : '__all__';
-            // Подставим тип/ставку из data-атрибутов строки (заполняются с сервера)
+            // если текущая роль присутствует в списке — выбираем её, иначе оставляем «все специальности»
+            const hasRole = Array.from(specSel.options).some(o=>o.value===currentRole);
+            specSel.value = hasRole ? currentRole : '__all__';
             const rowRateType = row?.dataset.rateType || 'hour';
             const rowRateVal  = row?.dataset.rate || '';
             rateTypeSel.value = rowRateType;
@@ -548,7 +562,7 @@
                 openStaffSchedule(first.dataset.empId, '{{ optional(\Carbon\Carbon::parse($project->start_date))->format('Y-m-d') ?? now()->format('Y-m-d') }}');
         });
         document.getElementById('staffSchedInterval')?.addEventListener('change', renderStaffSchedule);
-        document.getElementById('staffSchedDate')?.addEventListener('change', renderStaffSchedule);
+            document.getElementById('staffSchedDate')?.addEventListener('change', ()=>{ renderStaffSchedule().then(()=>{ inlineMenu.dataset.payload='{}'; }); });
 
         async function renderStaffSchedule(){
             const grid = document.getElementById('staffSchedGrid'); grid.innerHTML='';
@@ -578,6 +592,18 @@
             const res = await fetch(`/personnel/data?date=${date}&project_id={{ $project->id }}`);
             const data = await res.json();
             function timeToMin(t){ const [h,m]=String(t).split(':').map(Number); return (isNaN(h)||isNaN(m))?0:(h*60+m); }
+            function makeMixed(td){ td.classList.remove('bg-green-500','bg-red-500'); td.style.background='linear-gradient(90deg, #ef4444 0 50%, #22c55e 50% 100%)'; }
+            function makeGreen(td){ td.style.background=''; td.classList.remove('bg-red-500'); td.classList.add('bg-green-500'); }
+            function makeRed(td){ td.style.background=''; td.classList.remove('bg-green-500'); td.classList.add('bg-red-500'); }
+            async function refreshStaffSum(userId){
+                try{
+                    const u = buildSummaryUrl(userId);
+                    const r = await fetch(u);
+                    const j = await r.json();
+                    const row = document.querySelector(`#staffTableBody tr[data-emp-id="${userId}"]`);
+                    if(row){ const sumCell = row.cells[3]; if(sumCell){ sumCell.textContent = (j && j.sum!=null)? Number(j.sum).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}):''; } }
+                }catch(_e){ /* no-op */ }
+            }
 
             users.forEach(u=>{
                 const tr = document.createElement('tr');
@@ -638,16 +664,119 @@
 
             // Выделение диапазона мышью (похоже на «Персонал»)
             let isSelecting = false; let startCell = null; let currentRow = null;
-            // Инлайн-меню для пустых слотов
-            const inlineMenu = document.createElement('div');
-            inlineMenu.className='fixed bg-white border rounded shadow-lg text-sm hidden';
-            inlineMenu.style.zIndex = '1001';
-            inlineMenu.innerHTML = `<div class="py-1">
-                <button id=\"schedAddWork\" class=\"px-4 py-2 hover:bg-gray-100 w-full text-left\">Добавить рабочее время</button>
-                <button id=\"schedAddOff\" class=\"px-4 py-2 hover:bg-gray-100 w-full text-left\">Отметить нерабочее время</button>
-            </div>`;
-            document.body.appendChild(inlineMenu);
-            const hideInline = ()=>{ inlineMenu.classList.add('hidden'); };
+            // Инлайн-меню для пустых слотов — один экземпляр + делегирование событий
+            let inlineMenu = document.getElementById('schedInlineMenu');
+            if (!inlineMenu) {
+                inlineMenu = document.createElement('div');
+                inlineMenu.id = 'schedInlineMenu';
+                inlineMenu.className = 'fixed bg-white border rounded shadow-lg text-sm hidden';
+                inlineMenu.style.zIndex = '1001';
+                inlineMenu.innerHTML = `<div class="py-1">
+                    <button id="schedAddWork" class="px-4 py-2 hover:bg-gray-100 w-full text-left">Добавить рабочее время</button>
+                    <button id="schedAddOff" class="px-4 py-2 hover:bg-gray-100 w-full text-left">Отметить нерабочее время</button>
+                </div>`;
+                document.body.appendChild(inlineMenu);
+
+                // Делегирование кликов по кнопкам меню
+                inlineMenu.addEventListener('click', async (ev) => {
+                    const btn = ev.target.closest('button');
+                    if (!btn) return;
+                    const p = JSON.parse(inlineMenu.dataset.payload || '{}');
+                    try {
+                        if (btn.id === 'schedAddWork') {
+                            console.log('schedAddWork click', p);
+                            await fetch('/personnel/assign', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                },
+                                body: JSON.stringify({
+                                    employee_id: p.employee_id,
+                                    project_id: p.project_id,
+                                    date: p.date,
+                                    start_time: p.start_time,
+                                    end_time: p.end_time,
+                                    rate_type: null,
+                                    rate: null,
+                                    comment: '',
+                                }),
+                            });
+                            const currentTbody = document.querySelector('#staffSchedGrid tbody');
+                            let row = (currentTbody ? currentTbody.querySelector(`tr[data-emp-id="${p.employee_id}"]`) : null) || document.querySelector(`#staffSchedGrid tr[data-emp-id="${p.employee_id}"]`);
+                            let painted = 0;
+                            if (row) {
+                                const cells = Array.from(row.querySelectorAll('td.sched-cell'));
+                                const fromMin = timeToMin(p.start_time);
+                                const toMin = timeToMin(p.end_time);
+                                cells.forEach((td) => {
+                                    const s = timeToMin(td.dataset.from);
+                                    const e = timeToMin(td.dataset.to);
+                                    // Красим только пересекающиеся со [from, to) (half-open)
+                                    if (s < toMin && e > fromMin) {
+                                        if (td.classList.contains('bg-red-500')) makeMixed(td); else makeGreen(td);
+                                        painted++;
+                                    }
+                                });
+                            }
+                            refreshStaffSum(p.employee_id);
+                            // Фоллбек: если по какой-то причине локально не закрасили всё, синхронизируем сетку
+                            try{
+                                const step = {'60m':60,'30m':30,'15m':15,'10m':10,'5m':5}[document.getElementById('staffSchedInterval').value] || 60;
+                                const expected = Math.max(1, (timeToMin(p.end_time)-timeToMin(p.start_time))/step);
+                                if (painted < expected) { setTimeout(()=>renderStaffSchedule(), 0); }
+                            }catch(_e){ /* no-op */ }
+                        } else if (btn.id === 'schedAddOff') {
+                            console.log('schedAddOff click', p);
+                            await fetch('/personnel/non-working', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                },
+                                body: JSON.stringify({
+                                    employee_id: p.employee_id,
+                                    date: p.date,
+                                    start_time: p.start_time,
+                                    end_time: p.end_time,
+                                }),
+                            });
+                            const currentTbody2 = document.querySelector('#staffSchedGrid tbody');
+                            let row = (currentTbody2 ? currentTbody2.querySelector(`tr[data-emp-id="${p.employee_id}"]`) : null) || document.querySelector(`#staffSchedGrid tr[data-emp-id="${p.employee_id}"]`);
+                            let paintedOff = 0;
+                            if (row) {
+                                const cells = Array.from(row.querySelectorAll('td.sched-cell'));
+                                const fromMin = timeToMin(p.start_time);
+                                const toMin = timeToMin(p.end_time);
+                                cells.forEach((td) => {
+                                    const s = timeToMin(td.dataset.from);
+                                    const e = timeToMin(td.dataset.to);
+                                    if (s < toMin && e > fromMin) {
+                                        if (td.classList.contains('bg-green-500')) makeMixed(td); else makeRed(td);
+                                        paintedOff++;
+                                    }
+                                });
+                            }
+                            refreshStaffSum(p.employee_id);
+                            try{
+                                const step = {'60m':60,'30m':30,'15m':15,'10m':10,'5m':5}[document.getElementById('staffSchedInterval').value] || 60;
+                                const expected = Math.max(1, (timeToMin(p.end_time)-timeToMin(p.start_time))/step);
+                                if (paintedOff < expected) { setTimeout(()=>renderStaffSchedule(), 0); }
+                            }catch(_e){ /* no-op */ }
+                        }
+                    } catch (err) {
+                        console.error('inlineMenu action error', err);
+                    }
+                    inlineMenu.classList.add('hidden');
+                    inlineMenu.dataset.payload = '{}';
+                });
+            }
+
+            const hideInline = () => { inlineMenu.classList.add('hidden'); inlineMenu.dataset.payload = '{}'; };
             function clearSelection(){ tbody.querySelectorAll('.sched-selected').forEach(c=>c.classList.remove('sched-selected')); }
             tbody.querySelectorAll('td.sched-cell').forEach(td=>{
                 td.addEventListener('mousedown', ()=>{ isSelecting=true; currentRow=td.parentElement; startCell=td; clearSelection(); td.classList.add('sched-selected'); });
@@ -691,22 +820,14 @@
                     inlineMenu.style.top = `${Math.max(rect.top, 60)}px`;
                     inlineMenu.classList.remove('hidden');
                     const clearHandlers = ()=>{
-                        document.getElementById('schedAddWork').onclick = null;
-                        document.getElementById('schedAddOff').onclick = null;
+                        const w = document.getElementById('schedAddWork');
+                        const o = document.getElementById('schedAddOff');
+                        if (w) w.onclick = null;
+                        if (o) o.onclick = null;
                     };
-                    document.getElementById('schedAddWork').onclick = async ()=>{
-                        try{
-                            await fetch('/personnel/assign', { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ employee_id: empId, project_id: {{ $project->id }}, date, start_time: from, end_time: to, sum: null, comment: '' })});
-                            hideInline(); clearHandlers(); await renderStaffSchedule();
-                        }catch(e){ hideInline(); }
-                    };
-                    document.getElementById('schedAddOff').onclick = async ()=>{
-                        try{
-                            // Пишем off напрямую в work_intervals
-                            await fetch('/personnel/non-working', { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ employee_id: empId, date, start_time: from, end_time: to })});
-                            hideInline(); clearHandlers(); await renderStaffSchedule();
-                        }catch(e){ hideInline(); }
-                    };
+                    // Сохраняем payload для глобальных обработчиков
+                    inlineMenu.dataset.payload = JSON.stringify({ employee_id: empId, project_id: {{ $project->id }}, date, start_time: from, end_time: to });
+                    console.log('inlineMenu payload set', inlineMenu.dataset.payload);
                     const onDocClick = (ev)=>{ if(!inlineMenu.contains(ev.target)) { hideInline(); document.removeEventListener('click', onDocClick, true); } };
                     setTimeout(()=>document.addEventListener('click', onDocClick, true), 0);
                 }
