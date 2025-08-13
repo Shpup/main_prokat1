@@ -5,6 +5,7 @@ use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CompanyController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\UserController;
@@ -58,6 +59,11 @@ Route::middleware(['auth', 'subscription'])->group(function () {
 
     Route::resource('clients', ClientController::class)->except(['create', 'show']);
     Route::get('/clients', [ClientController::class, 'index'])->name('clients');
+
+    Route::resource('companies', CompanyController::class);
+    Route::post('companies/{company}/legal', [CompanyController::class, 'updateLegal'])->name('companies.legal.update');
+    Route::post('companies/{company}/tax', [CompanyController::class, 'updateTax'])->name('companies.tax.update');
+    Route::post('companies/{company}/basic', [CompanyController::class, 'updateBasic'])->name('companies.basic.update');
 
     Route::get('/vehicles', [VehicleController::class, 'index'])->name('vehicles.index');
     Route::post('/vehicles', [VehicleController::class, 'store'])->name('vehicles.store');
