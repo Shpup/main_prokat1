@@ -6,15 +6,15 @@
             <div class="flex">
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
+                    <a href="{{ route('projects.table') }}">
                         <x-application-logo class="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200" />
                     </a>
                 </div>
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Календарь') }}
+                    <x-nav-link :href="route('projects.table')" :active="request()->routeIs('Календарь')">
+                        {{ __('Проекты') }}
                     </x-nav-link>
                 </div>
                 <div class="hidden sm:flex sm:items-center sm:ms-6">
@@ -48,6 +48,12 @@
                             <x-dropdown-link :href="route('vehicles.index')">
                                 {{ __('Транспорт') }}
                             </x-dropdown-link>
+                            <x-dropdown-link :href="route('companies.index')">
+                                {{ __('Мои фирмы') }}
+                            </x-dropdown-link>
+                            <x-dropdown-link :href="route('counterparties.index')">
+                                {{ __('Контрагенты') }}
+                            </x-dropdown-link>
                         </div>
                     </div>
                 </div>
@@ -63,7 +69,7 @@
                     </x-nav-link>
                 </div>
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('users')" :active="request()->routeIs('users')">
+                    <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')">
                         {{ __('Разрешения') }}
                     </x-nav-link>
                 </div>
@@ -122,7 +128,7 @@
             <x-responsive-nav-link :href="route('managers')" :active="request()->routeIs('managers')">
                 {{ __('Менеджеры') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('users')" :active="request()->routeIs('users')">
+            <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')">
                 {{ __('Разрешения') }}
             </x-responsive-nav-link>
         </div>

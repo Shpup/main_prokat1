@@ -22,7 +22,94 @@ class ProjectController extends Controller
         $projects = Project::with('manager')->where('admin_id',auth()->id())->get();
         return view('projects.index', compact('projects'));
     }
+    public function table(Request $request)
+    {
+        $search = $request->query('search', '');
+        $sort = $request->query('sort', 'name');
+        $direction = $request->query('direction', 'asc');
 
+        // Поля для сортировки
+        $sortableColumns = ['name', 'description', 'start_date', 'end_date', 'status'];
+        $sort = in_array($sort, $sortableColumns) ? $sort : 'name';
+        $direction = in_array($direction, ['asc', 'desc']) ? $direction : 'asc';
+
+        // Базовый запрос
+        $query = Project::query()
+            ->join('users', 'projects.manager_id', '=', 'users.id')
+            ->select('projects.*', 'users.name as manager_name')
+            ->where('projects.admin_id', Auth::id());
+
+        // Фильтрация по всем столбцам
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('projects.name', 'ilike', '%' . $search . '%')
+                    ->orWhere('projects.description', 'ilike', '%' . $search . '%')
+                    ->orWhere('users.name', 'ilike', '%' . $search . '%')
+                    ->orWhere('projects.start_date', 'ilike', '%' . $search . '%')
+                    ->orWhere('projects.end_date', 'ilike', '%' . $search . '%')
+                    ->orWhere('projects.status', 'ilike', '%' . $search . '%');
+            });
+        }
+
+        // Сортировка
+        if ($sort === 'manager') {
+            $query->orderBy('users.name', $direction);
+        } else {
+            $query->orderBy('projects.' . $sort, $direction);
+        }
+
+        // Пагинация
+        $projects = $query->paginate(10);
+
+        // Для AJAX-запросов возвращаем данные и HTML таблицы
+        if ($request->ajax()) {
+            return response()->json([
+                'projects' => $projects->items(),
+                'view' => view('projects.partials.table', compact('projects'))->render()
+            ]);
+        }
+
+        // Для обычного запроса возвращаем полную страницу
+        return view('projects.table', compact('projects'));
+    }
+
+    public function updateStatus(Request $request, Project $project): JsonResponse
+    {
+
+
+        $this->authorize('edit projects');
+
+        $validated = $request->validate([
+            'status' => 'required|in:new,active,completed,cancelled',
+        ]);
+
+        try {
+            $updated = $project->update(['status' => $validated['status']]);
+
+
+
+            // Проверка текущего статуса в базе
+            $project->refresh();
+
+
+            if ($updated) {
+                return response()->json([
+                    'success' => 'Статус проекта обновлён.',
+                    'status' => $project->status,
+                ]);
+            } else {
+
+                return response()->json([
+                    'error' => 'Не удалось обновить статус проекта.',
+                ], 500);
+            }
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'error' => 'Ошибка при обновлении статуса: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
     /**
      * Показывает форму создания проекта (доступно только админу).
      */
@@ -111,47 +198,14 @@ class ProjectController extends Controller
 
         return response()->json(['success' => 'Оборудование убрано из проекта']);
     }
-    public function updateStatus(Request $request, Project $project): JsonResponse
-    {
 
-
-        $this->authorize('edit projects');
-
-        $validated = $request->validate([
-            'status' => 'required|in:new,active,completed,cancelled',
-        ]);
-
-        try {
-            $updated = $project->update(['status' => $validated['status']]);
-
-
-
-            // Проверка текущего статуса в базе
-            $project->refresh();
-
-
-            if ($updated) {
-                return response()->json([
-                    'success' => 'Статус проекта обновлён.',
-                    'status' => $project->status,
-                ]);
-            } else {
-
-                return response()->json([
-                    'error' => 'Не удалось обновить статус проекта.',
-                ], 500);
-            }
-        } catch (\Exception $e) {
-
-            return response()->json([
-                'error' => 'Ошибка при обновлении статуса: ' . $e->getMessage(),
-            ], 500);
-        }
-    } 
     /**
      * Отображает детали проекта и смету.
      */
 
+    /**
+     * Отображает детали проекта и смету.
+     */
     public function show(Project $project): View
     {
         $project->load(['equipment', 'manager', 'staff']);
@@ -237,5 +291,28 @@ class ProjectController extends Controller
 
         $project->equipment()->attach($request->equipment_id, ['status' => $request->status]);
         return redirect()->route('projects.show', $project)->with('success', 'Оборудование добавлено в проект.');
+    }
+    public function update(Request $request, Project $project): JsonResponse
+    {
+        $this->authorize('edit projects');
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'manager_id' => 'required|exists:users,id',
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date|after:start_date',
+            'status' => 'required|in:new,active,completed,cancelled'
+        ]);
+
+        $project->update($validated);
+
+        return response()->json(['success' => 'Проект обновлен.', 'project' => $project]);
+    }
+
+    public function destroy(Project $project): JsonResponse
+    {
+        $this->authorize('delete projects');
+        $project->delete();
+        return response()->json(['success' => 'Проект удален']);
     }
 }

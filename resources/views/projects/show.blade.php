@@ -5,9 +5,9 @@
     <title>Склад оборудования</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-    @include('layouts.navigation')
+@include('layouts.navigation')
 <div class="container mx-auto p-6">
-<div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-semibold text-gray-800">
             Проект: {{ $project->name }}
         </h1>
@@ -63,14 +63,14 @@
     </div>
     <div id="toast" class="hidden">
         <span id="toastMessage"></span>
-    </div>                
+    </div>
 
         {{-- Вкладки --}}
         @php
             $tab = request('tab', 'estimate');
         @endphp
 
-        <div class="flex space-x-4 border-b border-gray-200 mb-4">
+    <div class="flex space-x-4 border-b border-gray-200 mb-4">
             <a href="{{ route('projects.show', $project->id) }}?tab=estimate" class="px-4 py-2 {{ $tab === 'estimate' ? 'border-b-2 border-blue-600 font-semibold text-blue-700' : 'text-gray-600' }}">
                 Смета
             </a>
@@ -80,14 +80,13 @@
             <a href="{{ route('projects.show', $project->id) }}?tab=equipment" class="px-4 py-2 {{ $tab === 'equipment' ? 'border-b-2 border-blue-600 font-semibold text-blue-700' : 'text-gray-600' }}">
                 Оборудование
             </a>
-        </div>
+    </div>
 
         {{-- Контент вкладки --}}
-        @if ($tab === 'estimate')
+    @if ($tab === 'estimate')
             {{-- Смета --}}
-            <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-6">
                 <h2 class="text-xl font-semibold text-gray-700 mb-4">Смета оборудования</h2>
-
                 @php
                     $total = $project->equipment->sum('price');
                 @endphp
@@ -117,7 +116,7 @@
                         Всего: {{ number_format($total, 2) }} ₽
                     </div>
                 @endif
-            </div>
+        </div>
         @elseif ($tab === 'staff')
             @php
                 // Сотрудники проекта по прямой привязке (project_user)
@@ -195,7 +194,7 @@
                                              if ($e > $s) { $minutes += ($e - $s) / 60; }
                                              if (!is_null($x->project_rate)) { $projectRate = (float)$x->project_rate; }
                                              if (!is_null($x->hour_rate) && $hourRate === null) { $hourRate = (float)$x->hour_rate; }
-                                              
+
                                          }
                                          if ($projectRate !== null) { $displaySumm = $projectRate; }
                                           elseif ($hourRate !== null) { $displaySumm = $hourRate * ($minutes/60.0); }
@@ -330,7 +329,7 @@
                             <span id="cmtIntervalLabel" class="text-sm text-gray-800"></span>
                         </div>
                         <div id="schedCommentsList" class="space-y-2"></div>
-                        
+
                         <div class="mt-4 border-t pt-4">
                             <div class="text-sm font-medium text-gray-700 mb-2">Добавить комментарий к этому времени</div>
                             <textarea id="intervalCommentText" class="w-full border rounded p-2 text-sm" rows="3" placeholder="Комментарий"></textarea>
@@ -405,6 +404,12 @@
         @endif
     </div>
     <script>
+        function openModal(id) {
+            document.getElementById(id)?.classList.remove('hidden');
+        }
+        function closeModal(id) {
+            document.getElementById(id)?.classList.add('hidden');
+        }
         // ====== Сотрудники (таб) ======
         let staffSortDir = 1;
         function staffSort(col){
@@ -455,6 +460,48 @@
                 filtered = all.filter(u=>String(u.role||'')===String(role));
             }
             userSel.innerHTML = '<option value="">Имя</option>' + filtered.map(u=>`<option value="${u.id}" data-role="${u.role||''}">${u.name}</option>`).join('');
+        });
+        document.getElementById('changeStatusForm')?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const form = event.target;
+            const status = form.querySelector('#project_status').value;
+            console.log('Sending updateStatus request', { status, action: form.action });
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'PUT',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ status }),
+                });
+                const data = await response.json();
+                console.log('updateStatus response', data);
+
+                if (response.ok) {
+
+                    closeModal('changeStatusModal');
+
+                    // Обновление бейджа
+                    const badge = document.getElementById('statusBadge');
+                    const statusMap = {
+                        new: { label: 'Новый', class: 'bg-yellow-100 text-yellow-800' },
+                        active: { label: 'В работе', class: 'bg-green-100 text-green-800' },
+                        completed: { label: 'Завершён', class: 'bg-blue-100 text-blue-800' },
+                        cancelled: { label: 'Отменён', class: 'bg-red-100 text-red-800' },
+                    };
+                    const { label, class: className } = statusMap[status] || { label: status, class: 'bg-gray-100 text-gray-800' };
+                    badge.textContent = label;
+                    badge.className = `px-3 py-1 text-sm rounded-full font-medium ${className}`;
+                } else {
+
+                }
+            } catch (e) {
+                console.error('updateStatus network error', e);
+
+            }
         });
         // Наполняем при открытии
         document.getElementById('openAddStaffModal')?.addEventListener('click', populateAddStaffModal);
@@ -623,60 +670,11 @@
             amountInput.value = rowRateVal;
             openAddStaff();
         }
-        // ====== Изменение статуса проекта ======
-        document.getElementById('changeStatusForm')?.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const form = event.target;
-            const status = form.querySelector('#project_status').value;
-            console.log('Sending updateStatus request', { status, action: form.action });
 
-            try {
-                const response = await fetch(form.action, {
-                    method: 'PUT',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ status }),
-                });
-                const data = await response.json();
-                console.log('updateStatus response', data);
-
-                if (response.ok) {
-
-                    closeModal('changeStatusModal');
-
-                    // Обновление бейджа
-                    const badge = document.getElementById('statusBadge');
-                    const statusMap = {
-                        new: { label: 'Новый', class: 'bg-yellow-100 text-yellow-800' },
-                        active: { label: 'В работе', class: 'bg-green-100 text-green-800' },
-                        completed: { label: 'Завершён', class: 'bg-blue-100 text-blue-800' },
-                        cancelled: { label: 'Отменён', class: 'bg-red-100 text-red-800' },
-                    };
-                    const { label, class: className } = statusMap[status] || { label: status, class: 'bg-gray-100 text-gray-800' };
-                    badge.textContent = label;
-                    badge.className = `px-3 py-1 text-sm rounded-full font-medium ${className}`;
-                } else {
-
-                }
-            } catch (e) {
-                console.error('updateStatus network error', e);
-                
-            }
-        });
-        // ====== Модалки ======
-        function openModal(id) {
-            document.getElementById(id)?.classList.remove('hidden');
-        }
-        function closeModal(id) {
-            document.getElementById(id)?.classList.add('hidden');
-        }
         // ====== Расписание сотрудника (модалка, день) ======
         let currentStaffId = null;
         function openStaffSchedule(empId, date){ currentStaffId=empId; const m=document.getElementById('staffScheduleModal'); m.classList.remove('hidden'); m.classList.add('flex'); if(date) document.getElementById('staffSchedDate').value=date; renderStaffSchedule(); }
-        function closeStaffSchedule(){ const m=document.getElementById('staffScheduleModal'); m.classList.add('hidden'); m.classList.remove('flex'); }
+        function closeStaffSchedule(){ const m=document.getElementById('staffScheduleModal'); m.classList.add('hidden'); m.classList.remove('flex'); location.reload();}
             document.getElementById('openStaffScheduleModal')?.addEventListener('click', ()=>{
             const first = document.querySelector('#staffTableBody tr');
             if(!first){ alert('Нет сотрудников'); return; }
@@ -787,15 +785,15 @@
             };
             document.getElementById('schedCommentsCloseBtn')?.addEventListener('click', closeComments);
             document.getElementById('schedCommentsOkBtn')?.addEventListener('click', closeComments);
-            const openDelete = (metaText, payload)=>{ 
+            const openDelete = (metaText, payload)=>{
                 document.getElementById('schedDeleteText').textContent = metaText||'Вы действительно хотите удалить выбранный интервал?';
                 deleteModal.dataset.payload = JSON.stringify(payload||{});
-                deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex'); 
+                deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex');
             };
             const closeDelete = ()=>{ if(!deleteModal) return; deleteModal.classList.add('hidden'); deleteModal.classList.remove('flex'); };
             document.getElementById('schedDeleteCancel')?.addEventListener('click', closeDelete);
             const schedDeleteConfirmBtn = document.getElementById('schedDeleteConfirm');
-            if (schedDeleteConfirmBtn) schedDeleteConfirmBtn.onclick = async ()=>{ 
+            if (schedDeleteConfirmBtn) schedDeleteConfirmBtn.onclick = async ()=>{
                 try{
                     const p = JSON.parse(deleteModal.dataset.payload||'{}');
                     await fetch('/personnel/clear', { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(p)});
