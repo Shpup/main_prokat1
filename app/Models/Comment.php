@@ -16,6 +16,7 @@ class Comment extends Model
         'start_time',
         'end_time',
         'comment',
+        'is_global',
     ];
 }
 

@@ -312,15 +312,15 @@
                          <th class="px-4 sm:px-8 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider w-48 sm:w-64 sticky left-0 bg-gray-50 z-10">
                              Сотрудник
                          </th>
-                          @foreach($timeSlots as $slot)
+                         @foreach($timeSlots as $slot)
                               <th class="px-1 sm:px-2 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-normal time-slot-header" style="width: 50px !important; min-width: 50px !important;">
-                                  {{ $slot }}
-                              </th>
-                          @endforeach
+                                 {{ $slot }}
+                             </th>
+                         @endforeach
                      </tr>
                  </thead>
                  <tbody class="bg-white divide-y divide-gray-200">
-                      @foreach($employees as $employee)
+                     @foreach($employees as $employee)
                           <tr class="employee-row" data-employee-id="{{ $employee->id }}" data-specialty="{{ $employee->role }}">
                              <td class="px-4 sm:px-8 py-4 sm:py-6 whitespace-nowrap sticky left-0 bg-white z-10">
                                  <div class="flex items-center">
@@ -692,7 +692,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (currentView === 'week' && currentInterval === '12h') {
                         // Для недели сравниваем по дате из метки
                         return (
-                            nwd.employee_id == employeeId &&
+                    nwd.employee_id == employeeId &&
                             nwd.date === parseWeek12hLabel(timeSlot, date).date &&
                             toMinutes(nwd.start_time) < slotEndMinutes &&
                             toMinutes(nwd.end_time) > slotStartMinutes
@@ -724,7 +724,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (ass.start_time === ass.end_time) return false;
                     if (currentView === 'week' && currentInterval === '12h') {
                         return (
-                            ass.employee_id == employeeId &&
+                    ass.employee_id == employeeId &&
                             ass.date === parseWeek12hLabel(timeSlot, date).date &&
                             toMinutes(ass.start_time) < slotEndMinutes &&
                             toMinutes(ass.end_time) > slotStartMinutes
@@ -881,9 +881,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const tbody = table.querySelector('tbody');
 
             // Всегда включаем горизонтальный скролл; таблица занимает всю ширину, но может расширяться
-            tableScroll.classList.add('overflow-x-auto', 'whitespace-nowrap');
+                tableScroll.classList.add('overflow-x-auto', 'whitespace-nowrap');
             table.style.width = '100%';
-            table.style.minWidth = 'max-content';
+                table.style.minWidth = 'max-content';
 
             // Обновляем заголовки
             const timeHeader = thead.querySelector('th:first-child');
@@ -943,7 +943,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 nameCell.className = 'px-4 sm:px-8 py-4 sm:py-6 whitespace-nowrap sticky left-0 bg-white z-10';
                 nameCell.innerHTML = `
                     <div class="flex items-center">
-                         <div class="text-sm sm:text-base font-medium text-gray-900">${employee.name}</div>
+                        <div class="text-sm sm:text-base font-medium text-gray-900">${employee.name}</div>
                          <div class="ml-2 text-xs sm:text-base text-gray-500">(${(employee.roles||[]).map(r=>r.name).join(', ') || (employee.role||'')})</div>
                     </div>
                 `;
@@ -1338,8 +1338,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const centerX = (firstRect.left + lastRect.right) / 2;
         const centerY = (firstRect.top + lastRect.bottom) / 2;
 
-                // Позиционируем меню справа от выделенной области
-                const menuLeft = lastRect.right + 10;
+        // Позиционируем меню справа от выделенной области
+        const menuLeft = lastRect.right + 10;
                 const menuTop = Math.max(firstRect.top, 60); // не перекрывать панель управления
 
         // Проверяем, не выходит ли меню за пределы экрана
@@ -1435,7 +1435,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const sorted = getSortedCellsByTime(cells);
             const first = sorted[0];
             const last  = sorted[sorted.length - 1];
-            const date = document.getElementById('calendarDate').value;
+                const date = document.getElementById('calendarDate').value;
             const employeeId = first.dataset.employeeId;
             const step = getStepMinutes();
             const start = first.dataset.timeSlot;
@@ -1495,6 +1495,24 @@ document.addEventListener('DOMContentLoaded', function() {
             hideContextMenu();
         }
     });
+
+    // Подсветка слота по параметрам URL (для «Показать в расписании»)
+    (function highlightFromUrl(){
+        const params = new URLSearchParams(window.location.search);
+        const d = params.get('date'); const f = params.get('from'); const t = params.get('to'); const emp = params.get('emp');
+        if(!d || !f || !t) return;
+        const dateInput = document.getElementById('calendarDate'); if(dateInput) dateInput.value = d;
+        // Переключим на «День» для точной подсветки
+        const dayBtn = document.querySelector('[data-view="day"]'); if(dayBtn){ dayBtn.click?.(); }
+        setTimeout(()=>{
+            const cell = document.querySelector(`.calendar-cell[data-employee-id="${emp}"][data-time-slot="${f}"][data-date="${d}"]`);
+            if(cell){
+                cell.classList.add('ring-4','ring-yellow-300');
+                cell.scrollIntoView({behavior:'smooth', block:'center', inline:'center'});
+                setTimeout(()=>{ cell.classList.remove('ring-4','ring-yellow-300'); }, 2000);
+            }
+        }, 500);
+    })();
 
     // Функция создания блока проекта
     function createProjectBlock(cells) {
@@ -1660,7 +1678,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Обработчик клика: если меню открыто и клик вне его — скрываем и очищаем выделение
-        document.addEventListener('click', function(e) {
+    document.addEventListener('click', function(e) {
         if (isContextMenuOpen && !contextMenu.contains(e.target)) {
             hideContextMenu();
             if (!e.target.closest('.selectable-cell')) {
@@ -1719,7 +1737,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Обработка отправки формы назначения
-        document.getElementById('assignmentForm').addEventListener('submit', function(e) {
+    document.getElementById('assignmentForm').addEventListener('submit', function(e) {
         e.preventDefault();
 
         const selectedCellIds = JSON.parse(document.getElementById('assignmentModal').dataset.selectedCells || '[]');
@@ -1909,9 +1927,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const table = document.querySelector('#calendarTable');
     const tableScroll = document.querySelector('.table-scroll');
     // Инициализация: всегда показываем горизонтальный скролл; таблица тянется на 100%, но при нехватке места активирует скролл
-    tableScroll.classList.add('overflow-x-auto', 'whitespace-nowrap');
+        tableScroll.classList.add('overflow-x-auto', 'whitespace-nowrap');
     table.style.width = '100%';
-    table.style.minWidth = 'max-content';
+        table.style.minWidth = 'max-content';
 
     // Обновляем интервалы и таблицу при загрузке страницы
     updateIntervalOptions();

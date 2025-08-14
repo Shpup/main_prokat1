@@ -58,6 +58,8 @@ class ScheduleService
                         'end_time'    => $start,
                         'type'        => $old->type,
                         'comment'     => $old->comment,
+                        'hour_rate'   => $old->hour_rate,
+                        'project_rate'=> $old->project_rate,
                     ];
                 }
                 if ($old->end_time > $end) {
@@ -69,6 +71,8 @@ class ScheduleService
                         'end_time'    => $old->end_time,
                         'type'        => $old->type,
                         'comment'     => $old->comment,
+                        'hour_rate'   => $old->hour_rate,
+                        'project_rate'=> $old->project_rate,
                     ];
                 }
 
@@ -76,6 +80,23 @@ class ScheduleService
                 $old->delete();
                 foreach ($pieces as $piece) {
                     WorkInterval::create($piece);
+                }
+
+                // Если мы чистим (type=work) и интервал удалён полностью,
+                // но на нём была зафиксирована ставка (hour_rate/project_rate),
+                // оставляем нулевой placeholder 00:00–00:00, чтобы не потерять оплату «за проект»
+                if ($type === 'work' && empty($pieces) && ($old->project_rate !== null || $old->hour_rate !== null)) {
+                    WorkInterval::create([
+                        'employee_id' => $old->employee_id,
+                        'project_id'  => $old->project_id,
+                        'date'        => $old->date,
+                        'start_time'  => '00:00',
+                        'end_time'    => '00:00',
+                        'type'        => 'busy',
+                        'comment'     => $old->comment,
+                        'hour_rate'   => $old->hour_rate,
+                        'project_rate'=> $old->project_rate,
+                    ]);
                 }
             }
 
@@ -99,6 +120,8 @@ class ScheduleService
             WorkInterval::where('employee_id', $employeeId)
                 ->where('date', $date)
                 ->whereColumn('start_time', '=', 'end_time')
+                ->whereNull('hour_rate')
+                ->whereNull('project_rate')
                 ->delete();
         });
     }

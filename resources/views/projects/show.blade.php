@@ -5,9 +5,9 @@
     <title>Склад оборудования</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-@include('layouts.navigation')
+    @include('layouts.navigation')
 <div class="container mx-auto p-6">
-    <div class="flex items-center justify-between mb-6">
+<div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-semibold text-gray-800">
             Проект: {{ $project->name }}
         </h1>
@@ -24,9 +24,9 @@
                 ];
                 $badge = $statusMap[$status] ?? ['label' => ucfirst($status), 'class' => 'bg-gray-100 text-gray-800'];
             @endphp
-            <span class="px-3 py-1 text-sm rounded-full font-medium {{ $badge['class'] }}">
-                    {{ $badge['label'] }}
-                </span>
+            <span id="statusBadge" class="px-3 py-1 text-sm rounded-full font-medium {{ $badge['class'] }}">
+                {{ $badge['label'] }}
+            </span>
 
             @can('edit projects')
                 <button
@@ -36,15 +36,12 @@
                 >
                     Сменить статус
                 </button>
-            @endcan
-            @can('edit projects')
                 <!-- Модалка смены статуса -->
                 <div id="changeStatusModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
                     <div class="bg-white rounded-lg p-6 w-full max-w-md">
                         <h2 class="text-xl font-semibold text-gray-800 mb-4">Сменить статус проекта</h2>
-                        <form action="{{ route('projects.updateStatus', $project) }}" method="POST">
+                        <form id="changeStatusForm" action="{{ route('projects.status.update', $project) }}">
                             @csrf
-                            @method('PATCH')
                             <div class="mb-4">
                                 <label for="project_status" class="block text-sm font-medium text-gray-600">Новый статус</label>
                                 <select name="status" id="project_status" class="mt-1 block w-full border-gray-300 rounded-md" required>
@@ -61,19 +58,12 @@
                         </form>
                     </div>
                 </div>
-
-                <script>
-                    function openModal(id) {
-                        document.getElementById(id)?.classList.remove('hidden');
-                    }
-                    function closeModal(id) {
-                        document.getElementById(id)?.classList.add('hidden');
-                    }
-                </script>
             @endcan
         </div>
     </div>
-
+    <div id="toast" class="hidden">
+        <span id="toastMessage"></span>
+    </div>                
 
         {{-- Вкладки --}}
         @php
@@ -213,7 +203,15 @@
                                  @endphp
                                 <td class="staff-cell staff-shift whitespace-nowrap tabular-nums">{{ $userPhones[$emp->id] ?? '' }}</td>
                                  <td class="staff-cell staff-shift whitespace-nowrap tabular-nums">{{ $displaySumm !== null ? number_format((float)$displaySumm, 2, ',', ' ') : '' }}</td>
-                                <td class="staff-cell staff-shift break-words line-clamp-2" title="{{ $pc->comment ?? '' }}">{{ $pc->comment ?? '' }}</td>
+                                <td class="staff-cell staff-shift break-words">
+                                    <button type="button"
+                                        class="comments-link open-all-comments"
+                                        data-emp-id="{{ $emp->id }}"
+                                        aria-label="Все комментарии по сотруднику"
+                                    >
+                                        <span>Посмотреть все комментарии</span>
+                                    </button>
+                                </td>
                                 <td class="staff-cell text-right">
                                     <div class="icon-row justify-end">
                                         <button type="button" class="icon-btn icon-edit" onclick="editStaff({{ $emp->id }})" aria-label="Редактировать">
@@ -305,28 +303,68 @@
                 .icon-danger:hover{background:#FEE4E2}
                 /* Выравнивание значений в колонке "Сумма" ровно под заголовком */
                 #staffTableBody td:nth-child(4){ text-align:left; padding-left:56px; }
-                .sched-selected{outline:2px solid rgba(59,130,246,.7)}
+                /* Визуал выделения как в Personnel */
+                .sched-selected{
+                    border-color:#1d4ed8 !important;
+                    box-shadow:0 0 0 2px rgba(59,130,246,0.7) inset !important;
+                }
+                /* Для пустых ячеек дополнительно заливаем синим */
+                .sched-selected-solid{
+                    background-color:#3b82f6 !important;
+                    color:#fff !important;
+                }
                 .comment-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px;border:1px solid #eee;border-radius:6px}
                 .comment-item button{color:#B42318}
             </style>
             <!-- ВНЕШНИЕ МОДАЛКИ ДЛЯ РАСПИСАНИЯ (над модалкой расписания) -->
             <div id="schedCommentsModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center" style="z-index:1000;">
-                <div class="bg-white rounded-lg w-11/12 max-w-lg shadow-lg">
+                <div class="bg-white rounded-lg w-11/12 max-w-3xl shadow-lg">
                     <div class="flex items-center justify-between px-4 py-3 border-b">
                         <h4 class="text-sm font-medium text-gray-700">Комментарии</h4>
                         <button id="schedCommentsCloseBtn" class="text-gray-500 hover:text-gray-700">✕</button>
                     </div>
-                    <div class="p-4 space-y-3 max-h-[60vh] overflow-auto">
-                        <div id="schedCommentsMeta" class="text-xs text-gray-500"></div>
+                    <div class="p-4 space-y-3 max-h-[70vh] overflow-auto">
+                        <div id="schedCommentsNotice" class="hidden text-xs px-3 py-2 bg-amber-50 text-amber-700 rounded"></div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-sm text-gray-600">Выбранный интервал:</span>
+                            <span id="cmtIntervalLabel" class="text-sm text-gray-800"></span>
+                        </div>
                         <div id="schedCommentsList" class="space-y-2"></div>
-                        <div class="flex items-center gap-2">
-                            <input id="schedCommentTime" type="time" class="border rounded px-2 py-1 text-sm" value="00:00" />
-                            <input id="schedCommentText" type="text" class="border rounded px-2 py-1 text-sm flex-1" placeholder="Комментарий" />
-                            <button id="schedCommentAddBtn" class="px-3 py-1 text-sm rounded border">Добавить</button>
+                        
+                        <div class="mt-4 border-t pt-4">
+                            <div class="text-sm font-medium text-gray-700 mb-2">Добавить комментарий к этому времени</div>
+                            <textarea id="intervalCommentText" class="w-full border rounded p-2 text-sm" rows="3" placeholder="Комментарий"></textarea>
+                            <div class="mt-2 text-right">
+                                <button id="saveIntervalComment" class="px-3 py-1 text-sm rounded border bg-blue-600 text-white hover:bg-blue-700">Сохранить</button>
+                            </div>
                         </div>
                     </div>
-                    <div class="px-4 py-3 border-t flex justify-end">
-                        <button class="px-3 py-2 text-sm rounded border" id="schedCommentsOkBtn">Готово</button>
+                </div>
+            </div>
+            <!-- Модалка «Все комментарии сотрудника» -->
+            <div id="allCommentsModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center" style="z-index:1000;">
+                <div class="bg-white rounded-lg w-11/12 max-w-3xl shadow-lg">
+                    <div class="flex items-center justify-between px-4 py-3 border-b">
+                        <h4 class="text-sm font-medium text-gray-700">Все комментарии</h4>
+                        <button id="allCommentsCloseBtn" class="text-gray-500 hover:text-gray-700">✕</button>
+                    </div>
+                    <div class="p-4 space-y-3 max-h-[70vh] overflow-auto">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-sm text-gray-600">Дата:</span>
+                            <input type="date" id="allCommentsDate" class="rounded-md border-gray-300" />
+                        </div>
+
+                        <div id="allGeneralBanner" class="hidden"></div>
+
+                        <div id="allCommentsList" class="space-y-2"></div>
+
+                        <div class="mt-4 border-t pt-4">
+                            <div class="text-sm font-medium text-gray-700 mb-2">Общий комментарий к проекту</div>
+                            <textarea id="projectGeneralCommentText" class="w-full border rounded p-2 text-sm" rows="3" placeholder="Общий комментарий"></textarea>
+                            <div class="mt-2 text-right">
+                                <button id="saveProjectGeneralComment" class="px-3 py-1 text-sm rounded border bg-blue-600 text-white hover:bg-blue-700">Сохранить</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -461,6 +499,40 @@
                         if (sumCell) {
                             const val = (j && j.sum!=null) ? Number(j.sum).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}) : '';
                             sumCell.textContent = val;
+                        } else if (btn.id === 'schedDeleteInterval') {
+                            console.log('schedDeleteInterval click', p);
+                            await fetch('/personnel/clear', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                },
+                                body: JSON.stringify({
+                                    employee_id: p.employee_id,
+                                    project_id: p.project_id,
+                                    date: p.date,
+                                    start_time: p.start_time,
+                                    end_time: p.end_time,
+                                }),
+                            });
+                            const currentTbody3 = document.querySelector('#staffSchedGrid tbody');
+                            let row = (currentTbody3 ? currentTbody3.querySelector(`tr[data-emp-id="${p.employee_id}"]`) : null) || document.querySelector(`#staffSchedGrid tr[data-emp-id="${p.employee_id}"]`);
+                            if (row) {
+                                const cells = Array.from(row.querySelectorAll('td.sched-cell'));
+                                const fromMin = timeToMin(p.start_time);
+                                const toMin = timeToMin(p.end_time);
+                                cells.forEach((td) => {
+                                    const s = timeToMin(td.dataset.from);
+                                    const e = timeToMin(td.dataset.to);
+                                    if (s < toMin && e > fromMin) {
+                                        td.style.background = '';
+                                        td.classList.remove('bg-red-500');
+                                    }
+                                });
+                            }
+                            await renderStaffSchedule();
                         }
                     } catch(_e) { /* no-op */ }
                 }
@@ -551,7 +623,56 @@
             amountInput.value = rowRateVal;
             openAddStaff();
         }
+        // ====== Изменение статуса проекта ======
+        document.getElementById('changeStatusForm')?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const form = event.target;
+            const status = form.querySelector('#project_status').value;
+            console.log('Sending updateStatus request', { status, action: form.action });
 
+            try {
+                const response = await fetch(form.action, {
+                    method: 'PUT',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ status }),
+                });
+                const data = await response.json();
+                console.log('updateStatus response', data);
+
+                if (response.ok) {
+
+                    closeModal('changeStatusModal');
+
+                    // Обновление бейджа
+                    const badge = document.getElementById('statusBadge');
+                    const statusMap = {
+                        new: { label: 'Новый', class: 'bg-yellow-100 text-yellow-800' },
+                        active: { label: 'В работе', class: 'bg-green-100 text-green-800' },
+                        completed: { label: 'Завершён', class: 'bg-blue-100 text-blue-800' },
+                        cancelled: { label: 'Отменён', class: 'bg-red-100 text-red-800' },
+                    };
+                    const { label, class: className } = statusMap[status] || { label: status, class: 'bg-gray-100 text-gray-800' };
+                    badge.textContent = label;
+                    badge.className = `px-3 py-1 text-sm rounded-full font-medium ${className}`;
+                } else {
+
+                }
+            } catch (e) {
+                console.error('updateStatus network error', e);
+                
+            }
+        });
+        // ====== Модалки ======
+        function openModal(id) {
+            document.getElementById(id)?.classList.remove('hidden');
+        }
+        function closeModal(id) {
+            document.getElementById(id)?.classList.add('hidden');
+        }
         // ====== Расписание сотрудника (модалка, день) ======
         let currentStaffId = null;
         function openStaffSchedule(empId, date){ currentStaffId=empId; const m=document.getElementById('staffScheduleModal'); m.classList.remove('hidden'); m.classList.add('flex'); if(date) document.getElementById('staffSchedDate').value=date; renderStaffSchedule(); }
@@ -562,7 +683,7 @@
                 openStaffSchedule(first.dataset.empId, '{{ optional(\Carbon\Carbon::parse($project->start_date))->format('Y-m-d') ?? now()->format('Y-m-d') }}');
         });
         document.getElementById('staffSchedInterval')?.addEventListener('change', renderStaffSchedule);
-            document.getElementById('staffSchedDate')?.addEventListener('change', ()=>{ renderStaffSchedule().then(()=>{ inlineMenu.dataset.payload='{}'; }); });
+            document.getElementById('staffSchedDate')?.addEventListener('change', ()=>{ renderStaffSchedule().then(()=>{ const m = document.getElementById('schedInlineMenu'); if(m) m.dataset.payload='{}'; }); });
 
         async function renderStaffSchedule(){
             const grid = document.getElementById('staffSchedGrid'); grid.innerHTML='';
@@ -639,26 +760,50 @@
             });
             table.appendChild(tbody);
             grid.appendChild(table);
+
+            // Если модальные элементы отсутствуют (например, часть HTML не отрисована), выходим без навешивания обработчиков
+            if (!document.getElementById('schedCommentsModal') || !document.getElementById('schedDeleteModal')) {
+                return;
+            }
             // Обработчики для внешних модалок
             const commentsModal = document.getElementById('schedCommentsModal');
             const deleteModal = document.getElementById('schedDeleteModal');
-            const openComments = (metaText)=>{ document.getElementById('schedCommentsMeta').textContent = metaText||''; commentsModal.classList.remove('hidden'); commentsModal.classList.add('flex'); };
-            const closeComments = ()=>{ commentsModal.classList.add('hidden'); commentsModal.classList.remove('flex'); };
-            document.getElementById('schedCommentsCloseBtn').onclick = closeComments;
-            document.getElementById('schedCommentsOkBtn').onclick = closeComments;
+            const openComments = ()=>{
+                if(!commentsModal) return;
+                const ta = document.getElementById('intervalCommentText');
+                if (ta) ta.value = '';
+                commentsModal.classList.remove('hidden');
+                commentsModal.classList.add('flex');
+            };
+            const closeComments = ()=>{
+                if(!commentsModal) return;
+                commentsModal.classList.add('hidden');
+                commentsModal.classList.remove('flex');
+                const ta = document.getElementById('intervalCommentText');
+                if (ta) ta.value = '';
+                const lbl = document.getElementById('cmtIntervalLabel');
+                if (lbl) lbl.textContent = '';
+                cmtRange = null;
+            };
+            document.getElementById('schedCommentsCloseBtn')?.addEventListener('click', closeComments);
+            document.getElementById('schedCommentsOkBtn')?.addEventListener('click', closeComments);
             const openDelete = (metaText, payload)=>{ 
                 document.getElementById('schedDeleteText').textContent = metaText||'Вы действительно хотите удалить выбранный интервал?';
                 deleteModal.dataset.payload = JSON.stringify(payload||{});
                 deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex'); 
             };
-            const closeDelete = ()=>{ deleteModal.classList.add('hidden'); deleteModal.classList.remove('flex'); };
-            document.getElementById('schedDeleteCancel').onclick = closeDelete;
-            document.getElementById('schedDeleteConfirm').onclick = async ()=>{ 
+            const closeDelete = ()=>{ if(!deleteModal) return; deleteModal.classList.add('hidden'); deleteModal.classList.remove('flex'); };
+            document.getElementById('schedDeleteCancel')?.addEventListener('click', closeDelete);
+            const schedDeleteConfirmBtn = document.getElementById('schedDeleteConfirm');
+            if (schedDeleteConfirmBtn) schedDeleteConfirmBtn.onclick = async ()=>{ 
                 try{
                     const p = JSON.parse(deleteModal.dataset.payload||'{}');
                     await fetch('/personnel/clear', { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(p)});
+                    // Also remove intersecting comments (excluding global handled on backend)
+                    try{ await fetch('/comments', { method:'DELETE', headers:{ 'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(p) }); }catch(_e){}
                     closeDelete();
                     await renderStaffSchedule();
+                    try{ document.querySelectorAll('#staffSchedGrid td.sched-selected').forEach(c=>c.classList.remove('sched-selected')); }catch(_e){}
                 }catch(e){ closeDelete(); }
             };
 
@@ -666,6 +811,7 @@
             let isSelecting = false; let startCell = null; let currentRow = null;
             // Инлайн-меню для пустых слотов — один экземпляр + делегирование событий
             let inlineMenu = document.getElementById('schedInlineMenu');
+            let inlineDocHandler = null;
             if (!inlineMenu) {
                 inlineMenu = document.createElement('div');
                 inlineMenu.id = 'schedInlineMenu';
@@ -679,12 +825,15 @@
 
                 // Делегирование кликов по кнопкам меню
                 inlineMenu.addEventListener('click', async (ev) => {
+                    ev.stopPropagation();
                     const btn = ev.target.closest('button');
                     if (!btn) return;
                     const p = JSON.parse(inlineMenu.dataset.payload || '{}');
                     try {
                         if (btn.id === 'schedAddWork') {
                             console.log('schedAddWork click', p);
+                            // Сначала очищаем пересечения (убираем off/старые busy), затем красим как рабочее время
+                            try { await fetch('/personnel/clear', { method:'POST', headers:{ 'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ employee_id: p.employee_id, project_id: p.project_id, date: p.date, start_time: p.start_time, end_time: p.end_time }) }); } catch(_e){}
                             await fetch('/personnel/assign', {
                                 method: 'POST',
                                 headers: {
@@ -716,7 +865,8 @@
                                     const e = timeToMin(td.dataset.to);
                                     // Красим только пересекающиеся со [from, to) (half-open)
                                     if (s < toMin && e > fromMin) {
-                                        if (td.classList.contains('bg-red-500')) makeMixed(td); else makeGreen(td);
+                                        // Рабочее время имеет приоритет в режиме «добавить рабочее время»
+                                        makeGreen(td);
                                         painted++;
                                     }
                                 });
@@ -728,8 +878,11 @@
                                 const expected = Math.max(1, (timeToMin(p.end_time)-timeToMin(p.start_time))/step);
                                 if (painted < expected) { setTimeout(()=>renderStaffSchedule(), 0); }
                             }catch(_e){ /* no-op */ }
+                            hideInline();
                         } else if (btn.id === 'schedAddOff') {
                             console.log('schedAddOff click', p);
+                            // Сначала очищаем пересекающиеся интервалы (убираем busy), затем красим как нерабочее
+                            try { await fetch('/personnel/clear', { method:'POST', headers:{ 'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ employee_id: p.employee_id, project_id: p.project_id, date: p.date, start_time: p.start_time, end_time: p.end_time }) }); } catch(_e){}
                             await fetch('/personnel/non-working', {
                                 method: 'POST',
                                 headers: {
@@ -740,11 +893,14 @@
                                 },
                                 body: JSON.stringify({
                                     employee_id: p.employee_id,
+                                    project_id: p.project_id,
                                     date: p.date,
                                     start_time: p.start_time,
                                     end_time: p.end_time,
                                 }),
                             });
+                            // Удалим комментарии в пересечении диапазона
+                            try { await fetch('/comments', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ employee_id: p.employee_id, project_id: p.project_id, date: p.date, start_time: p.start_time, end_time: p.end_time }) }); } catch(_e){}
                             const currentTbody2 = document.querySelector('#staffSchedGrid tbody');
                             let row = (currentTbody2 ? currentTbody2.querySelector(`tr[data-emp-id="${p.employee_id}"]`) : null) || document.querySelector(`#staffSchedGrid tr[data-emp-id="${p.employee_id}"]`);
                             let paintedOff = 0;
@@ -756,7 +912,8 @@
                                     const s = timeToMin(td.dataset.from);
                                     const e = timeToMin(td.dataset.to);
                                     if (s < toMin && e > fromMin) {
-                                        if (td.classList.contains('bg-green-500')) makeMixed(td); else makeRed(td);
+                                        // Нерабочее время имеет приоритет при отметке «нерабочее»
+                                        makeRed(td);
                                         paintedOff++;
                                     }
                                 });
@@ -767,26 +924,101 @@
                                 const expected = Math.max(1, (timeToMin(p.end_time)-timeToMin(p.start_time))/step);
                                 if (paintedOff < expected) { setTimeout(()=>renderStaffSchedule(), 0); }
                             }catch(_e){ /* no-op */ }
+                            hideInline();
+                        } else if (btn.id === 'schedDeleteInterval') {
+                            console.log('schedDeleteInterval click', p);
+                            const resp = await fetch('/personnel/clear', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                },
+                                body: JSON.stringify({
+                                    employee_id: p.employee_id,
+                                    project_id: p.project_id,
+                                    date: p.date,
+                                    start_time: p.start_time,
+                                    end_time: p.end_time,
+                                }),
+                            });
+                            if (!resp.ok) { console.error('clear failed', await resp.text()); return; }
+                            // Remove intersecting comments as well (backend skips global)
+                            try{ await fetch('/comments', { method:'DELETE', headers:{ 'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ employee_id: p.employee_id, project_id: p.project_id, date: p.date, start_time: p.start_time, end_time: p.end_time }) }); }catch(_e){}
+                            const currentTbody3 = document.querySelector('#staffSchedGrid tbody');
+                            let row = (currentTbody3 ? currentTbody3.querySelector(`tr[data-emp-id="${p.employee_id}"]`) : null) || document.querySelector(`#staffSchedGrid tr[data-emp-id="${p.employee_id}"]`);
+                            if (row) {
+                                const cells = Array.from(row.querySelectorAll('td.sched-cell'));
+                                const fromMin = timeToMin(p.start_time);
+                                const toMin = timeToMin(p.end_time);
+                                cells.forEach((td) => {
+                                    const s = timeToMin(td.dataset.from);
+                                    const e = timeToMin(td.dataset.to);
+                                    if (s < toMin && e > fromMin) {
+                                        td.style.background = '';
+                                        td.classList.remove('bg-red-500');
+                                        td.classList.remove('bg-green-500');
+                                    }
+                                });
+                            }
+                            // После удаления сразу убираем выделение и закрываем меню
+                            clearSelection();
+                            currentRow = null;
+                            startCell = null;
+                    hideMenuOnly();
+                    forceClearSelection();
+                        } else if (btn.id === 'schedViewComments') {
+                            try{
+                                if (typeof loadComments === 'function') {
+                                    cmtEmployeeId = p.employee_id;
+                                    cmtRange = { date: p.date, from: p.start_time, to: p.end_time };
+                                    await loadComments();
+                                }
+                            }catch(_e){ /* no-op */ }
+                            if (typeof openComments === 'function') openComments();
+                            hideInline();
                         }
                     } catch (err) {
                         console.error('inlineMenu action error', err);
                     }
-                    inlineMenu.classList.add('hidden');
-                    inlineMenu.dataset.payload = '{}';
+                    hideInline();
                 });
             }
 
-            const hideInline = () => { inlineMenu.classList.add('hidden'); inlineMenu.dataset.payload = '{}'; };
-            function clearSelection(){ tbody.querySelectorAll('.sched-selected').forEach(c=>c.classList.remove('sched-selected')); }
+            const hideMenuOnly = () => {
+                inlineMenu.classList.add('hidden');
+                inlineMenu.dataset.payload = '{}';
+            };
+            const hideInline = () => {
+                inlineMenu.classList.add('hidden');
+                inlineMenu.dataset.payload = '{}';
+                // снимаем выделение только когда закрываем меню кликом вне
+                clearSelection();
+                currentRow = null;
+                startCell = null;
+            };
+            function clearSelection(){ tbody.querySelectorAll('.sched-selected').forEach(c=>{ c.classList.remove('sched-selected'); c.classList.remove('sched-selected-solid'); c.style.backgroundColor=''; c.style.borderColor=''; c.style.color=''; }); }
+            function forceClearSelection(){
+                try { document.querySelectorAll('#staffSchedGrid td.sched-selected').forEach(c=>c.classList.remove('sched-selected')); } catch(_e){}
+                isSelecting = false; currentRow = null; startCell = null;
+            }
             tbody.querySelectorAll('td.sched-cell').forEach(td=>{
-                td.addEventListener('mousedown', ()=>{ isSelecting=true; currentRow=td.parentElement; startCell=td; clearSelection(); td.classList.add('sched-selected'); });
+                td.addEventListener('mousedown', ()=>{
+                    // При старте новой выделения убираем прежний обработчик и прячем меню
+                    if (inlineDocHandler) { document.removeEventListener('click', inlineDocHandler, true); inlineDocHandler = null; }
+                    hideMenuOnly();
+                    isSelecting=true; currentRow=td.parentElement; startCell=td; clearSelection();
+                    td.classList.add('sched-selected');
+                    if(!td.classList.contains('bg-green-500') && !td.classList.contains('bg-red-500')) td.classList.add('sched-selected-solid');
+                });
                 td.addEventListener('mouseenter', ()=>{
                     if(!isSelecting || td.parentElement!==currentRow) return;
                     clearSelection();
                     const cells = Array.from(currentRow.querySelectorAll('td.sched-cell'));
                     const a = cells.indexOf(startCell); const b = cells.indexOf(td);
                     const [fromIdx,toIdx] = a<=b ? [a,b] : [b,a];
-                    for(let i=fromIdx;i<=toIdx;i++) cells[i].classList.add('sched-selected');
+                    for(let i=fromIdx;i<=toIdx;i++) { cells[i].classList.add('sched-selected'); if(!cells[i].classList.contains('bg-green-500') && !cells[i].classList.contains('bg-red-500')) cells[i].classList.add('sched-selected-solid'); }
                 });
             });
             const finalizeSelection = async ()=>{
@@ -800,43 +1032,346 @@
                 const employeeName = currentRow.firstChild?.textContent || 'Сотрудник';
                 const empId = parseInt(currentRow.dataset.empId,10);
                 if(allGreen){
-                    // Упрощённая форма добавления комментария
-                    document.getElementById('schedCommentsMeta').textContent = `${employeeName}: ${from} – ${to}`;
-                    const ul = document.getElementById('schedCommentsList'); ul.innerHTML='';
-                    document.getElementById('schedCommentAddBtn').onclick = async ()=>{
-                        const t = (document.getElementById('schedCommentTime').value || from);
-                        const txt = (document.getElementById('schedCommentText').value||'').trim();
-                        if(!txt) return;
-                        await fetch('/comments', { method:'POST', headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ employee_id: empId, project_id: {{ $project->id }}, date, start_time: t, end_time: to, comment: txt })});
-                        closeComments();
-                    };
-                    commentsModal.classList.remove('hidden'); commentsModal.classList.add('flex');
+                    // Для зелёных ячеек показываем меню: «Посмотреть комментарии», «Удалить»
+                    const rect = selected[selected.length-1].getBoundingClientRect();
+                    inlineMenu.innerHTML = `<div class=\"py-1\">
+                        <button id=\"schedViewComments\" class=\"px-4 py-2 hover:bg-gray-100 w-full text-left\">Посмотреть комментарии</button>
+                        <button id=\"schedDeleteInterval\" class=\"px-4 py-2 text-red-600 hover:bg-gray-100 w-full text-left\">Удалить</button>
+                    </div>`;
+                    inlineMenu.dataset.payload = JSON.stringify({ employee_id: empId, project_id: {{ $project->id }}, date, start_time: from, end_time: to });
+                    inlineMenu.style.left = `${rect.right + 8}px`;
+                    inlineMenu.style.top = `${Math.max(rect.top, 60)}px`;
+                    inlineMenu.classList.remove('hidden');
+                    if (inlineDocHandler) { document.removeEventListener('click', inlineDocHandler, true); inlineDocHandler = null; }
+                    inlineDocHandler = (ev)=>{ if(!inlineMenu.contains(ev.target)) { hideInline(); document.removeEventListener('click', inlineDocHandler, true); inlineDocHandler = null; } };
+                    setTimeout(()=>document.addEventListener('click', inlineDocHandler, true), 0);
                 } else if(allRed){
-                    openDelete(`Удалить интервал ${from} – ${to} для ${employeeName}?`, { employee_id: empId, date, start_time: from, end_time: to });
+                    // Для красных ячеек показываем контекстное меню «Удалить», как в «Персонал»
+                    const rect = selected[selected.length-1].getBoundingClientRect();
+                    inlineMenu.innerHTML = `<div class=\"py-1\">
+                        <button id=\"schedDeleteInterval\" class=\"px-4 py-2 text-red-600 hover:bg-gray-100 w-full text-left\">Удалить</button>
+                    </div>`;
+                    inlineMenu.dataset.payload = JSON.stringify({ employee_id: empId, project_id: {{ $project->id }}, date, start_time: from, end_time: to });
+                    inlineMenu.style.left = `${rect.right + 8}px`;
+                    inlineMenu.style.top = `${Math.max(rect.top, 60)}px`;
+                    inlineMenu.classList.remove('hidden');
+                    if (inlineDocHandler) { document.removeEventListener('click', inlineDocHandler, true); inlineDocHandler = null; }
+                    inlineDocHandler = (ev)=>{ if(!inlineMenu.contains(ev.target)) { hideInline(); document.removeEventListener('click', inlineDocHandler, true); inlineDocHandler = null; } };
+                    setTimeout(()=>document.addEventListener('click', inlineDocHandler, true), 0);
                 } else {
-                    // Пустые ячейки — показать инлайн меню
+                    // Пустые ячейки — показать инлайн меню (всегда только действия добавления)
+                    inlineMenu.innerHTML = `<div class=\"py-1\">\n                        <button id=\"schedAddWork\" class=\"px-4 py-2 hover:bg-gray-100 w-full text-left\">Добавить рабочее время</button>\n                        <button id=\"schedAddOff\" class=\"px-4 py-2 hover:bg-gray-100 w-full text-left\">Отметить нерабочее время</button>\n                    </div>`;
                     const rect = selected[selected.length-1].getBoundingClientRect();
                     inlineMenu.style.left = `${rect.right + 8}px`;
                     inlineMenu.style.top = `${Math.max(rect.top, 60)}px`;
                     inlineMenu.classList.remove('hidden');
-                    const clearHandlers = ()=>{
-                        const w = document.getElementById('schedAddWork');
-                        const o = document.getElementById('schedAddOff');
-                        if (w) w.onclick = null;
-                        if (o) o.onclick = null;
-                    };
                     // Сохраняем payload для глобальных обработчиков
                     inlineMenu.dataset.payload = JSON.stringify({ employee_id: empId, project_id: {{ $project->id }}, date, start_time: from, end_time: to });
                     console.log('inlineMenu payload set', inlineMenu.dataset.payload);
-                    const onDocClick = (ev)=>{ if(!inlineMenu.contains(ev.target)) { hideInline(); document.removeEventListener('click', onDocClick, true); } };
-                    setTimeout(()=>document.addEventListener('click', onDocClick, true), 0);
+                    if (inlineDocHandler) { document.removeEventListener('click', inlineDocHandler, true); inlineDocHandler = null; }
+                    inlineDocHandler = (ev)=>{ if(!inlineMenu.contains(ev.target)) { hideInline(); document.removeEventListener('click', inlineDocHandler, true); inlineDocHandler = null; } };
+                    setTimeout(()=>document.addEventListener('click', inlineDocHandler, true), 0);
                 }
-                clearSelection(); currentRow=null; startCell=null;
+                // Не сбрасываем выделение — снимаем его только при закрытии меню
             };
             document.addEventListener('mouseup', ()=>{ if(!isSelecting) return; isSelecting=false; finalizeSelection(); });
             table.addEventListener('mouseleave', ()=>{ if(isSelecting){ isSelecting=false; finalizeSelection(); } });
             document.addEventListener('mousemove', (e)=>{ if(isSelecting && e.buttons===0){ isSelecting=false; finalizeSelection(); } });
         }
+
+        // ====== «Все комментарии» (модалка) ======
+        const commentsModal = document.getElementById('schedCommentsModal');
+        const commentsList = document.getElementById('schedCommentsList');
+        const cmtIntervalLabel = document.getElementById('cmtIntervalLabel');
+        const cmtNotice = document.getElementById('schedCommentsNotice');
+        function ensureNoIntervalCommentsRow(){
+            const intervalRows = commentsList ? Array.from(commentsList.querySelectorAll('.cmt-row:not(#projectGeneralBanner)')) : [];
+            if (commentsList && intervalRows.length === 0 && !document.getElementById('noCommentsRow')){
+                commentsList.insertAdjacentHTML('beforeend', `<div id="noCommentsRow" class="text-center text-sm text-gray-500 py-8">Нет комментариев за этот интервал.</div>`);
+            }
+        }
+        let cmtEmployeeId = null;
+        let cmtRange = null; // {from, to, date}
+        function setCmtIntervals(){}
+        function addDays(dateStr, d){ const dt = new Date(dateStr); dt.setDate(dt.getDate()+d); return dt.toISOString().slice(0,10); }
+        function getPeriod(dateStr){ return {from: dateStr, to: dateStr}; }
+        function slotLabel(start, end){ return `${start.slice(0,5)}–${end.slice(0,5)}`; }
+        function showNotice(msg, action){ if(!msg){ cmtNotice.classList.add('hidden'); cmtNotice.textContent=''; cmtNotice.onclick=null; return; } cmtNotice.textContent=msg; cmtNotice.classList.remove('hidden'); cmtNotice.onclick=action||null; }
+        async function loadComments(){
+            if(!cmtEmployeeId) return;
+            const date = (cmtRange?.date) || new Date().toISOString().slice(0,10);
+            const from = cmtRange?.from || '00:00';
+            const to   = cmtRange?.to   || '23:59';
+            if (cmtIntervalLabel) {
+                const fromLbl = (cmtRange?.from || '00:00').slice(0,5);
+                const toLbl   = (cmtRange?.to   || '23:59').slice(0,5);
+                cmtIntervalLabel.textContent = `${fromLbl}–${toLbl}`;
+            }
+            const url = `/comments?employee_id=${cmtEmployeeId}&date=${date}&project_id={{ $project->id }}&start_time=${from}&end_time=${to}`;
+            const r = await fetch(url);
+            const list = await r.json();
+            commentsList.innerHTML = '';
+
+            // Пробуем подтянуть общий комментарий как закреплённый (если существует)
+            try{
+                const gcResp = await fetch(`/projects/{{ $project->id }}/comment`);
+                const gc = await gcResp.json();
+                if(gc?.comment){
+                    const bannerHTML = `<div id="projectGeneralBanner" class="cmt-row flex items-center gap-3 p-2 border rounded bg-white min-h-[44px]">
+                        <div class="w-28 shrink-0 text-sm text-gray-700"><span class="mr-1">📌</span>Общий</div>
+                        <div class="flex-1 text-sm">${String(gc.comment).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
+                        <button class="ml-auto icon-btn icon-danger cmt-delete cmt-delete-general" aria-label="Удалить" data-id="${gc.id||''}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342-.052.682-.108 1.022-.168M4.772 5.79c.34.06.68.116 1.022.168m2.68-2.29A2.25 2.25 0 0110.5 3h3a2.25 2.25 0 012.25 2.25V6m-9 0h9M5.25 6H18.75M6 6v12.75A2.25 2.25 0 008.25 21h7.5A2.25 2.25 0 0018 18.75V6"/></svg></button>
+                    </div>`;
+                    commentsList.insertAdjacentHTML('beforeend', bannerHTML);
+                }
+            }catch(_e){ /* no-op */ }
+
+            if(!Array.isArray(list) || list.length===0){
+                commentsList.insertAdjacentHTML('beforeend', `<div id=\"noCommentsRow\" class=\"text-center text-sm text-gray-500 py-8\">Нет комментариев за этот интервал.</div>`);
+                return;
+            }
+            let grouped = {};
+            grouped[(cmtRange?.date)||from] = list;
+            const frags = [];
+            Object.keys(grouped).sort().forEach(d=>{
+                grouped[d].sort((a,b)=> a.start_time.localeCompare(b.start_time));
+                grouped[d].forEach(item=>{
+                    const slot = slotLabel(item.start_time, item.end_time);
+                    const intervalBadge = (()=>{
+                        const m = (new Date(`1970-01-01T${item.end_time}:00Z`)-new Date(`1970-01-01T${item.start_time}:00Z`))/60000;
+                        if(m===5) return '5 мин'; if(m===10) return '10 мин'; if(m===15) return '15 мин'; if(m===30) return '30 мин'; if(m===60) return '60 мин'; if(m===240) return '4 часа'; if(m===720) return '12 часов'; if(m===1440) return '1 день'; return '';
+                    })();
+                    frags.push(`<div class=\"cmt-row flex items-start gap-3 p-2 border rounded\">
+                        <div class=\"w-28 shrink-0 text-sm text-gray-700\">${slot}</div>
+                        <div class=\"flex-1 text-sm\">
+                            <div contenteditable data-id=\"${item.id||''}\" class=\"cmt-editable outline-none\">${(item.comment||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
+                            <div class=\"mt-1 text-xs text-gray-500 flex items-center gap-2\">${intervalBadge?`<span class=\"px-1.5 py-0.5 bg-gray-100 rounded\">${intervalBadge}</span>`:''}<button class=\"ml-auto icon-btn icon-danger cmt-delete\" aria-label=\"Удалить\" data-id=\"${item.id||''}\"><svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke-width=\"1.75\" stroke=\"currentColor\" class=\"w-5 h-5\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342-.052.682-.108 1.022-.168M4.772 5.79c.34.06.68.116 1.022.168m2.68-2.29A2.25 2.25 0 0110.5 3h3a2.25 2.25 0 012.25 2.25V6m-9 0h9M5.25 6H18.75M6 6v12.75A2.25 2.25 0 008.25 21h7.5A2.25 2.25 0 0018 18.75V6\"/></svg></button></div>
+                        </div>
+                    </div>`);
+                });
+            });
+            // Добавляем строки после уже вставленного общего комментария (если он есть)
+            commentsList.insertAdjacentHTML('beforeend', frags.join(''));
+            // Делегирование: удаление без перерендера модалки
+            commentsList.querySelectorAll('.cmt-delete').forEach(btn=>{
+                btn.addEventListener('click', async ()=>{
+                    const id = btn.dataset.id; if(!id) return;
+                    let row = btn.closest('.cmt-row');
+                    if (!row) row = btn.closest('div[style]')?.parentElement?.parentElement; // бэкаповый поиск
+                    if (!row) row = btn.closest('div');
+                    if (row) row.remove();
+                    try{ await fetch(`/comments/${id}`, { method:'DELETE', headers:{'X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content} }); }catch(_e){}
+                    refreshCommentCounters();
+                    ensureNoIntervalCommentsRow();
+                });
+            });
+            // Удаление общего комментария
+            commentsList.querySelectorAll('.cmt-delete-general').forEach(btn=>{
+                btn.addEventListener('click', async ()=>{
+                    const id = btn.dataset.id; if(!id) return;
+                    const banner = document.getElementById('projectGeneralBanner'); if(banner) banner.remove();
+                    try{ await fetch(`/comments/${id}`, { method:'DELETE', headers:{'X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content} }); }catch(_e){}
+                });
+            });
+            // Делегирование: инлайн-редактирование
+            commentsList.querySelectorAll('.cmt-editable').forEach(div=>{
+                div.addEventListener('blur', async ()=>{
+                    const id = div.getAttribute('data-id'); if(!id) return; const txt = div.textContent.trim();
+                    await fetch(`/comments/${id}`, { method:'PUT', headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ comment: txt }) });
+                });
+            });
+            showNotice('');
+            // Запрос "все комментарии" отключен по требованию — остаётся только дневной список
+        }
+        function setupCommentsUI({employeeId, date, from, to}){
+            cmtEmployeeId = employeeId;
+            cmtRange = { date: date || (new Date()).toISOString().slice(0,10), from: from || '00:00', to: to || '23:59' };
+            loadComments();
+        }
+
+        // Кнопки «Все комментарии» в таблице сотрудников
+        async function refreshCommentCounters(){
+            const rows = Array.from(document.querySelectorAll('#staffTableBody tr[data-emp-id]'));
+            const date = (new Date()).toISOString().slice(0,10);
+            for(const tr of rows){
+                const eid = tr.dataset.empId; try{
+                    // Счётчик больше не отображаем; ничего не делаем здесь
+                }catch(_e){ /* no-op */ }
+            }
+        }
+        refreshCommentCounters();
+        document.querySelectorAll('.open-all-comments').forEach(btn=>{
+            btn.addEventListener('click', (e)=>{ e.preventDefault(); const empId = btn.dataset.empId; openAllComments(empId); });
+        });
+
+        // Сохранение комментария для выбранного интервала
+        document.getElementById('saveIntervalComment')?.addEventListener('click', async ()=>{
+            const ta = document.getElementById('intervalCommentText');
+            const txt = (ta?.value||'').trim();
+            if(!txt || !cmtEmployeeId || !cmtRange) return;
+            try{
+                const resp = await fetch('/comments', { method:'POST', headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ employee_id: cmtEmployeeId, project_id: {{ $project->id }}, date: cmtRange.date, start_time: cmtRange.from, end_time: cmtRange.to, comment: txt })});
+                const item = await resp.json();
+                const createdId = item?.comment?.id || item?.id || '';
+                ta.value='';
+                // Вставим новую карточку без перерендера
+                const slot = `${cmtRange.from}–${cmtRange.to}`;
+                const row = document.createElement('div');
+                row.className = 'cmt-row flex items-start gap-3 p-2 border rounded';
+                row.innerHTML = `<div class="w-28 shrink-0 text-sm text-gray-700">${slot}</div>
+                    <div class="flex-1 text-sm">
+                        <div contenteditable data-id="${createdId}" class="cmt-editable outline-none">${txt.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
+                        <div class="mt-1 text-xs text-gray-500 flex items-center gap-2"><button class="ml-auto icon-btn icon-danger cmt-delete" aria-label="Удалить" data-id="${createdId}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342-.052.682-.108 1.022-.168M4.772 5.79c.34.06.68.116 1.022.168m2.68-2.29A2.25 2.25 0 0110.5 3h3a2.25 2.25 0 012.25 2.25V6m-9 0h9M5.25 6H18.75M6 6v12.75A2.25 2.25 0 008.25 21h7.5A2.25 2.25 0 0018 18.75V6"/></svg></button></div>
+                    </div>`;
+                const empty = document.getElementById('noCommentsRow'); if(empty) empty.remove();
+                const banner = document.getElementById('projectGeneralBanner');
+                if (banner) {
+                    banner.insertAdjacentElement('afterend', row);
+                } else {
+                    commentsList.prepend(row);
+                }
+                // Навешиваем обработчики на только что вставленную карточку
+                const delBtn = row.querySelector('.cmt-delete');
+                if (delBtn) {
+                    delBtn.addEventListener('click', async ()=>{
+                        const id = delBtn.dataset.id; if(!id) return; row.remove();
+                        try{ await fetch(`/comments/${id}`, { method:'DELETE', headers:{'X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content } }); }catch(_e){}
+                        refreshCommentCounters();
+                        ensureNoIntervalCommentsRow();
+                    });
+                }
+                const editable = row.querySelector('.cmt-editable');
+                if (editable) {
+                    editable.addEventListener('blur', async ()=>{
+                        const id = editable.getAttribute('data-id'); if(!id) return; const t = editable.textContent.trim();
+                        await fetch(`/comments/${id}`, { method:'PUT', headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ comment: t }) });
+                    });
+                }
+            }catch(_e){ /* no-op */ }
+        });
+
+        // Глобальные обработчики закрытия модалки комментариев
+        (function ensureCommentsCloseHandlers(){
+            const modal = document.getElementById('schedCommentsModal');
+            const closeBtn = document.getElementById('schedCommentsCloseBtn');
+            const close = ()=>{ modal.classList.add('hidden'); modal.classList.remove('flex'); };
+            closeBtn?.addEventListener('click', close);
+            // Клик по подложке
+            modal?.addEventListener('click', (e)=>{ if (e.target === modal) close(); });
+            // Esc
+            document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
+        })();
+
+        // ====== «Все комментарии сотрудника» ======
+        const allCommentsModal = document.getElementById('allCommentsModal');
+        const allCommentsList = document.getElementById('allCommentsList');
+        const allCommentsDate = document.getElementById('allCommentsDate');
+        const pgcTextarea = document.getElementById('projectGeneralCommentText');
+        const allGeneralBanner = document.getElementById('allGeneralBanner');
+
+        function renderAllGeneralBanner(text, id){
+            if(!allGeneralBanner) return;
+            const value = String(text||'').trim();
+            if(!value){ allGeneralBanner.classList.add('hidden'); allGeneralBanner.innerHTML=''; return; }
+            allGeneralBanner.classList.remove('hidden');
+            allGeneralBanner.innerHTML = `<div class="cmt-row flex items-center gap-3 p-2 border rounded bg-white min-h-[44px]">
+                <div class="w-28 shrink-0 text-sm text-gray-700"><span class="mr-1">📌</span>Общий</div>
+                <div class="flex-1 text-sm">${value.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
+                <button class="ml-auto icon-btn icon-danger cmt-delete-general" aria-label="Удалить общий комментарий" data-id="${id||''}">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342-.052.682-.108 1.022-.168M4.772 5.79c.34.06.68.116 1.022.168m2.68-2.29A2.25 2.25 0 0110.5 3h3a2.25 2.25 0 012.25 2.25V6m-9 0h9M5.25 6H18.75M6 6v12.75A2.25 2.25 0 008.25 21h7.5A2.25 2.25 0 0018 18.75V6"/></svg>
+                </button>
+            </div>`;
+            const delBtn = allGeneralBanner.querySelector('.cmt-delete-general');
+            if (delBtn) {
+                delBtn.addEventListener('click', async ()=>{
+                    const gid = delBtn.dataset.id; if(!gid) return;
+                    try{ await fetch(`/comments/${gid}`, { method:'DELETE', headers:{'X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content} }); }catch(_e){}
+                    allGeneralBanner.classList.add('hidden'); allGeneralBanner.innerHTML='';
+                    if (pgcTextarea) pgcTextarea.value = '';
+                });
+            }
+        }
+        async function loadAllComments(employeeId){
+            if(!employeeId) return;
+            try{
+                const dateParam = allCommentsDate?.value ? `&date=${encodeURIComponent(allCommentsDate.value)}` : '';
+                const url = `/comments/all?employee_id=${employeeId}&project_id={{ $project->id }}${dateParam}`;
+                const r = await fetch(url, { headers:{ 'Accept':'application/json' } });
+                const list = await r.json();
+                allCommentsList.innerHTML = '';
+                if(!Array.isArray(list) || list.length===0){
+                    allCommentsList.insertAdjacentHTML('beforeend', `<div class="text-center text-sm text-gray-500 py-8">Комментариев нет.</div>`);
+                } else {
+                    const byDate = {};
+                    list.forEach(it=>{ (byDate[it.date] ||= []).push(it); });
+                    Object.keys(byDate).sort().forEach(date=>{
+                        const [y,m,d] = String(date).split('-');
+                        allCommentsList.insertAdjacentHTML('beforeend', `<div class=\"text-xs text-gray-500 mt-4\">${d}.${m}.${y}</div>`);
+                        byDate[date].sort((a,b)=> String(a.start_time).localeCompare(String(b.start_time)) );
+                        byDate[date].forEach(item=>{
+                            const slot = `${String(item.start_time||'').slice(0,5)}–${String(item.end_time||'').slice(0,5)}`;
+                            const row = document.createElement('div');
+                            row.className = 'cmt-row flex items-start gap-3 p-2 border rounded';
+                            row.innerHTML = `<div class=\"w-28 shrink-0 text-sm text-gray-700\">${slot}</div>
+                                <div class=\"flex-1 text-sm\">
+                                    <div contenteditable data-id=\"${item.id||''}\" class=\"cmt-editable outline-none\">${String(item.comment||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
+                                    <div class=\"mt-1 text-xs text-gray-500 flex items-center gap-2\"><button class=\"ml-auto icon-btn icon-danger cmt-delete\" aria-label=\"Удалить\" data-id=\"${item.id||''}\"><svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke-width=\"1.75\" stroke=\"currentColor\" class=\"w-5 h-5\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342-.052.682-.108 1.022-.168M4.772 5.79c.34.06.68.116 1.022.168m2.68-2.29A2.25 2.25 0 0110.5 3h3a2.25 2.25 0 012.25 2.25V6m-9 0h9M5.25 6H18.75M6 6v12.75A2.25 2.25 0 008.25 21h7.5A2.25 2.25 0 0018 18.75V6\"/></svg></button></div>
+                                </div>`;
+                            allCommentsList.appendChild(row);
+                        });
+                    });
+                    // обработчики
+                    allCommentsList.querySelectorAll('.cmt-delete').forEach(btn=>{
+                        btn.addEventListener('click', async ()=>{
+                            const id = btn.dataset.id; if(!id) return;
+                            let row = btn.closest('.cmt-row'); if(row) row.remove();
+                            try{ await fetch(`/comments/${id}`, { method:'DELETE', headers:{'X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name=\"csrf-token\"]').content} }); }catch(_e){}
+                        });
+                    });
+                    allCommentsList.querySelectorAll('.cmt-editable').forEach(div=>{
+                        div.addEventListener('blur', async ()=>{
+                            const id = div.getAttribute('data-id'); if(!id) return; const txt = div.textContent.trim();
+                            await fetch(`/comments/${id}`, { method:'PUT', headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name=\"csrf-token\"]').content }, body: JSON.stringify({ comment: txt }) });
+                        });
+                    });
+                }
+
+                // подтянуть текущий общий комментарий проекта
+                try{
+                    const gcResp = await fetch(`/projects/{{ $project->id }}/comment`);
+                    const gc = await gcResp.json();
+                    if (pgcTextarea) pgcTextarea.value = '';
+                    renderAllGeneralBanner(gc?.comment||'', gc?.id||'');
+                }catch(_e){}
+            }catch(_e){ /* no-op */ }
+        }
+        function openAllComments(employeeId){
+            // при первом открытии — дата по умолчанию = дате начала проекта (если есть), иначе сегодня
+            if (allCommentsDate && !allCommentsDate.value) allCommentsDate.value = "{{ optional(\Carbon\Carbon::parse($project->start_date))->format('Y-m-d') ?? now()->format('Y-m-d') }}";
+            loadAllComments(employeeId);
+            if(allCommentsModal){ allCommentsModal.classList.remove('hidden'); allCommentsModal.classList.add('flex'); }
+            // пересчёт на смену даты
+            allCommentsDate?.addEventListener('change', ()=> loadAllComments(employeeId));
+        }
+        (function ensureAllCommentsCloseHandlers(){
+            const modal = document.getElementById('allCommentsModal');
+            const closeBtn = document.getElementById('allCommentsCloseBtn');
+            const close = ()=>{ modal.classList.add('hidden'); modal.classList.remove('flex'); };
+            closeBtn?.addEventListener('click', close);
+            modal?.addEventListener('click', (e)=>{ if (e.target === modal) close(); });
+            document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
+        })();
+
+        // Сохранение общего комментария проекта
+        document.getElementById('saveProjectGeneralComment')?.addEventListener('click', async ()=>{
+            try{
+                const txt = (pgcTextarea?.value||'').trim();
+                const resp = await fetch(`/projects/{{ $project->id }}/comment`, { method:'POST', headers:{ 'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ comment: txt })});
+                const data = await resp.json();
+                renderAllGeneralBanner(txt, data?.id||'');
+                if (pgcTextarea) pgcTextarea.value = ''; // clear after save
+            }catch(_e){}
+        });
         let sortDirection = 1;
 
         const categoriesBase = "{{ url('/categories') }}"; // базовый URL

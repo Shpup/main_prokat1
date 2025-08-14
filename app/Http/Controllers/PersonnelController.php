@@ -14,6 +14,7 @@ use App\Models\Specialty;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PersonnelController extends Controller
 {
@@ -82,7 +83,7 @@ class PersonnelController extends Controller
             // оставлено для обратной совместимости, но без поля summ
         }
 
-        WorkInterval::where('employee_id', $validated['employee_id'])
+        $affected = WorkInterval::where('employee_id', $validated['employee_id'])
             ->where('date', $validated['date'])
             ->where('type', 'busy')
             ->where(function ($q) use ($validated) {
@@ -90,6 +91,27 @@ class PersonnelController extends Controller
                   ->where('end_time', '>', $validated['start_time']);
             })
             ->update($update);
+
+        // Если пересечений не было (или день пуст), но ставка задана — создаём placeholder 00:00–00:00,
+        // чтобы «за проект» фиксировалось даже без интервалов
+        if (($validated['rate_type'] ?? null) === 'project' || ($validated['rate_type'] ?? null) === 'hour') {
+            $hasAny = WorkInterval::where('employee_id', $validated['employee_id'])
+                ->where('date', $validated['date'])
+                ->where('type', 'busy')
+                ->exists();
+            if (!$hasAny) {
+                WorkInterval::create([
+                    'employee_id' => (int)$validated['employee_id'],
+                    'project_id'  => (int)$validated['project_id'],
+                    'date'        => $validated['date'],
+                    'start_time'  => '00:00',
+                    'end_time'    => '00:00',
+                    'type'        => 'busy',
+                    'hour_rate'   => (($validated['rate_type'] ?? null) === 'hour') ? ($validated['rate'] ?? null) : null,
+                    'project_rate'=> (($validated['rate_type'] ?? null) === 'project') ? ($validated['rate'] ?? null) : null,
+                ]);
+            }
+        }
 
         // Если передали комментарий — сохраняем его как отдельную запись в comments
         if (!empty($validated['comment'])) {
@@ -196,15 +218,22 @@ class PersonnelController extends Controller
 
             // Не возвращаем нулевые интервалы (start_time == end_time), чтобы точечные записи
             // не подсвечивали агрегированные слоты (4ч/12ч/1д)
-            $intervals = WorkInterval::whereIn('date', $dates)
+            // Разделяем выборку: рабочие интервалы фильтруем по проекту, нерабочие — глобальные
+            $busyIntervals = WorkInterval::whereIn('date', $dates)
+                ->where('type', 'busy')
                 ->whereColumn('start_time', '<>', 'end_time')
                 ->when($projectId, function ($q) use ($projectId) {
                     $q->where('project_id', $projectId);
                 })
                 ->get();
 
+            $offIntervals = WorkInterval::whereIn('date', $dates)
+                ->where('type', 'off')
+                ->whereColumn('start_time', '<>', 'end_time')
+                ->get();
+
             // Временная совместимость со старым фронтом
-            $assignments = $intervals->where('type', 'busy')->map(function ($i) {
+            $assignments = $busyIntervals->map(function ($i) {
                 return [
                     'employee_id' => (int) $i->employee_id,
                     'project_id'  => $i->project_id ? (int) $i->project_id : null,
@@ -214,7 +243,7 @@ class PersonnelController extends Controller
                 ];
             })->values();
 
-            $nonWorkingDays = $intervals->where('type', 'off')->map(function ($i) {
+            $nonWorkingDays = $offIntervals->map(function ($i) {
                 return [
                     'employee_id' => (int) $i->employee_id,
                     'date'        => (string) $i->date,
@@ -240,7 +269,7 @@ class PersonnelController extends Controller
             })->values();
 
             return response()->json([
-                'intervals'      => $intervals,
+                'intervals'      => $busyIntervals->concat($offIntervals)->values(),
                 'assignments'    => $assignments,
                 'nonWorkingDays' => $nonWorkingDays,
                 'comments'       => $comments,
@@ -261,14 +290,89 @@ class PersonnelController extends Controller
             'date'        => 'required|date',
             'start_time'  => 'nullable|date_format:H:i',
             'end_time'    => 'nullable|date_format:H:i',
+            'project_id'  => 'nullable|integer',
         ]);
         $query = Comment::where('employee_id', $validated['employee_id'])
             ->whereDate('date', $validated['date']);
+        if (!empty($validated['project_id'])) {
+            $query->where('project_id', (int)$validated['project_id']);
+        }
         if (!empty($validated['start_time']) && !empty($validated['end_time'])) {
-            $query->where('start_time', '>=', $validated['start_time'])
-                  ->where('end_time',   '<=', $validated['end_time']);
+            $slotStart = $validated['start_time'];
+            $slotEnd   = $validated['end_time'];
+            // Показываем все комментарии, КОТОРЫЕ ПЕРЕСЕКАЮТСЯ с выбранным интервалом (а не только полностью в него вписываются)
+            // Условие пересечения по времени: start_time < slotEnd AND end_time > slotStart
+            $query->where(function($q) use ($slotStart, $slotEnd) {
+                $q->where('start_time', '<', $slotEnd)
+                  ->where('end_time',   '>', $slotStart);
+            });
         }
         return response()->json($query->orderBy('start_time')->get());
+    }
+
+    // Все комментарии сотрудника в проекте (без фильтра по датам/интервалам)
+    public function listAllComments(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_id' => 'required|integer',
+            'project_id'  => 'required|integer',
+            'date'        => 'nullable|date',
+        ]);
+        $items = Comment::where('employee_id', (int)$validated['employee_id'])
+            ->where('project_id', (int)$validated['project_id'])
+            ->where(function($q){ $q->where('is_global', false)->orWhereNull('is_global'); })
+            ->when(!empty($validated['date']), function($q) use ($validated){
+                $q->whereDate('date', $validated['date']);
+            })
+            ->orderBy('date')
+            ->orderBy('start_time')
+            ->get();
+        return response()->json($items);
+    }
+
+    // Список комментариев за произвольный период (для «Неделя»/«Месяц»)
+    public function listCommentsRange(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_id' => 'required|integer',
+            'date_from'   => 'required|date',
+            'date_to'     => 'required|date',
+            'interval'    => 'nullable|string', // например: 5m,10m,15m,30m,60m,4h,1h,12h,1d
+            'project_id'  => 'nullable|integer',
+        ]);
+
+        $query = Comment::where('employee_id', $validated['employee_id'])
+            ->whereBetween('date', [$validated['date_from'], $validated['date_to']]);
+        if (!empty($validated['project_id'])) {
+            $query->where('project_id', (int)$validated['project_id']);
+        }
+
+        // Для недель/месяцев показываем только комментарии, оставленные на выбранном интервале (точное совпадение)
+        $interval = $validated['interval'] ?? null;
+        if ($interval) {
+            // Мэппинг интервалов в минуты; 1d — особый кейс
+            $map = [
+                '5m'  => 5,
+                '10m' => 10,
+                '15m' => 15,
+                '30m' => 30,
+                '60m' => 60,
+                '1h'  => 60,
+                '12h' => 12 * 60,
+                '4h'  => 4 * 60,
+            ];
+            if ($interval === '1d') {
+                // Интервал «1 день»: отбираем только записи, у которых slot = полный день
+                $query->where('start_time', '00:00')->where('end_time', '23:59');
+            } elseif (isset($map[$interval])) {
+                $minutes = $map[$interval];
+                // Точное совпадение слота: end_time - start_time == $minutes
+                // Для TIME используется TIME_TO_SEC(TIMEDIFF(...))
+                $query->whereRaw('TIME_TO_SEC(TIMEDIFF(end_time, start_time)) = ?', [$minutes * 60]);
+            }
+        }
+
+        return response()->json($query->orderBy('date')->orderBy('start_time')->get());
     }
 
     public function storeComment(Request $request)
@@ -285,6 +389,55 @@ class PersonnelController extends Controller
         return response()->json(['success'=>true, 'comment'=>$c]);
     }
 
+    public function updateComment(Request $request, Comment $comment)
+    {
+        $validated = $request->validate([
+            'comment' => 'required|string|max:2000',
+        ]);
+        $comment->update(['comment' => $validated['comment']]);
+        return response()->json(['success'=>true]);
+    }
+
+    // ===== Общий комментарий проекта =====
+    public function getProjectComment(Project $project)
+    {
+        $c = Comment::where('project_id', $project->id)
+            ->where('is_global', true)
+            ->orderByDesc('id')
+            ->first();
+        return response()->json([
+            'id' => $c?->id,
+            'comment' => $c ? (string)$c->comment : ''
+        ]);
+    }
+
+    public function saveProjectComment(Request $request, Project $project)
+    {
+        $validated = $request->validate([
+            'comment' => 'nullable|string|max:2000',
+        ]);
+        $text = (string)($validated['comment'] ?? '');
+        // Апсертом: если есть — обновим; если нет — создадим, привязав к дате начала проекта в 00:00
+        $existing = Comment::where('project_id', $project->id)->where('is_global', true)->first();
+        if ($existing) {
+            $existing->update(['comment' => $text]);
+            $id = $existing->id;
+        } else {
+            $date = $project->start_date ? date('Y-m-d', strtotime($project->start_date)) : date('Y-m-d');
+            $created = Comment::create([
+                'employee_id' => auth()->id(), // технический автор; не используется в выборках общего
+                'project_id'  => $project->id,
+                'date'        => $date,
+                'start_time'  => '00:00',
+                'end_time'    => '00:00',
+                'comment'     => $text,
+                'is_global'   => true,
+            ]);
+            $id = $created->id;
+        }
+        return response()->json(['success'=>true, 'id'=>$id]);
+    }
+
     public function deleteComments(Request $request)
     {
         $validated = $request->validate([
@@ -292,12 +445,28 @@ class PersonnelController extends Controller
             'date'        => 'required|date',
             'start_time'  => 'required|date_format:H:i',
             'end_time'    => 'required|date_format:H:i',
+            'project_id'  => 'nullable|exists:projects,id',
         ]);
-        Comment::where('employee_id',$validated['employee_id'])
-            ->whereDate('date',$validated['date'])
-            ->where('start_time','>=',$validated['start_time'])
-            ->where('end_time','<=',$validated['end_time'])
+        // Удаляем все комментарии, ПЕРЕСЕКАЮЩИЕСЯ с выбранным интервалом
+        $slotStart = $validated['start_time'];
+        $slotEnd   = $validated['end_time'];
+        Comment::where('employee_id', $validated['employee_id'])
+            ->whereDate('date', $validated['date'])
+            ->where(function($q){ $q->where('is_global', false)->orWhereNull('is_global'); })
+            ->when(!empty($validated['project_id']), function($q) use ($validated){
+                $q->where('project_id', (int)$validated['project_id']);
+            })
+            ->where(function($q) use ($slotStart, $slotEnd){
+                $q->where('start_time', '<', $slotEnd)
+                  ->where('end_time',   '>', $slotStart);
+            })
             ->delete();
+        return response()->json(['success'=>true]);
+    }
+
+    public function destroyComment(Comment $comment)
+    {
+        $comment->delete();
         return response()->json(['success'=>true]);
     }
 

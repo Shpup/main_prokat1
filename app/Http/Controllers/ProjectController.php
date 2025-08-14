@@ -111,22 +111,46 @@ class ProjectController extends Controller
 
         return response()->json(['success' => 'Оборудование убрано из проекта']);
     }
-
-    /**
-     * Отображает детали проекта и смету.
-     */
-    public function updateStatus(Request $request, Project $project): RedirectResponse
+    public function updateStatus(Request $request, Project $project): JsonResponse
     {
+
+
         $this->authorize('edit projects');
 
         $validated = $request->validate([
             'status' => 'required|in:new,active,completed,cancelled',
         ]);
 
-        $project->update(['status' => $validated['status']]);
+        try {
+            $updated = $project->update(['status' => $validated['status']]);
 
-        return back()->with('success', 'Статус проекта обновлён.');
-    }
+
+
+            // Проверка текущего статуса в базе
+            $project->refresh();
+
+
+            if ($updated) {
+                return response()->json([
+                    'success' => 'Статус проекта обновлён.',
+                    'status' => $project->status,
+                ]);
+            } else {
+
+                return response()->json([
+                    'error' => 'Не удалось обновить статус проекта.',
+                ], 500);
+            }
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'error' => 'Ошибка при обновлении статуса: ' . $e->getMessage(),
+            ], 500);
+        }
+    } 
+    /**
+     * Отображает детали проекта и смету.
+     */
 
     public function show(Project $project): View
     {
@@ -151,6 +175,26 @@ class ProjectController extends Controller
                     'hour_rate'    => $rateType === 'hour' ? ($rate !== null ? (float)$rate : null) : null,
                     'project_rate' => $rateType === 'project' ? ($rate !== null ? (float)$rate : null) : null,
                 ]);
+
+            // Если у сотрудника по проекту нет ни одного busy-интервала,
+            // закрепим ставку placeholder'ом 00:00–00:00, чтобы «за проект» сохранилось
+            $hasBusy = WorkInterval::where('employee_id', $user->id)
+                ->where('project_id', $project->id)
+                ->where('type', 'busy')
+                ->exists();
+            if (!$hasBusy) {
+                $placeholderDate = $project->start_date ? date('Y-m-d', strtotime((string)$project->start_date)) : date('Y-m-d');
+                WorkInterval::create([
+                    'employee_id' => $user->id,
+                    'project_id'  => $project->id,
+                    'date'        => $placeholderDate,
+                    'start_time'  => '00:00',
+                    'end_time'    => '00:00',
+                    'type'        => 'busy',
+                    'hour_rate'   => $rateType === 'hour' ? ($rate !== null ? (float)$rate : null) : null,
+                    'project_rate'=> $rateType === 'project' ? ($rate !== null ? (float)$rate : null) : null,
+                ]);
+            }
         }
         return response()->json(['success'=>true]);
     }

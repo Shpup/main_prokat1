@@ -51,10 +51,18 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::post('/personnel/clear', [PersonnelController::class, 'clearInterval'])->name('personnel.clear');
     Route::get('/personnel/time-slots', [PersonnelController::class, 'getTimeSlots'])->name('personnel.time-slots');
     Route::get('/personnel/data', [PersonnelController::class, 'getData'])->name('personnel.data');
+    Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])->name('projects.status.update');
     // Комментарии к интервалам (проект/персонал)
     Route::get('/comments', [PersonnelController::class, 'listComments'])->name('comments.index');
+    Route::get('/comments/all', [PersonnelController::class, 'listAllComments'])->name('comments.all');
+    Route::get('/comments/range', [PersonnelController::class, 'listCommentsRange'])->name('comments.range');
     Route::post('/comments', [PersonnelController::class, 'storeComment'])->name('comments.store');
+    Route::put('/comments/{comment}', [PersonnelController::class, 'updateComment'])->name('comments.update');
     Route::delete('/comments', [PersonnelController::class, 'deleteComments'])->name('comments.delete');
+    Route::delete('/comments/{comment}', [PersonnelController::class, 'destroyComment'])->name('comments.destroy');
+    // Общий комментарий проекта
+    Route::get('/projects/{project}/comment', [PersonnelController::class, 'getProjectComment'])->name('projects.comment.show');
+    Route::post('/projects/{project}/comment', [PersonnelController::class, 'saveProjectComment'])->name('projects.comment.save');
 
     Route::resource('clients', ClientController::class)->except(['create', 'show']);
     Route::get('/clients', [ClientController::class, 'index'])->name('clients');

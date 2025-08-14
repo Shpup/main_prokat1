@@ -56,3 +56,15 @@
     font-size: 0.875rem;
     margin-left: 0.5rem;
 }
+
+/* All comments link visual */
+.comments-link{
+  display:inline-flex;align-items:center;gap:.375rem;
+  color:#1e40af;background:transparent;border:0;padding:0;border-radius:.25rem;
+  text-decoration:none;font-weight:600;letter-spacing:0;cursor:pointer;font-size:.925rem;
+  transition:color .15s ease;
+}
+.comments-link:hover{color:#2563eb}
+.comments-link:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+.comments-link .icon{width:16px;height:16px;opacity:.6}
+.comments-link:hover .icon{opacity:.9}
