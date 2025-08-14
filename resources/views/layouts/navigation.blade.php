@@ -69,7 +69,7 @@
                     </x-nav-link>
                 </div>
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('users')" :active="request()->routeIs('users')">
+                    <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')">
                         {{ __('Разрешения') }}
                     </x-nav-link>
                 </div>
@@ -128,7 +128,7 @@
             <x-responsive-nav-link :href="route('managers')" :active="request()->routeIs('managers')">
                 {{ __('Менеджеры') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('users')" :active="request()->routeIs('users')">
+            <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')">
                 {{ __('Разрешения') }}
             </x-responsive-nav-link>
         </div>

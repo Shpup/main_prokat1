@@ -56,3 +56,6 @@
     font-size: 0.875rem;
     margin-left: 0.5rem;
 }
+.fc-event, .fc-event-title, .fc-event-main {
+    color: #000000 !important; /* Черный цвет текста для событий */
+}

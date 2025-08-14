@@ -67,7 +67,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
     // Пользователи
-    Route::get('/users', [UserController::class, 'index'])->name('users');
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::post('/users/{user}/permissions', [UserController::class, 'updatePermissions'])->name('users.updatePermissions');
 
     // Персонал
