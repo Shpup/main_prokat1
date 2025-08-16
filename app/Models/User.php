@@ -71,4 +71,24 @@ class User extends Authenticatable
         return $this->belongsToMany(Project::class, 'project_user', 'user_id', 'project_id')
             ->withTimestamps();
     }
+
+    public function contacts()
+    {
+        return $this->hasMany(UserContact::class);
+    }
+
+    public function phones()
+    {
+        return $this->contacts()->where('type', 'phone');
+    }
+
+    public function emails()
+    {
+        return $this->contacts()->where('type', 'email');
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(UserDocument::class);
+    }
 }

@@ -87,7 +87,7 @@
                         </div>
                     </button>
                     <div x-show="open" @click.outside="open = false" x-transition class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50">
-                        <x-dropdown-link :href="route('profile.edit')">
+                        <x-dropdown-link :href="route('profile.index')">
                             {{ __('Профиль') }}
                         </x-dropdown-link>
                         <form method="POST" action="{{ route('logout') }}">
@@ -140,7 +140,7 @@
                 <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
             </div>
             <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')">
+                <x-responsive-nav-link :href="route('profile.index')">
                     {{ __('Профиль') }}
                 </x-responsive-nav-link>
                 <form method="POST" action="{{ route('logout') }}">
