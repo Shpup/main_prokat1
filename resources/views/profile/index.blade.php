@@ -14,45 +14,41 @@
         <input type="hidden" name="view" value="projects">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
           <div class="lg:col-span-2">
-            <input type="text" name="p_q" value="{{ $projectsFilters['pSearch'] ?? '' }}" placeholder="Поиск по названию и месту..."
+            <input type="text" name="p_q" value="{{ $projectsFilters['pSearch'] ?? '' }}" placeholder="Поиск по названию или месту..."
                    class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
           </div>
-          <div>
-            <select name="p_status" class="w-full border border-gray-300 rounded-md px-3 py-2">
-              @php $st = $projectsFilters['pStatus'] ?? 'new'; @endphp
-              <option value="new" {{ $st==='new' ? 'selected' : '' }}>Новый</option>
-              <option value="active" {{ $st==='active' ? 'selected' : '' }}>В работе</option>
-              <option value="completed" {{ $st==='completed' ? 'selected' : '' }}>Завершён</option>
-              <option value="cancelled" {{ $st==='cancelled' ? 'selected' : '' }}>Отменён</option>
-            </select>
+                     <div>
+             <select name="p_status" class="w-full border border-gray-300 rounded-md px-3 py-2">
+               @php $st = $projectsFilters['pStatus'] ?? 'new'; @endphp
+               <option value="new" {{ $st==='new' ? 'selected' : '' }}>Новый</option>
+                              <option value="active" {{ $st==='active' ? 'selected' : '' }}>Активный</option>
+               <option value="completed" {{ $st==='completed' ? 'selected' : '' }}>Завершён</option>
+               <option value="cancelled" {{ $st==='cancelled' ? 'selected' : '' }}>Отменён</option>
+             </select>
+           </div>
+           <div>
+             <select name="p_time" class="w-full border border-gray-300 rounded-md px-3 py-2">
+               @php $time = $projectsFilters['pTime'] ?? ''; @endphp
+               <option value="" {{ $time==='' ? 'selected' : '' }}>Время</option>
+               <option value="with_time" {{ $time==='with_time' ? 'selected' : '' }}>С назначенным временем</option>
+               <option value="without_time" {{ $time==='without_time' ? 'selected' : '' }}>Без назначенного времени</option>
+             </select>
+           </div>
+           
+         </div>
+         
+                   <div class="flex flex-col md:flex-row md:justify-start gap-3 mt-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Дата начала</label>
+              <input type="date" name="p_start_date" value="{{ $projectsFilters['pStartDate'] ?? '' }}" 
+                     class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Дата окончания</label>
+              <input type="date" name="p_end_date" value="{{ $projectsFilters['pEndDate'] ?? '' }}" 
+                     class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
           </div>
-          <div>
-            <input type="text" name="p_loc" value="{{ $projectsFilters['pLocation'] ?? '' }}" placeholder="Место"
-                   class="w-full border border-gray-300 rounded-md px-3 py-2">
-          </div>
-          <div>
-            <select name="p_role" class="w-full border border-gray-300 rounded-md px-3 py-2">
-              @php $r = $projectsFilters['pRole'] ?? ''; @endphp
-              <option value="" {{ $r==='' ? 'selected' : '' }}>Любая роль</option>
-              <option value="owner" {{ $r==='owner' ? 'selected' : '' }}>Руководитель</option>
-              <option value="member" {{ $r==='member' ? 'selected' : '' }}>Участник</option>
-            </select>
-          </div>
-          <div>
-            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" name="p_timed" value="1" {{ !empty($projectsFilters['pOnlyTimed']) ? 'checked' : '' }}>
-              Только с назначенным временем
-            </label>
-          </div>
-          <div>
-            <select name="p_sort" class="w-full border border-gray-300 rounded-md px-3 py-2">
-              @php $s = $projectsFilters['pSort'] ?? 'date'; @endphp
-              <option value="date" {{ $s==='date' ? 'selected' : '' }}>По дате</option>
-              <option value="alpha" {{ $s==='alpha' ? 'selected' : '' }}>По алфавиту</option>
-              <option value="payment" {{ $s==='payment' ? 'selected' : '' }}>По оплате</option>
-            </select>
-          </div>
-        </div>
         <div class="mt-3 flex items-center gap-2">
           <button type="submit" class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Применить</button>
           <a href="{{ route('profile.index', ['view'=>'projects']) }}" class="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">Сбросить</a>
@@ -128,62 +124,41 @@
         <div></div>
       </div>
 
-      <form method="get" action="{{ route('profile.index') }}" class="bg-white rounded-lg shadow p-4 mb-5">
-        <input type="hidden" name="view" value="tasks">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
-          <div class="lg:col-span-2">
-            <input type="text" name="t_q" value="{{ $tasksFilters['tSearch'] ?? '' }}" placeholder="Поиск: задача, проект, исполнитель"
-                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                           <form method="get" action="{{ route('profile.index') }}" class="bg-white rounded-lg shadow p-4 mb-5">
+          <input type="hidden" name="view" value="tasks">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+            <div class="lg:col-span-2">
+              <input type="text" name="t_q" value="{{ $tasksFilters['tSearch'] ?? '' }}" placeholder="Поиск: задача, проект, исполнитель"
+                     class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              @php $tp = $tasksFilters['tPriority'] ?? ''; @endphp
+              <select name="t_priority" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                <option value="" {{ $tp==='' ? 'selected' : '' }}>Любой приоритет</option>
+                <option value="high" {{ $tp==='high' ? 'selected' : '' }}>Высокий</option>
+                <option value="medium" {{ $tp==='medium' ? 'selected' : '' }}>Средний</option>
+                <option value="low" {{ $tp==='low' ? 'selected' : '' }}>Низкий</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <select name="t_status" class="w-full border border-gray-300 rounded-md px-3 py-2">
-              @php $ts = $tasksFilters['tStatus'] ?? ''; @endphp
-              <option value="" {{ $ts==='' ? 'selected' : '' }}>Любой статус</option>
-              <option value="new" {{ $ts==='new' ? 'selected' : '' }}>Новая</option>
-              <option value="in_progress" {{ $ts==='in_progress' ? 'selected' : '' }}>В работе</option>
-              <option value="done" {{ $ts==='done' ? 'selected' : '' }}>Выполнена</option>
-              <option value="overdue" {{ $ts==='overdue' ? 'selected' : '' }}>Просрочена</option>
-            </select>
+          
+          <div class="flex flex-col md:flex-row md:justify-start gap-3 mt-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Дата начала</label>
+              <input type="date" name="t_start_date" value="{{ $tasksFilters['tStartDate'] ?? '' }}" 
+                     class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Дата окончания</label>
+              <input type="date" name="t_end_date" value="{{ $tasksFilters['tEndDate'] ?? '' }}" 
+                     class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
           </div>
-          <div>
-            @php $tp = $tasksFilters['tPriority'] ?? ''; @endphp
-            <select name="t_priority" class="w-full border border-gray-300 rounded-md px-3 py-2">
-              <option value="" {{ $tp==='' ? 'selected' : '' }}>Любой приоритет</option>
-              <option value="high" {{ $tp==='high' ? 'selected' : '' }}>Высокий</option>
-              <option value="medium" {{ $tp==='medium' ? 'selected' : '' }}>Средний</option>
-              <option value="low" {{ $tp==='low' ? 'selected' : '' }}>Низкий</option>
-            </select>
+          <div class="mt-3 flex items-center gap-2">
+            <button type="submit" class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Применить</button>
+            <a href="{{ route('profile.index', ['view'=>'tasks']) }}" class="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">Сбросить</a>
           </div>
-          <div>
-            <select name="t_project" class="w-full border border-gray-300 rounded-md px-3 py-2">
-              @php $projSel = $tasksFilters['tProject'] ?? ''; @endphp
-              <option value="" {{ $projSel==='' ? 'selected' : '' }}>Любой проект</option>
-              @foreach(($taskProjectsOptions ?? []) as $opt)
-                <option value="{{ $opt['id'] }}" {{ (string)$projSel===(string)$opt['id'] ? 'selected' : '' }}>{{ $opt['title'] }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div>
-            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" name="t_mine" value="1" {{ !empty($tasksFilters['tMine']) ? 'checked' : '' }}>
-              Только мои задачи
-            </label>
-          </div>
-          <div>
-            @php $tSort = $tasksFilters['tSort'] ?? 'deadline'; @endphp
-            <select name="t_sort" class="w-full border border-gray-300 rounded-md px-3 py-2">
-              <option value="deadline" {{ $tSort==='deadline' ? 'selected' : '' }}>По дедлайну</option>
-              <option value="priority" {{ $tSort==='priority' ? 'selected' : '' }}>По приоритету</option>
-              <option value="project" {{ $tSort==='project' ? 'selected' : '' }}>По проекту</option>
-              <option value="status" {{ $tSort==='status' ? 'selected' : '' }}>По статусу</option>
-            </select>
-          </div>
-        </div>
-        <div class="mt-3 flex items-center gap-2">
-          <button type="submit" class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Применить</button>
-          <a href="{{ route('profile.index', ['view'=>'tasks']) }}" class="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">Сбросить</a>
-        </div>
-      </form>
+        </form>
 
       @php $list = $tasksPage ?? collect(); @endphp
       @if(($list instanceof \Illuminate\Support\Collection ? $list->count() : count($list)) === 0)
@@ -271,12 +246,12 @@
           </select>
         </div>
         <div>
-          <select name="status" class="w-full border border-gray-300 rounded-md px-3 py-2">
-            <option value="" {{ ($filters['status'] ?? '')==='' ? 'selected' : '' }}>Любой статус</option>
-            <option value="in_progress" {{ ($filters['status'] ?? '')==='in_progress' ? 'selected' : '' }}>В процессе</option>
-            <option value="done" {{ ($filters['status'] ?? '')==='done' ? 'selected' : '' }}>Завершено</option>
-            <option value="overdue" {{ ($filters['status'] ?? '')==='overdue' ? 'selected' : '' }}>Просрочено</option>
-          </select>
+                     <select name="status" class="w-full border border-gray-300 rounded-md px-3 py-2">
+             <option value="" {{ ($filters['status'] ?? '')==='' ? 'selected' : '' }}>Любой статус</option>
+             <option value="new" {{ ($filters['status'] ?? '')==='new' ? 'selected' : '' }}>Новый</option>
+             <option value="active" {{ ($filters['status'] ?? '')==='active' ? 'selected' : '' }}>Активный</option>
+             <option value="cancelled" {{ ($filters['status'] ?? '')==='cancelled' ? 'selected' : '' }}>Отменён</option>
+           </select>
         </div>
         
         

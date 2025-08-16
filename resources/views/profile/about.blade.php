@@ -197,27 +197,7 @@
     </div>
   </section>
 
-  <!-- Блок 5 — Дополнительно (визуальный каркас) -->
-  <section class="bg-white rounded-xl shadow p-6">
-    <header class="flex items-center justify-between mb-4">
-      <div class="flex items-center gap-2 text-lg font-semibold text-gray-900">
-        <span>➕</span>
-        <span>Дополнительно</span>
-      </div>
-      <button type="button" id="openExtra" class="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50">Редактировать</button>
-    </header>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <div class="text-sm text-gray-700"><span class="text-gray-500">Должность:</span> —</div>
-      <div class="text-sm text-gray-700"><span class="text-gray-500">Отдел:</span> —</div>
-      <div class="text-sm text-gray-700"><span class="text-gray-500">Дата начала работы:</span> —</div>
-      <div class="text-sm text-gray-700"><span class="text-gray-500">Навыки:</span>
-        <div class="mt-1 flex flex-wrap gap-2">
-          <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs">—</span>
-        </div>
-      </div>
-      <div class="md:col-span-2 text-sm text-gray-700"><span class="text-gray-500">Комментарий:</span> —</div>
-    </div>
-  </section>
+
 
   <!-- Modals: добавить телефон / email / документ / доп.инфо (каркас) -->
   <div id="modalAddPhone" class="fixed inset-0 z-50 hidden">
@@ -281,23 +261,7 @@
     </div>
   </div>
 
-  <div id="extraModal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/40" data-close></div>
-    <div class="relative z-10 max-w-lg mx-auto mt-24 bg-white rounded-xl shadow-lg p-6">
-      <div class="flex items-start justify-between mb-4"><div class="text-lg font-semibold">Дополнительно</div><button class="text-gray-500" data-close>✕</button></div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input placeholder="Должность" class="border border-gray-300 rounded-md px-3 py-2">
-        <input placeholder="Отдел" class="border border-gray-300 rounded-md px-3 py-2">
-        <input type="date" placeholder="Дата начала" class="border border-gray-300 rounded-md px-3 py-2">
-        <input placeholder="Навыки через запятую" class="border border-gray-300 rounded-md px-3 py-2">
-        <textarea placeholder="Комментарий" class="md:col-span-2 border border-gray-300 rounded-md px-3 py-2"></textarea>
-      </div>
-      <div class="mt-3 flex justify-end gap-2">
-        <button type="button" class="px-3 py-1.5 rounded-md border border-gray-300" data-close>Закрыть</button>
-        <button type="button" class="px-3 py-1.5 rounded-md bg-blue-600 text-white" data-close>Сохранить</button>
-      </div>
-    </div>
-  </div>
+
 
   <!-- mini-scripts: модалки и doc-редактор -->
   <script>
@@ -311,7 +275,6 @@
       };
       bindModal(document.getElementById('addPhoneBtn'), 'modalAddPhone');
       bindModal(document.getElementById('addEmailBtn'), 'modalAddEmail');
-      bindModal(document.getElementById('openExtra'), 'extraModal');
 
       // Документы: открытие добавления по типу
       document.querySelectorAll('[data-open-doc]').forEach(btn => {
