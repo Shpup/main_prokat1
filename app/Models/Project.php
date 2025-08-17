@@ -15,6 +15,12 @@ class Project extends Model
         'status',
         'admin_id',
     ];
+
+    public function estimates()
+    {
+        return $this->hasMany(Estimate::class);
+    }
+
     /**
      * Связь с менеджером (пользователем).
      */

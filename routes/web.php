@@ -61,6 +61,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::get('/projects/table', [ProjectController::class, 'table'])->name('projects.table');
     Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::get('/projects/catalog', [ProjectController::class, 'getCatalog'])->name('projects.catalog'); // Переставили выше show
     Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])->name('projects.status.update');
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
@@ -71,6 +72,13 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::get('/projects/{project}/staff/{user}/summary', [ProjectController::class, 'summary'])->name('projects.staff.summary');
     Route::delete('/projects/{project}/staff/{user}', [ProjectController::class, 'detachStaff'])->name('projects.staff.detach');
     Route::get('/projects/{project}/equipment-list', [ProjectController::class, 'equipmentList'])->name('projects.equipmentList');
+    Route::post('/projects/{project}/estimates', [ProjectController::class, 'createEstimate'])->name('projects.estimates.create');
+    Route::patch('/estimates/{estimate}', [ProjectController::class, 'updateEstimate'])->name('estimates.update');
+    Route::delete('/estimates/{estimate}', [ProjectController::class, 'deleteEstimate'])->name('estimates.delete');
+    Route::get('/estimates/{estimate}/export', [ProjectController::class, 'exportEstimate'])->name('estimates.export');
+    Route::post('/estimates/{estimate}/add-equipment', [ProjectController::class, 'addToEstimate'])->name('estimates.add_equipment');
+    Route::post('/estimates/{estimate}/remove-equipment', [ProjectController::class, 'removeFromEstimate'])->name('estimates.remove_equipment');
+    Route::get('/estimates/{estimate}/export-excel', [ProjectController::class, 'exportExcel'])->name('estimates.exportExcel');
 
     // Оборудование
     Route::get('/equipment', [EquipmentController::class, 'index'])->name('equipment');

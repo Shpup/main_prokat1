@@ -10,12 +10,13 @@ class Equipment extends Model
 
     protected $fillable = [
         'name', 'description', 'price', 'specifications', 'image',
-        'category_id', 'barcode', 'qrcode', 'status', 'admin_id',
+        'category_id', 'barcode', 'qrcode', 'status', 'admin_id','is_consumable'
     ];
 
     protected $casts = [
         'specifications' => 'array',
         'price' => 'decimal:2',
+        'is_consumable' => 'boolean'
     ];
 
     protected static function booted()
