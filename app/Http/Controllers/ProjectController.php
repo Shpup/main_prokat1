@@ -16,7 +16,8 @@ use Illuminate\Http\JsonResponse;
 use App\Models\User;
 use App\Models\WorkInterval;
 use PDF;
-
+use App\Exports\EstimateExport;
+use Maatwebsite\Excel\Facades\Excel;
 class ProjectController extends Controller
 {
     /**
@@ -90,7 +91,13 @@ class ProjectController extends Controller
 
         return response()->json(['success' => true, 'status' => $validated['status']]);
     }
-
+    public function exportExcel(Estimate $estimate)
+    {
+        return Excel::download(
+            new EstimateExport($estimate),
+            'estimate_' . $estimate->id . '.xlsx'
+        );
+    }
     public function show(Project $project): View
     {
 
@@ -291,6 +298,7 @@ class ProjectController extends Controller
     /**
      * Удаляет оборудование из сметы
      */
+
     public function removeFromEstimate(Request $request, Estimate $estimate): JsonResponse
     {
         $this->authorize('edit projects');

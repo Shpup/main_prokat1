@@ -120,6 +120,10 @@
                         <button onclick="deleteEstimate({{ $currentEstimate->id }})" class="text-red-600 hover:text-red-800">Удалить</button>
                     @endif
                     <a href="{{ route('estimates.export', $currentEstimate) }}" class="text-green-600 hover:text-green-800">Экспорт в PDF</a>
+                    <a href="{{ route('estimates.exportExcel', $currentEstimate) }}"
+                       class="text-blue-600 hover:text-blue-800">
+                        Экспорт в Excel
+                    </a>
                 </div>
 
                 @if($project->status === 'completed')

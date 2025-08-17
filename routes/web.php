@@ -73,6 +73,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::get('/estimates/{estimate}/export', [ProjectController::class, 'exportEstimate'])->name('estimates.export');
     Route::post('/estimates/{estimate}/add-equipment', [ProjectController::class, 'addToEstimate'])->name('estimates.add_equipment');
     Route::post('/estimates/{estimate}/remove-equipment', [ProjectController::class, 'removeFromEstimate'])->name('estimates.remove_equipment');
+    Route::get('/estimates/{estimate}/export-excel', [ProjectController::class, 'exportExcel'])->name('estimates.exportExcel');
 
     // Оборудование
     Route::get('/equipment', [EquipmentController::class, 'index'])->name('equipment');
