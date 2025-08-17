@@ -34,6 +34,11 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::get('/profile/about', [ProfileController::class, 'aboutEdit'])->name('profile.about.edit');
     Route::put('/profile/about/info', [ProfileController::class, 'aboutUpdateInfo'])->name('profile.about.updateInfo');
     Route::put('/profile/about/password', [ProfileController::class, 'aboutUpdatePassword'])->name('profile.about.updatePassword');
+    Route::put('/profile/about/login', [ProfileController::class, 'aboutUpdateLogin'])->name('profile.about.updateLogin');
+
+    // Основные контакты
+    Route::put('/profile/primary/email', [ProfileController::class, 'updatePrimaryEmail'])->name('profile.primary.updateEmail');
+    Route::put('/profile/primary/phone', [ProfileController::class, 'updatePrimaryPhone'])->name('profile.primary.updatePhone');
 
     // Контакты
     Route::post('/profile/phones', [ProfileController::class, 'storePhone'])->name('profile.phones.store');

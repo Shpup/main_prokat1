@@ -276,7 +276,16 @@ class ProfileController extends Controller
     // -------- О себе --------
     public function aboutEdit(): View
     {
-        $u = auth()->user()->load(['contacts','documents']);
+        $u = auth()->user()->load(['contacts','documents','profile']);
+        
+        // Если профиль не существует, создаем его
+        if (!$u->profile) {
+            $u->profile()->create([
+                'user_id' => $u->id
+            ]);
+            $u->load('profile');
+        }
+        
         return view('profile.about', compact('u'));
     }
 
@@ -286,12 +295,34 @@ class ProfileController extends Controller
             'last_name' => 'nullable|string|max:100',
             'first_name' => 'nullable|string|max:100',
             'middle_name' => 'nullable|string|max:100',
-            'login' => 'nullable|string|max:100',
+            'birth_date' => 'nullable|date',
+            'city' => 'nullable|string|max:100',
         ]);
+        
         $user = auth()->user();
-        $user->fill($data)->save();
+        
+        // Обновляем или создаем профиль
+        if ($user->profile) {
+            $user->profile->update($data);
+        } else {
+            $user->profile()->create(array_merge($data, ['user_id' => $user->id]));
+        }
+        
+        // Перезагружаем профиль для получения актуальных данных
+        $user->load('profile');
+        
         if ($request->wantsJson()) {
-            return Redirect::back();
+            return response()->json([
+                'success' => true,
+                'message' => 'Профиль обновлен',
+                'profile' => $user->profile ? [
+                    'last_name' => $user->profile->last_name,
+                    'first_name' => $user->profile->first_name,
+                    'middle_name' => $user->profile->middle_name,
+                    'birth_date' => $user->profile->birth_date ? $user->profile->birth_date->format('Y-m-d') : '',
+                    'city' => $user->profile->city,
+                ] : null
+            ]);
         }
         return Redirect::back()->with('ok', 'Сохранено');
     }
@@ -305,10 +336,34 @@ class ProfileController extends Controller
         $user = auth()->user();
         $user->password = Hash::make($request->password);
         $user->save();
+        
         if ($request->wantsJson()) {
-            return Redirect::back();
+            return response()->json([
+                'success' => true,
+                'message' => 'Пароль обновлён'
+            ]);
         }
         return Redirect::back()->with('ok', 'Пароль обновлён');
+    }
+
+    public function aboutUpdateLogin(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . auth()->id()],
+        ]);
+        
+        $user = auth()->user();
+        $user->email = $request->email;
+        $user->save();
+        
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Email обновлён',
+                'email' => $user->email
+            ]);
+        }
+        return Redirect::back()->with('ok', 'Email обновлён');
     }
 
     // -------- Контакты: телефоны --------
@@ -324,33 +379,49 @@ class ProfileController extends Controller
             'comment' => $data['comment'] ?? null,
         ]);
         if ($request->wantsJson()) {
-            return Redirect::back();
+            return response()->json([
+                'success' => true,
+                'message' => 'Телефон добавлен',
+                'id' => $created->id,
+                'value' => $created->value,
+                'comment' => $created->comment,
+            ]);
         }
-        return Redirect::back();
+        return Redirect::back()->with('ok', 'Телефон добавлен');
     }
 
     public function updatePhone(Request $request, UserContact $phone): RedirectResponse
     {
         abort_if($phone->user_id !== auth()->id(), 403);
+        abort_if($phone->type !== 'phone', 404);
         $data = $request->validate([
             'value' => 'required|string|max:191',
             'comment' => 'nullable|string|max:255',
         ]);
         $phone->update($data);
         if ($request->wantsJson()) {
-            return Redirect::back();
+            return response()->json([
+                'success' => true,
+                'message' => 'Телефон обновлен',
+                'value' => $phone->value,
+                'comment' => $phone->comment,
+            ]);
         }
-        return Redirect::back();
+        return Redirect::back()->with('ok', 'Телефон обновлен');
     }
 
-    public function destroyPhone(UserContact $phone): RedirectResponse
+    public function destroyPhone(Request $request, UserContact $phone): RedirectResponse
     {
         abort_if($phone->user_id !== auth()->id(), 403);
+        abort_if($phone->type !== 'phone', 404);
         $phone->delete();
         if ($request->wantsJson()) {
-            return Redirect::back();
+            return response()->json([
+                'success' => true,
+                'message' => 'Телефон удален',
+            ]);
         }
-        return Redirect::back();
+        return Redirect::back()->with('ok', 'Телефон удален');
     }
 
     // -------- Контакты: email --------
@@ -359,7 +430,7 @@ class ProfileController extends Controller
         $data = $request->validate([
             'value' => 'required|email|max:191',
             'comment' => 'nullable|string|max:255',
-            'is_primary' => 'boolean',
+            'is_primary' => 'nullable|boolean',
         ]);
         $email = auth()->user()->contacts()->create([
             'type' => 'email',
@@ -371,37 +442,55 @@ class ProfileController extends Controller
             $this->demoteOtherEmails($email);
         }
         if ($request->wantsJson()) {
-            return Redirect::back();
+            return response()->json([
+                'success' => true,
+                'message' => 'Email добавлен',
+                'id' => $email->id,
+                'value' => $email->value,
+                'comment' => $email->comment,
+                'is_primary' => $email->is_primary,
+            ]);
         }
-        return Redirect::back();
+        return Redirect::back()->with('ok', 'Email добавлен');
     }
 
     public function updateEmail(Request $request, UserContact $email): RedirectResponse
     {
         abort_if($email->user_id !== auth()->id(), 403);
+        abort_if($email->type !== 'email', 404);
         $data = $request->validate([
             'value' => 'required|email|max:191',
             'comment' => 'nullable|string|max:255',
-            'is_primary' => 'boolean',
+            'is_primary' => 'nullable|boolean',
         ]);
         $email->update($data);
         if ($email->type === 'email' && ($data['is_primary'] ?? false)) {
             $this->demoteOtherEmails($email);
         }
         if ($request->wantsJson()) {
-            return Redirect::back();
+            return response()->json([
+                'success' => true,
+                'message' => 'Email обновлен',
+                'value' => $email->value,
+                'comment' => $email->comment,
+                'is_primary' => $email->is_primary,
+            ]);
         }
-        return Redirect::back();
+        return Redirect::back()->with('ok', 'Email обновлен');
     }
 
-    public function destroyEmail(UserContact $email): RedirectResponse
+    public function destroyEmail(Request $request, UserContact $email): RedirectResponse
     {
         abort_if($email->user_id !== auth()->id(), 403);
+        abort_if($email->type !== 'email', 404);
         $email->delete();
         if ($request->wantsJson()) {
-            return Redirect::back();
+            return response()->json([
+                'success' => true,
+                'message' => 'Email удален',
+            ]);
         }
-        return Redirect::back();
+        return Redirect::back()->with('ok', 'Email удален');
     }
 
     private function demoteOtherEmails(UserContact $primary): void
@@ -416,37 +505,86 @@ class ProfileController extends Controller
     public function storeDocument(Request $request): RedirectResponse
     {
         $data = $this->validateDoc($request);
-        auth()->user()->documents()->create($data);
-        if ($request->wantsJson()) {
-            return Redirect::back();
+        
+        // Обработка файлов
+        $files = [];
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                if ($file->isValid()) {
+                    $path = $file->store('documents', 'public');
+                    $files[] = [
+                        'name' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'size' => $file->getSize(),
+                        'type' => $file->getMimeType()
+                    ];
+                }
+            }
         }
-        return Redirect::back();
+        $data['files'] = $files;
+        
+        auth()->user()->documents()->create($data);
+        
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Документ добавлен']);
+        }
+        return Redirect::back()->with('ok', 'Документ добавлен');
     }
 
     public function updateDocument(Request $request, UserDocument $document): RedirectResponse
     {
         abort_if($document->user_id !== auth()->id(), 403);
         $data = $this->validateDoc($request);
-        $document->update($data);
-        if ($request->wantsJson()) {
-            return Redirect::back();
+        
+        // Обработка файлов
+        $files = $document->files ?? [];
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                if ($file->isValid()) {
+                    $path = $file->store('documents', 'public');
+                    $files[] = [
+                        'name' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'size' => $file->getSize(),
+                        'type' => $file->getMimeType()
+                    ];
+                }
+            }
         }
-        return Redirect::back();
+        $data['files'] = $files;
+        
+        $document->update($data);
+        
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Документ обновлен']);
+        }
+        return Redirect::back()->with('ok', 'Документ обновлен');
     }
 
     public function destroyDocument(UserDocument $document): RedirectResponse
     {
         abort_if($document->user_id !== auth()->id(), 403);
-        $document->delete();
-        if ($request->wantsJson()) {
-            return Redirect::back();
+        
+        // Удаляем файлы
+        if ($document->files) {
+            foreach ($document->files as $file) {
+                if (isset($file['path'])) {
+                    \Storage::disk('public')->delete($file['path']);
+                }
+            }
         }
-        return Redirect::back();
+        
+        $document->delete();
+        
+        if (request()->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Документ удален']);
+        }
+        return Redirect::back()->with('ok', 'Документ удален');
     }
 
     private function validateDoc(Request $request): array
     {
-        return $request->validate([
+        $rules = [
             'type' => ['required', 'in:passport,foreign_passport,driver_license'],
             'series' => 'nullable|string|max:32',
             'number' => 'nullable|string|max:64',
@@ -454,8 +592,77 @@ class ProfileController extends Controller
             'issued_by' => 'nullable|string|max:255',
             'expires_at' => 'nullable|date',
             'comment' => 'nullable|string|max:255',
-        ]);
+            'categories' => 'nullable|array',
+            'categories.*' => 'string|in:A,B,C,D,E,M',
+            'files.*' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB
+        ];
+
+        // Дополнительная валидация в зависимости от типа
+        $type = $request->input('type');
+        switch ($type) {
+            case 'passport':
+                $rules['series'] = 'required|string|size:4|regex:/^\d{4}$/';
+                $rules['number'] = 'required|string|size:6|regex:/^\d{6}$/';
+                $rules['issued_at'] = 'required|date';
+                break;
+            case 'foreign_passport':
+                $rules['number'] = 'required|string|max:64';
+                $rules['issued_at'] = 'required|date';
+                $rules['expires_at'] = 'required|date|after:issued_at';
+                break;
+            case 'driver_license':
+                $rules['number'] = 'required|string|size:10|regex:/^\d{10}$/';
+                $rules['issued_at'] = 'required|date';
+                $rules['expires_at'] = 'required|date|after:issued_at';
+                $rules['categories'] = 'required|array|min:1';
+                break;
+        }
+
+        return $request->validate($rules);
     }
+
+    // -------- Основные контакты --------
+    public function updatePrimaryEmail(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'unique:users,email,' . auth()->id()],
+        ]);
+
+        $user = auth()->user();
+        $user->email = $data['email'];
+        $user->save();
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Email обновлен',
+                'email' => $data['email']
+            ]);
+        }
+        return Redirect::back()->with('ok', 'Email обновлен');
+    }
+
+    public function updatePrimaryPhone(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'phone' => 'nullable|string|max:20',
+        ]);
+
+        $user = auth()->user();
+        $user->phone = $data['phone'];
+        $user->save();
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Телефон обновлен',
+                'phone' => $data['phone']
+            ]);
+        }
+        return Redirect::back()->with('ok', 'Телефон обновлен');
+    }
+
+
     /**
      * Display the user's profile form.
      */
