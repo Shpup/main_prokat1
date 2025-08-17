@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Models\Estimate;
+use App\Models\Client;
+use App\Models\Company;
 use App\Models\Equipment;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -11,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use App\Models\User;
 use App\Models\WorkInterval;
+use PDF;
 
 class ProjectController extends Controller
 {
@@ -75,182 +80,273 @@ class ProjectController extends Controller
 
     public function updateStatus(Request $request, Project $project): JsonResponse
     {
-
-
         $this->authorize('edit projects');
 
         $validated = $request->validate([
-            'status' => 'required|in:new,active,completed,cancelled',
+            'status' => 'required|in:new,active,completed,cancelled'
         ]);
 
-        try {
-            $updated = $project->update(['status' => $validated['status']]);
+        $project->update(['status' => $validated['status']]);
 
-
-
-            // Проверка текущего статуса в базе
-            $project->refresh();
-
-
-            if ($updated) {
-                return response()->json([
-                    'success' => 'Статус проекта обновлён.',
-                    'status' => $project->status,
-                ]);
-            } else {
-
-                return response()->json([
-                    'error' => 'Не удалось обновить статус проекта.',
-                ], 500);
-            }
-        } catch (\Exception $e) {
-
-            return response()->json([
-                'error' => 'Ошибка при обновлении статуса: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-    /**
-     * Показывает форму создания проекта (доступно только админу).
-     */
-    public function create(): View
-    {
-        $this->authorize('create projects');
-        $managers = \App\Models\User::role('manager')->get();
-        return view('projects.create', compact('managers'));
+        return response()->json(['success' => true, 'status' => $validated['status']]);
     }
 
-    /**
-     * Сохраняет новый проект.
-     */
-    public function store(Request $request): RedirectResponse|JsonResponse
-    {
-        $this->authorize('create projects');
-        $validated=$request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'manager_id' => 'required|exists:users,id',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after:start_date',
-            'status' => 'required|in:new,active,completed,cancelled' // добавлено
-        ]);
-
-        $validated['admin_id'] = auth()->id();
-
-        $project = Project::create($validated);
-
-        return response()->json(['success' => 'Проект создан.', 'project' => $project]);
-
-
-
-        //return redirect()->route('dashboard')->with('success', 'Проект создан.');
-    }
-    public function equipmentList(Request $request, Project $project)
-    {
-        $categoryId = $request->query('category_id');
-
-        $equipment = Equipment::when($categoryId, fn($q) => $q->where('category_id', $categoryId))
-            ->with('projects') // чтобы видеть, где уже прикреплено
-            ->get();
-
-        // Возвращаем ТОЛЬКО HTML-фрагмент
-        return view('projects.partials.equipment_table', [
-            'equipment' => $equipment,
-            'project'   => $project,
-        ])->render();
-    }
-    public function attachEquipment(Project $project, Equipment $equipment): JsonResponse
-    {
-        $this->authorize('edit projects');
-
-        // Проверка занятости по пересечению дат
-        $overlap = $equipment->projects()
-            ->where(function($q) use ($project) {
-                $q->whereNull('projects.end_date')
-                    ->orWhere(function($w) use ($project) {
-                        $w->whereDate('projects.start_date', '<=', $project->end_date ?? $project->start_date)
-                            ->where(function($z) use ($project) {
-                                $z->whereNull('projects.end_date')
-                                    ->orWhereDate('projects.end_date', '>=', $project->start_date);
-                            });
-                    });
-            })
-            ->where('projects.id', '!=', $project->id)
-            ->exists();
-
-        if ($overlap) {
-            return response()->json(['error' => 'Оборудование уже занято в пересекающемся проекте'], 422);
-        }
-
-        // Прикрепляем
-        $project->equipment()->syncWithoutDetaching([
-            $equipment->id => ['status' => 'assigned']
-        ]);
-
-        return response()->json(['success' => 'Оборудование прикреплено']);
-    }
-
-    public function detachEquipment(Project $project, Equipment $equipment): JsonResponse
-    {
-        $this->authorize('edit projects');
-
-        $project->equipment()->detach($equipment->id);
-
-        return response()->json(['success' => 'Оборудование убрано из проекта']);
-    }
-
-    /**
-     * Отображает детали проекта и смету.
-     */
-
-    /**
-     * Отображает детали проекта и смету.
-     */
     public function show(Project $project): View
     {
-        $project->load(['equipment', 'manager', 'staff']);
-        $availableEquipment = Equipment::whereDoesntHave('projects', function ($query) use ($project) {
-            $query->where('project_id', $project->id);
-        })->get();
-        return view('projects.show', compact('project', 'availableEquipment'));
+
+        $estimates = $project->estimates;
+        if ($estimates->isEmpty()) {
+            // Создаём первую смету автоматически
+            $estimate = Estimate::create([
+                'project_id' => $project->id,
+                'name' => 'Смета 1',
+            ]);
+            $estimates = collect([$estimate]);
+        }
+
+        // Для каждой сметы рассчитываем
+        $estimates = $estimates->map(function ($est) {
+            $est->calculated = $est->getEstimate();
+            return $est;
+        });
+
+        $clients = Client::where('admin_id', auth()->id())->get();
+        $companies = Company::where('admin_id', auth()->id())->get();
+        $defaultCompany = $companies->where('is_default', true)->first();
+
+        // Определяем текущую смету для sub-tab
+        $estId = request('est_id', $estimates->first()->id);
+        $currentEstimate = $estimates->firstWhere('id', $estId) ?? $estimates->first();
+
+        // ... остальной код твоего show метода (календарь, оборудование и т.д.)
+
+        return view('projects.show', compact('project', 'estimates', 'currentEstimate', 'clients', 'companies', 'defaultCompany' /* другие vars */));
     }
 
-    // === Staff attach/detach and summary (moved from routes/web.php) ===
-    public function attachStaff(Request $request, Project $project, User $user): JsonResponse
+    public function createEstimate(Request $request, Project $project): JsonResponse
     {
-        $project->staff()->syncWithoutDetaching([$user->id]);
-        $rateType = $request->input('rate_type');
-        $rate     = $request->input('rate');
-        if (in_array($rateType, ['hour','project'], true)) {
-            WorkInterval::where('employee_id', $user->id)
-                ->where('project_id', $project->id)
-                ->where('type', 'busy')
-                ->update([
-                    'hour_rate'    => $rateType === 'hour' ? ($rate !== null ? (float)$rate : null) : null,
-                    'project_rate' => $rateType === 'project' ? ($rate !== null ? (float)$rate : null) : null,
-                ]);
+        $this->authorize('edit projects');
+        if ($project->status === 'completed') {
+            return response()->json(['error' => 'Проект завершён, нельзя добавлять сметы'], 403);
+        }
+        $validated = $request->validate(['name' => 'required|string|max:255']);
+        $estimate = Estimate::create([
+            'project_id' => $project->id,
+            'name' => $validated['name'],
+            'company_id' => Company::where('admin_id', auth()->id())->where('is_default', true)->first()?->id,
+        ]);
+        return response()->json(['success' => true, 'estimate' => $estimate, 'redirect' => route('projects.show', ['project' => $project, 'tab' => 'estimate', 'est_id' => $estimate->id])]);
+    }
 
-            // Если у сотрудника по проекту нет ни одного busy-интервала,
-            // закрепим ставку placeholder'ом 00:00–00:00, чтобы «за проект» сохранилось
-            $hasBusy = WorkInterval::where('employee_id', $user->id)
-                ->where('project_id', $project->id)
-                ->where('type', 'busy')
-                ->exists();
-            if (!$hasBusy) {
-                $placeholderDate = $project->start_date ? date('Y-m-d', strtotime((string)$project->start_date)) : date('Y-m-d');
-                WorkInterval::create([
-                    'employee_id' => $user->id,
-                    'project_id'  => $project->id,
-                    'date'        => $placeholderDate,
-                    'start_time'  => '00:00',
-                    'end_time'    => '00:00',
-                    'type'        => 'busy',
-                    'hour_rate'   => $rateType === 'hour' ? ($rate !== null ? (float)$rate : null) : null,
-                    'project_rate'=> $rateType === 'project' ? ($rate !== null ? (float)$rate : null) : null,
-                ]);
+    public function updateEstimate(Request $request, Estimate $estimate): JsonResponse
+    {
+        $this->authorize('edit projects');
+        if ($estimate->project->status === 'completed') {
+            return response()->json(['error' => 'Смета фиксирована для завершённого проекта'], 403);
+        }
+        $validated = $request->validate([
+            'delivery_cost' => 'nullable|numeric|min:0',
+            'client_id' => 'nullable|exists:clients,id',
+            'company_id' => 'nullable|exists:companies,id',
+        ]);
+        $estimate->update($validated);
+        $calculated = $estimate->getEstimate();
+        return response()->json(['success' => true, 'estimate' => $calculated]);
+    }
+
+    public function deleteEstimate(Estimate $estimate): JsonResponse
+    {
+        $this->authorize('delete projects');
+        if ($estimate->project->status === 'completed') {
+            return response()->json(['error' => 'Нельзя удалять смету завершённого проекта'], 403);
+        }
+        $estimate->delete();
+        return response()->json(['success' => true]);
+    }
+
+    public function exportEstimate(Estimate $estimate)
+    {
+        $calculated = $estimate->getEstimate();
+        $project = $estimate->project;
+        $pdf = PDF::loadView('projects.estimate_pdf', compact('project', 'estimate', 'calculated'));
+        return $pdf->download('estimate_' . $estimate->id . '.pdf');
+    }
+
+    public function getCatalog()
+    {
+        $user = auth()->user();
+        $adminId = $user->hasRole('admin') ? $user->id : $user->admin_id;
+        $categories = Category::where('admin_id', $adminId)->whereNull('parent_id')->with('children.equipment')->get(); // рекурсивно with('children.children...' но для простоты with('children')
+
+        $tree = $this->buildCatalogTree($categories);
+        return response()->json($tree);
+    }
+
+    private function buildCatalogTree($cats)
+    {
+        $tree = [];
+        foreach ($cats as $cat) {
+            $sub = $cat->children ? $this->buildCatalogTree($cat->children) : [];
+            $eqGroup = $cat->equipment->groupBy('name')->map(function ($group) {
+                return [
+                    'id' => $group->first()->id,
+                    'qty' => $group->count(),
+                    'price' => $group->first()->price,
+                    'is_consumable' => $group->first()->is_consumable
+                ];
+            })->toArray();
+            $tree[$cat->name] = ['sub' => $sub, 'equipment' => $eqGroup];
+        }
+        return $tree;
+    }
+
+    public function addToEstimate(Request $request, Estimate $estimate): JsonResponse
+    {
+        $this->authorize('edit projects');
+
+        if ($estimate->project->status === 'completed') {
+            return response()->json(['error' => 'Нельзя добавлять оборудование в смету завершённого проекта'], 403);
+        }
+
+        try {
+            // Валидация входящих данных
+            $validated = $request->validate([
+                'equipment_id' => 'required|integer|exists:equipment,id',
+                'quantity' => 'required|integer|min:1',
+                'status' => 'required|in:on_stock,assigned,used'
+            ]);
+
+            // Получаем оборудование без глобального скоупа
+            $equipment = Equipment::withoutGlobalScope('admin')->findOrFail($validated['equipment_id']);
+
+            // Проверяем права доступа к оборудованию
+            $user = auth()->user();
+            $adminId = $user->hasRole('admin') ? $user->id : $user->admin_id;
+            if ($equipment->admin_id != $adminId) {
+                return response()->json(['error' => 'У вас нет доступа к этому оборудованию'], 403);
+            }
+
+            // Добавляем оборудование
+            $estimate->attachEquipment(
+                $validated['equipment_id'],
+                $validated['quantity'],
+                $validated['status']
+            );
+
+            // Пересчитываем смету
+            $calculated = $estimate->getEstimate();
+
+            // Получаем путь категории
+            $categoryPath = $this->getCategoryPath($equipment->category_id);
+
+            // Формируем данные для нового оборудования
+            $newEquipment = [
+                'id' => $equipment->id,
+                'name' => $equipment->name ?? 'Без названия',
+                'quantity' => $validated['quantity'],
+                'price' => (float) ($equipment->price ?? 0),
+                'status' => $validated['status'],
+                'category_path' => $categoryPath,
+                'is_consumable' => $equipment->is_consumable ?? false,
+                'sum' => (float) ($equipment->price ?? 0) * $validated['quantity'],
+                'after_discount' => (float) ($equipment->price ?? 0) * $validated['quantity'] * (1 - ($calculated[$equipment->is_consumable ? 'materials' : 'equipment']['discount'] ?? 0) / 100)
+            ];
+
+            return response()->json([
+                'success' => true,
+                'estimate_id' => $estimate->id,
+                'new_equipment' => $newEquipment,
+                'calculated' => [
+                    'equipment' => [
+                        'total' => $calculated['equipment']['total'] ?? 0,
+                        'after_disc' => $calculated['equipment']['after_disc'] ?? 0,
+                        'discount' => $calculated['equipment']['discount'] ?? 0
+                    ],
+                    'materials' => [
+                        'total' => $calculated['materials']['total'] ?? 0,
+                        'after_disc' => $calculated['materials']['after_disc'] ?? 0,
+                        'discount' => $calculated['materials']['discount'] ?? 0
+                    ],
+                    'services' => [
+                        'total' => $calculated['services']['total'] ?? 0,
+                        'after_disc' => $calculated['services']['after_disc'] ?? 0,
+                        'discount' => $calculated['services']['discount'] ?? 0
+                    ],
+                    'subtotal' => $calculated['subtotal'] ?? 0,
+                    'tax' => $calculated['tax'] ?? 0,
+                    'total' => $calculated['total'] ?? 0,
+                    'tax_method' => $calculated['tax_method'] ?? 'none'
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation failed in addToEstimate', ['errors' => $e->errors(), 'input' => $request->all()]);
+            return response()->json(['error' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error in addToEstimate', ['message' => $e->getMessage(), 'input' => $request->all()]);
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Удаляет оборудование из сметы
+     */
+    public function removeFromEstimate(Request $request, Estimate $estimate): JsonResponse
+    {
+        $this->authorize('edit projects');
+
+        if ($estimate->project->status === 'completed') {
+            return response()->json(['error' => 'Нельзя удалять оборудование из сметы завершённого проекта'], 403);
+        }
+
+        try {
+            $validated = $request->validate([
+                'equipment_id' => 'required|integer|exists:equipment,id',
+            ]);
+
+            // Удаляем оборудование из сметы
+            $estimate->detachEquipment($validated['equipment_id']);
+
+            // Пересчитываем смету
+            $calculated = $estimate->getEstimate();
+
+            return response()->json([
+                'success' => true,
+                'calculated' => $calculated
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in removeFromEstimate', ['message' => $e->getMessage(), 'input' => $request->all()]);
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Получает путь категории
+     */
+    private function getCategoryPath($categoryId): array
+    {
+        if (!$categoryId) {
+            return ['Без категории'];
+        }
+
+        $category = Category::find($categoryId);
+        if (!$category) {
+            return ['Без категории'];
+        }
+
+        $path = [$category->name];
+        $current = $category;
+
+        while ($current->parent_id) {
+            $current = Category::find($current->parent_id);
+            if ($current) {
+                array_unshift($path, $current->name);
+            } else {
+                break;
             }
         }
-        return response()->json(['success'=>true]);
+
+        return $path;
     }
 
     public function summary(Project $project, User $user): JsonResponse
@@ -314,5 +410,25 @@ class ProjectController extends Controller
         $this->authorize('delete projects');
         $project->delete();
         return response()->json(['success' => 'Проект удален']);
+    }
+
+    public function equipmentList(Request $request, Project $project): JsonResponse
+    {
+        $categoryId = $request->query('category_id');
+        $equipment = $project->equipment()
+            ->where('category_id', $categoryId)
+            ->select('equipment.*', 'project_equipment.status as pivot_status')
+            ->get()
+            ->map(function ($eq) {
+                return [
+                    'id' => $eq->id,
+                    'name' => $eq->name,
+                    'description' => $eq->description,
+                    'price' => $eq->price,
+                    'status' => $eq->pivot_status,
+                ];
+            });
+
+        return response()->json($equipment);
     }
 }
