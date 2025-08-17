@@ -26,9 +26,28 @@ require __DIR__.'/auth.php';
 
 Route::middleware(['auth', 'subscription'])->group(function () {
     // Профиль
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Профиль: раздел «О себе» (всё в одном контроллере)
+    Route::get('/profile/about', [ProfileController::class, 'aboutEdit'])->name('profile.about.edit');
+    Route::put('/profile/about/info', [ProfileController::class, 'aboutUpdateInfo'])->name('profile.about.updateInfo');
+    Route::put('/profile/about/password', [ProfileController::class, 'aboutUpdatePassword'])->name('profile.about.updatePassword');
+
+    // Контакты
+    Route::post('/profile/phones', [ProfileController::class, 'storePhone'])->name('profile.phones.store');
+    Route::put('/profile/phones/{phone}', [ProfileController::class, 'updatePhone'])->name('profile.phones.update');
+    Route::delete('/profile/phones/{phone}', [ProfileController::class, 'destroyPhone'])->name('profile.phones.destroy');
+
+    Route::post('/profile/emails', [ProfileController::class, 'storeEmail'])->name('profile.emails.store');
+    Route::put('/profile/emails/{email}', [ProfileController::class, 'updateEmail'])->name('profile.emails.update');
+    Route::delete('/profile/emails/{email}', [ProfileController::class, 'destroyEmail'])->name('profile.emails.destroy');
+
+    // Документы
+    Route::post('/profile/documents', [ProfileController::class, 'storeDocument'])->name('profile.documents.store');
+    Route::put('/profile/documents/{document}', [ProfileController::class, 'updateDocument'])->name('profile.documents.update');
+    Route::delete('/profile/documents/{document}', [ProfileController::class, 'destroyDocument'])->name('profile.documents.destroy');
 
     // Дашборд
     Route::get('/dashboard', [ProjectController::class, 'index'])->name('dashboard');
