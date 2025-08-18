@@ -11,7 +11,7 @@ return new class extends Migration {
             $t->id();
             $t->foreignId('user_id')->constrained()->cascadeOnDelete();
             $t->enum('type', ['phone','email']);
-            $t->string('value', 191);
+            $t->string('value', 191)->nullable();
             $t->string('comment', 255)->nullable();
             $t->boolean('is_primary')->default(false);
             $t->timestamps();
