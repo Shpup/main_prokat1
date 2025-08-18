@@ -8,10 +8,12 @@ use App\Models\UserDocument;
 use App\Models\Project;
 use App\Models\WorkInterval;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Carbon\Carbon;
 use Illuminate\Validation\Rules;
@@ -21,28 +23,161 @@ class ProfileController extends Controller
     /**
      * Главная ЛК: ближайшие проекты и задачи.
      */
-    public function index(Request $request): View
+    public function index(Request $request)
     {
-        $range = (int) $request->integer('range', 7);
-        if (!in_array($range, [7, 14, 30], true)) { $range = 7; }
+        try {
+            // Если это AJAX запрос для Alpine.js, обрабатываем отдельно
+            if ($request->wantsJson()) {
+                return $this->handleAjaxRequest($request);
+            }
 
-        // TODO: заменить заглушки реальными провайдерами AssignmentsProvider/TasksProvider
-        $from = Carbon::now();
-        $to   = Carbon::now()->copy()->addDays($range);
+            // Обычный запрос - показываем основную страницу профиля
+            $user = auth()->user();
+            
+            // Получаем проекты для отображения
+            $projects = $this->getUserProjects($user);
+            $tasks = []; // Пока пустой массив задач
+            
+            // Группируем проекты по датам
+            $groupedProjects = collect($projects)->groupBy(function($i) {
+                if (empty($i['date'])) return 'no_date';
+                try {
+                    return Carbon::parse($i['date'])->translatedFormat('j F Y');
+                } catch (\Exception $e) {
+                    return 'no_date';
+                }
+            });
+            
+            $groupedTasks = collect($tasks)->groupBy(function($i) {
+                if (empty($i['date'])) return 'no_date';
+                try {
+                    return Carbon::parse($i['date'])->translatedFormat('j F Y');
+                } catch (\Exception $e) {
+                    return 'no_date';
+                }
+            });
 
-        // Получаем реальные проекты из базы данных
-        $user = auth()->user();
-        $projectsQuery = Project::query()
-            ->where('admin_id', $user->id) // Только проекты, принадлежащие текущему пользователю
-            ->with(['manager', 'staff']);
+            // Строим общий фид для отображения
+            $feed = collect($projects)->map(function ($p) {
+                $date = $p['date'] ?? null;
+                $id = $p['id'] ?? null;
+                return [
+                    'type' => 'project',
+                    'id' => $id,
+                    'title' => $p['project_title'] ?? $p['title'] ?? 'Проект',
+                    'deadline' => $date ? (function() use ($date) {
+                        try {
+                            return Carbon::parse($date);
+                        } catch (\Exception $e) {
+                            return null;
+                        }
+                    })() : null,
+                    'description' => $p['description'] ?? '',
+                    'status' => $p['status'] ?? null,
+                    'priority' => $p['priority'] ?? 'medium',
+                    'url' => $id ? url("/projects/{$id}") : ($p['url'] ?? '#'),
+                ];
+            })->merge(collect($tasks)->map(function ($t) {
+                $deadline = $t['deadline'] ?? ($t['date'] ?? null);
+                $id = $t['id'] ?? null;
+                return [
+                    'type' => 'task',
+                    'id' => $id,
+                    'title' => $t['title'] ?? 'Задача',
+                    'deadline' => $deadline ? (function() use ($deadline) {
+                        try {
+                            return Carbon::parse($deadline);
+                        } catch (\Exception $e) {
+                            return null;
+                        }
+                    })() : null,
+                    'description' => $t['body'] ?? $t['description'] ?? '',
+                    'status' => $t['status'] ?? null,
+                    'priority' => $t['priority'] ?? 'medium',
+                    'url' => $t['url'] ?? '#',
+                ];
+            }));
 
-        $projects = $projectsQuery->get()->map(function ($project) use ($user) {
-            $role = 'member';
-            if ($project->manager_id === $user->id) {
-                $role = 'owner';
+            // Фильтруем по умолчанию на +7 дней
+            $startDate = now()->startOfDay();
+            $endDate = now()->addDays(7)->endOfDay();
+            
+            $sorted = $feed->filter(function($i) use ($startDate, $endDate) {
+                if (!$i['deadline'] instanceof Carbon) return false;
+                return $i['deadline']->gte($startDate) && $i['deadline']->lte($endDate);
+            })->sortBy(fn($i) => $i['deadline'] ?? Carbon::maxValue())->values();
+
+            $filters = [
+                'q' => '',
+                'type' => 'all',
+                'status' => '',
+                'range' => 7
+            ];
+
+            return view('profile.index', compact(
+                'groupedProjects', 'groupedTasks', 'sorted', 'filters'
+            ));
+
+        } catch (\Exception $e) {
+            \Log::error('ProfileController: Error in index method', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return Redirect::back()->withErrors(['error' => 'Ошибка при загрузке профиля: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Обработка AJAX запросов для Alpine.js
+     */
+    private function handleAjaxRequest(Request $request)
+    {
+        try {
+            $view = $request->query('view');
+            
+            if ($view === 'upcoming') {
+                return $this->handleUpcomingRequest($request);
             }
             
-            // Получаем время работы пользователя в проекте
+            if ($view === 'projects') {
+                return $this->handleProjectsRequest($request);
+            }
+            
+            return response()->json(['error' => 'Неизвестный тип запроса'], 400);
+            
+        } catch (\Exception $e) {
+            \Log::error('ProfileController: Error in AJAX request', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Ошибка обработки запроса'], 500);
+        }
+    }
+
+    /**
+     * Получение проектов пользователя
+     */
+    private function getUserProjects($user)
+    {
+        // Логика загрузки проектов в зависимости от роли
+        if ($user->hasRole('admin')) {
+            $projectsQuery = Project::query()
+                ->where('admin_id', $user->id)
+                ->where('status', '!=', 'cancelled')
+                ->with(['manager', 'staff']);
+        } else {
+            $projectsQuery = Project::query()
+                ->where('status', '!=', 'cancelled')
+                ->where(function ($query) use ($user) {
+                    $query->where('manager_id', $user->id)
+                          ->orWhereHas('staff', function ($staffQuery) use ($user) {
+                              $staffQuery->where('user_id', $user->id);
+                          });
+                })
+                ->with(['manager', 'staff']);
+        }
+
+        return $projectsQuery->get()->map(function ($project) use ($user) {
             $workIntervals = WorkInterval::where('employee_id', $user->id)
                 ->where('project_id', $project->id)
                 ->get();
@@ -56,7 +191,6 @@ class ProfileController extends Controller
                 }
             }
             
-            // Получаем оплату
             $payment = null;
             if ($workIntervals->isNotEmpty()) {
                 $firstInterval = $workIntervals->first();
@@ -72,58 +206,72 @@ class ProfileController extends Controller
                 'title' => $project->name,
                 'project_title' => $project->name,
                 'location' => $project->description ?: 'Место не указано',
-                'role' => $role,
                 'time_range' => $timeRange,
                 'payment' => $payment,
-                'status' => $project->status, // new|active|completed|cancelled
+                'status' => $project->status,
                 'date' => $project->start_date,
                 'deadline' => $project->end_date,
                 'description' => $project->description,
                 'url' => route('projects.show', $project->id),
             ];
         })->toArray();
+    }
 
+    /**
+     * Обработка запроса для upcoming (ближайшие проекты и задачи)
+     */
+    private function handleUpcomingRequest(Request $request)
+    {
+        $user = auth()->user();
+        $projects = $this->getUserProjects($user);
         $tasks = [];
 
-        $groupedProjects = collect($projects)->groupBy(fn($i) => Carbon::parse($i['date'])->translatedFormat('j F Y'));
-        $groupedTasks    = collect($tasks)->groupBy(fn($i) => Carbon::parse($i['date'])->translatedFormat('j F Y'));
-
-        // Построение общего фида с поддержкой фильтров и сортировки
+        // Строим общий фид
         $feed = collect($projects)->map(function ($p) {
-            $deadline = $p['deadline'] ?? ($p['date'] ?? null);
+            $date = $p['date'] ?? null;
             $id = $p['id'] ?? null;
             return [
                 'type' => 'project',
                 'id' => $id,
                 'title' => $p['project_title'] ?? $p['title'] ?? 'Проект',
-                'deadline' => $deadline ? Carbon::parse($deadline) : null,
+                'deadline' => $date ? (function() use ($date) {
+                    try {
+                        return Carbon::parse($date);
+                    } catch (\Exception $e) {
+                        return null;
+                    }
+                })() : null,
                 'description' => $p['description'] ?? '',
                 'status' => $p['status'] ?? null,
                 'priority' => $p['priority'] ?? 'medium',
                 'url' => $id ? url("/projects/{$id}") : ($p['url'] ?? '#'),
             ];
-        })->merge(
-            collect($tasks)->map(function ($t) {
-                $deadline = $t['deadline'] ?? ($t['date'] ?? null);
-                $id = $t['id'] ?? null;
-                return [
-                    'type' => 'task',
-                    'id' => $id,
-                    'title' => $t['title'] ?? 'Задача',
-                    'deadline' => $deadline ? Carbon::parse($deadline) : null,
-                    'description' => $t['body'] ?? $t['description'] ?? '',
-                    'status' => $t['status'] ?? null,
-                    'priority' => $t['priority'] ?? 'medium',
-                    'url' => $t['url'] ?? '#',
-                ];
-            })
-        );
+        })->merge(collect($tasks)->map(function ($t) {
+            $deadline = $t['deadline'] ?? ($t['date'] ?? null);
+            $id = $t['id'] ?? null;
+            return [
+                'type' => 'task',
+                'id' => $id,
+                'title' => $t['title'] ?? 'Задача',
+                'deadline' => $deadline ? (function() use ($deadline) {
+                    try {
+                        return Carbon::parse($deadline);
+                    } catch (\Exception $e) {
+                        return null;
+                    }
+                })() : null,
+                'description' => $t['body'] ?? $t['description'] ?? '',
+                'status' => $t['status'] ?? null,
+                'priority' => $t['priority'] ?? 'medium',
+                'url' => $t['url'] ?? '#',
+            ];
+        }));
 
-        $q = (string) $request->query('q', '');
-        $type = (string) $request->query('type', 'all'); // project|task|all
-        $status = (string) $request->query('status', ''); // in_progress|done|overdue
-        $priority = (string) $request->query('priority', ''); // high|medium|low
-        $sort = (string) $request->query('sort', 'deadline'); // deadline|priority|alpha
+        // Применяем фильтры
+        $q = (string) $request->query('u_q', '');
+        $type = (string) $request->query('u_type', 'all');
+        $status = (string) $request->query('u_status', '');
+        $range = (int) $request->query('u_range', 7);
 
         $filtered = $feed
             ->when($q !== '', fn($c) => $c->filter(fn($i) => mb_stripos($i['title'], $q) !== false || mb_stripos($i['description'], $q) !== false))
@@ -134,149 +282,205 @@ class ProfileController extends Controller
                 }
                 return $c->filter(fn($i) => ($i['status'] ?? null) === $status);
             })
-            ->when($priority !== '', fn($c) => $c->filter(fn($i) => ($i['priority'] ?? null) === $priority));
+            ->when($range > 0, function ($c) use ($range) {
+                $startDate = now()->startOfDay();
+                $endDate = now()->addDays($range)->endOfDay();
+                return $c->filter(function($i) use ($startDate, $endDate) {
+                    if (!$i['deadline'] instanceof Carbon) return false;
+                    return $i['deadline']->gte($startDate) && $i['deadline']->lte($endDate);
+                });
+            });
 
-        $priorityOrder = ['high' => 1, 'medium' => 2, 'low' => 3];
-        $sorted = match ($sort) {
-            'alpha' => $filtered->sortBy(fn($i) => mb_strtolower($i['title']))->values(),
-            'priority' => $filtered->sortBy(fn($i) => $priorityOrder[$i['priority']] ?? 99)->values(),
-            default => $filtered->sortBy(fn($i) => $i['deadline'] ?? Carbon::maxValue())->values(),
-        };
+        $sorted = $filtered->sortBy(fn($i) => $i['deadline'] ?? Carbon::maxValue())->values();
 
-        $filters = compact('q','type','status','priority','sort','range');
+        $formattedItems = $sorted->map(function($item) {
+            $deadline = null;
+            if ($item['deadline'] instanceof Carbon) {
+                $deadline = $item['deadline']->format('d.m.Y');
+            }
+            return [
+                'id' => $item['id'],
+                'title' => $item['title'],
+                'deadline' => $deadline,
+                'description' => $item['description'],
+                'status' => $item['status'],
+                'url' => $item['url']
+            ];
+        });
 
-        // Projects view specific dataset (no period controls here)
+        return response()->json([
+            'items' => $formattedItems,
+            'currentPage' => 1,
+            'totalPages' => 1
+        ]);
+    }
+
+    /**
+     * Обработка запроса для projects (список проектов)
+     */
+    private function handleProjectsRequest(Request $request)
+    {
+        $user = auth()->user();
+        $projects = $this->getUserProjects($user);
+
         $projectsList = collect($projects)->map(function ($p) {
             return [
                 'id' => $p['id'] ?? null,
                 'title' => $p['project_title'] ?? $p['title'] ?? 'Проект',
                 'location' => $p['location'] ?? '',
-                'role' => $p['role'] ?? 'member', // Добавляем роль
                 'time_range' => $p['time_range'] ?? null,
                 'payment' => $p['payment'] ?? null,
-                'status' => $p['status'] ?? 'new', // new|active|completed|cancelled
+                'status' => $p['status'] ?? 'new',
                 'date' => $p['date'] ?? null,
                 'url' => isset($p['id']) ? url("/projects/{$p['id']}") : ($p['url'] ?? '#'),
             ];
         });
 
-        // Projects filters
+        // Применяем фильтры
         $pSearch = (string) $request->query('p_q', '');
         $pStatus = (string) $request->query('p_status', '');
-        $pLocation = (string) $request->query('p_loc', '');
-        $pRole = (string) $request->query('p_role', '');
-        $pOnlyTimed = (bool) $request->boolean('p_timed', false);
-        $pSort = (string) $request->query('p_sort', 'date'); // date|alpha|payment
+        $pStartDate = $request->query('p_start_date', now()->format('Y-m-d'));
+        $pEndDate = $request->query('p_end_date', now()->addDays(7)->format('Y-m-d'));
 
         $projectsFiltered = $projectsList
-            ->when($pSearch !== '', fn($c) => $c->filter(fn($i) => mb_stripos($i['title'], $pSearch) !== false || mb_stripos($i['location'], $pSearch) !== false))
+            ->when($pSearch !== '', function($c) use ($pSearch) {
+                return $c->filter(function($i) use ($pSearch) {
+                    $search = mb_strtolower(trim($pSearch));
+                    $title = mb_strtolower($i['title'] ?? '');
+                    $location = mb_strtolower($i['location'] ?? '');
+                    
+                    if ($title === $search) return true;
+                    if (mb_strpos($title, $search) === 0) return true;
+                    if (mb_strpos($location, $search) === 0) return true;
+                    if (mb_strpos($title, $search) !== false) return true;
+                    if (mb_strpos($location, $search) !== false) return true;
+                    
+                    return false;
+                });
+            })
             ->when($pStatus !== '', fn($c) => $c->filter(fn($i) => ($i['status'] ?? '') === $pStatus))
-            ->when($pLocation !== '', fn($c) => $c->filter(fn($i) => mb_stripos($i['location'], $pLocation) !== false))
-            ->when($pRole !== '', fn($c) => $c->filter(fn($i) => ($i['role'] ?? '') === $pRole))
-            ->when($pOnlyTimed, fn($c) => $c->filter(fn($i) => !empty($i['time_range'])));
+            ->when(!empty($pStartDate), function($c) use ($pStartDate) {
+                return $c->filter(function($i) use ($pStartDate) {
+                    if (empty($i['date'])) return false;
+                    try {
+                        return Carbon::parse($i['date'])->format('Y-m-d') >= $pStartDate;
+                    } catch (\Exception $e) {
+                        return false;
+                    }
+                });
+            })
+            ->when(!empty($pEndDate), function($c) use ($pEndDate) {
+                return $c->filter(function($i) use ($pEndDate) {
+                    if (empty($i['date'])) return false;
+                    try {
+                        return Carbon::parse($i['date'])->format('Y-m-d') <= $pEndDate;
+                    } catch (\Exception $e) {
+                        return false;
+                    }
+                });
+            });
 
-        $projectsSorted = match ($pSort) {
-            'alpha' => $projectsFiltered->sortBy(fn($i) => mb_strtolower($i['title']))->values(),
-            'payment' => $projectsFiltered->sortByDesc(fn($i) => (float) ($i['payment'] ?? 0))->values(),
-            default => $projectsFiltered->sortBy(fn($i) => $i['date'] ? Carbon::parse($i['date']) : Carbon::maxValue())->values(),
-        };
-
-        // Pagination (simple)
-        $pPage = max(1, (int) $request->query('p_page', 1));
-        $pPerPage = 10;
-        $pTotal = $projectsSorted->count();
-        $pTotalPages = max(1, (int) ceil($pTotal / $pPerPage));
-        if ($pPage > $pTotalPages) { $pPage = $pTotalPages; }
-        $projectsPage = $projectsSorted->slice(($pPage - 1) * $pPerPage, $pPerPage)->values();
-
-        // Group by date if meaningful (on current page)
-        $projectsGrouped = $projectsPage->groupBy(function ($i) {
-            if (empty($i['date'])) { return 'no_date'; }
-            return Carbon::parse($i['date'])->translatedFormat('j F Y');
+        $groupedProjects = $projectsFiltered->groupBy(function($i) {
+            if (empty($i['date'])) return 'no_date';
+            try {
+                return Carbon::parse($i['date'])->translatedFormat('j F Y');
+            } catch (\Exception $e) {
+                return 'no_date';
+            }
         });
 
-        $projectsFilters = compact('pSearch','pStatus','pLocation','pRole','pOnlyTimed','pSort','pPage','pPerPage','pTotal','pTotalPages');
+        return response()->json([
+            'projects' => $projectsFiltered->values(),
+            'groupedProjects' => $groupedProjects,
+            'currentPage' => 1,
+            'totalPages' => 1
+        ]);
+    }
 
-        // Отладочная информация
-        \Log::info('ProfileController: Projects count = ' . count($projects));
-        \Log::info('ProfileController: ProjectsList count = ' . $projectsList->count());
-        \Log::info('ProfileController: ProjectsGrouped count = ' . $projectsGrouped->count());
+    /**
+     * API для автодополнения проектов
+     */
+    public function autocompleteProjects(Request $request): JsonResponse
+    {
+        try {
+            $query = $request->query('q', '');
+            if (empty($query) || mb_strlen($query) < 1) {
+                return response()->json(['suggestions' => []]);
+            }
 
-        // -------- Tasks view dataset --------
-        $tasksList = collect($tasks)->map(function ($t) {
-            $deadline = $t['deadline'] ?? ($t['date'] ?? null);
-            $assignee = $t['assignee'] ?? [];
-            return [
-                'id' => $t['id'] ?? null,
-                'title' => $t['title'] ?? 'Задача',
-                'project_id' => $t['project_id'] ?? null,
-                'project_title' => $t['project_title'] ?? ($t['project']['title'] ?? ''),
-                'assignee_id' => $assignee['id'] ?? null,
-                'assignee_name' => $assignee['name'] ?? ($t['assignee_name'] ?? ''),
-                'assignee_avatar' => $assignee['avatar'] ?? ($t['assignee_avatar'] ?? null),
-                'deadline' => $deadline ? Carbon::parse($deadline) : null,
-                'priority' => $t['priority'] ?? 'medium', // low|medium|high
-                'status' => $t['status'] ?? 'new', // new|in_progress|done|overdue
-                'mine' => isset($assignee['id']) ? $assignee['id'] === auth()->id() : false,
-                'url' => $t['url'] ?? '#',
-            ];
-        });
+            $user = auth()->user();
+            
+            // Логика загрузки проектов в зависимости от роли
+            if ($user->hasRole('admin')) {
+                $projectsQuery = Project::query()
+                    ->where('admin_id', $user->id)
+                    ->where('status', '!=', 'cancelled');
+            } else {
+                $projectsQuery = Project::query()
+                    ->where('status', '!=', 'cancelled')
+                    ->where(function ($q) use ($user) {
+                        $q->where('manager_id', $user->id)
+                          ->orWhereHas('staff', function ($staffQuery) use ($user) {
+                              $staffQuery->where('user_id', $user->id);
+                          });
+                    });
+            }
 
-        $taskProjectsOptions = $tasksList
-            ->pluck('project_title', 'project_id')
-            ->filter(fn($title, $id) => !empty($id) && !empty($title))
-            ->sort()
-            ->map(fn($title, $id) => ['id' => $id, 'title' => $title])
-            ->values();
+            $search = mb_strtolower(trim($query));
+            
+            $projects = $projectsQuery->select(['id','name','description','status','start_date'])->get();
 
-        $tSearch = (string) $request->query('t_q', '');
-        $tStatus = (string) $request->query('t_status', '');
-        $tPriority = (string) $request->query('t_priority', ''); // 'low'|'medium'|'high' or ''
-        $tProject = $request->query('t_project');
-        $tMine = (bool) $request->boolean('t_mine', false);
-        $tSort = (string) $request->query('t_sort', 'deadline'); // deadline|priority|project|status
+            $suggestions = $projects
+                ->filter(function($project) use ($search) {
+                    $title = mb_strtolower($project->name ?? '');
+                    $location = mb_strtolower($project->description ?? '');
+                    
+                    // Поиск по первым буквам названия
+                    if ($search !== '' && mb_strpos($title, $search) === 0) {
+                        return true;
+                    }
+                    
+                    // Поиск по первым буквам места
+                    if ($search !== '' && mb_strpos($location, $search) === 0) {
+                        return true;
+                    }
+                    
+                    return false;
+                })
+                ->take(10)
+                ->map(function($project) {
+                    $dateFormatted = null;
+                    if (!empty($project->start_date)) {
+                        try {
+                            $dateFormatted = Carbon::parse($project->start_date)->format('d.m.Y');
+                        } catch (\Exception $e) {
+                            $dateFormatted = null;
+                        }
+                    }
+                    return [
+                        'id' => $project->id,
+                        'title' => (string) $project->name,
+                        'location' => $project->description ? (string) $project->description : 'Место не указано',
+                        'status' => (string) $project->status,
+                        'date' => $dateFormatted,
+                    ];
+                })
+                ->values();
 
-        $tasksFiltered = $tasksList
-            ->when($tSearch !== '', fn($c) => $c->filter(function ($i) use ($tSearch) {
-                return mb_stripos($i['title'], $tSearch) !== false
-                    || mb_stripos((string) $i['project_title'], $tSearch) !== false
-                    || mb_stripos((string) $i['assignee_name'], $tSearch) !== false;
-            }))
-            ->when($tStatus !== '', fn($c) => $c->filter(fn($i) => ($i['status'] ?? '') === $tStatus))
-            ->when($tPriority !== '', fn($c) => $c->filter(fn($i) => ($i['priority'] ?? '') === $tPriority))
-            ->when(!empty($tProject), fn($c) => $c->filter(fn($i) => (string) $i['project_id'] === (string) $tProject))
-            ->when($tMine, fn($c) => $c->filter(fn($i) => (bool) $i['mine']));
-
-        $priorityOrder = ['high' => 1, 'medium' => 2, 'low' => 3];
-        $statusOrder = ['new' => 1, 'in_progress' => 2, 'done' => 3, 'overdue' => 4];
-        $tasksSorted = match ($tSort) {
-            'priority' => $tasksFiltered->sortBy(fn($i) => $priorityOrder[$i['priority']] ?? 99)->values(),
-            'project' => $tasksFiltered->sortBy(fn($i) => mb_strtolower($i['project_title'] ?? '')) ->values(),
-            'status' => $tasksFiltered->sortBy(fn($i) => $statusOrder[$i['status']] ?? 99)->values(),
-            default => $tasksFiltered->sortBy(fn($i) => $i['deadline'] ?? Carbon::maxValue())->values(),
-        };
-
-        // Pagination for tasks
-        $tPage = max(1, (int) $request->query('t_page', 1));
-        $tPerPage = 10;
-        $tTotal = $tasksSorted->count();
-        $tTotalPages = max(1, (int) ceil($tTotal / $tPerPage));
-        if ($tPage > $tTotalPages) { $tPage = $tTotalPages; }
-        $tasksPage = $tasksSorted->slice(($tPage - 1) * $tPerPage, $tPerPage)->values();
-
-        $tasksFilters = compact('tSearch','tStatus','tPriority','tProject','tMine','tSort','tPage','tPerPage','tTotal','tTotalPages');
-
-        return view('profile.index', compact(
-            'groupedProjects', 'groupedTasks', 'sorted', 'filters',
-            'projectsGrouped', 'projectsFilters',
-            'tasksPage', 'tasksFilters', 'taskProjectsOptions'
-        ));
+            return response()->json(['suggestions' => $suggestions]);
+        } catch (\Throwable $e) {
+            \Log::error('ProfileController: autocompleteProjects error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['suggestions' => [], 'message' => 'Server error'], 500);
+        }
     }
 
     // -------- О себе --------
     public function aboutEdit(): View
     {
-        $u = auth()->user()->load(['contacts','documents','profile']);
+        $u = auth()->user()->load(['contacts','phones','emails','documents','profile']);
         
         // Если профиль не существует, создаем его
         if (!$u->profile) {
@@ -289,65 +493,156 @@ class ProfileController extends Controller
         return view('profile.about', compact('u'));
     }
 
-    public function aboutUpdateInfo(Request $request): RedirectResponse
+    public function aboutUpdateInfo(Request $request)
     {
-        $data = $request->validate([
-            'last_name' => 'nullable|string|max:100',
-            'first_name' => 'nullable|string|max:100',
-            'middle_name' => 'nullable|string|max:100',
-            'birth_date' => 'nullable|date',
-            'city' => 'nullable|string|max:100',
-        ]);
-        
-        $user = auth()->user();
-        
-        // Обновляем или создаем профиль
-        if ($user->profile) {
-            $user->profile->update($data);
-        } else {
-            $user->profile()->create(array_merge($data, ['user_id' => $user->id]));
-        }
-        
-        // Перезагружаем профиль для получения актуальных данных
-        $user->load('profile');
-        
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Профиль обновлен',
-                'profile' => $user->profile ? [
-                    'last_name' => $user->profile->last_name,
-                    'first_name' => $user->profile->first_name,
-                    'middle_name' => $user->profile->middle_name,
-                    'birth_date' => $user->profile->birth_date ? $user->profile->birth_date->format('Y-m-d') : '',
-                    'city' => $user->profile->city,
-                ] : null
+        try {
+            \Log::info('ProfileController: aboutUpdateInfo called', [
+                'request_data' => $request->all(),
+                'user_id' => auth()->id()
             ]);
+            
+            $data = $request->validate([
+                'last_name' => 'nullable|string|max:100',
+                'first_name' => 'nullable|string|max:100',
+                'middle_name' => 'nullable|string|max:100',
+                'birth_date' => 'nullable|date',
+                'city' => 'nullable|string|max:100',
+            ]);
+            
+            // Фильтруем пустые строки, заменяя их на null
+            $data = array_map(function($value) {
+                return ($value === '' || $value === null) ? null : $value;
+            }, $data);
+            
+            \Log::info('ProfileController: Validation passed', ['validated_data' => $data]);
+            
+            $user = auth()->user();
+            
+            // Обновляем или создаем профиль
+            if ($user->profile) {
+                \Log::info('ProfileController: Updating existing profile', ['profile_id' => $user->profile->id]);
+                $user->profile->update($data);
+            } else {
+                \Log::info('ProfileController: Creating new profile');
+                $profileData = array_merge($data, ['user_id' => $user->id]);
+                // Убеждаемся, что все поля имеют значения (хотя бы null)
+                $profileData = array_merge([
+                    'last_name' => null,
+                    'first_name' => null,
+                    'middle_name' => null,
+                    'birth_date' => null,
+                    'city' => null,
+                ], $profileData);
+                $user->profile()->create($profileData);
+            }
+            
+            // Перезагружаем профиль для получения актуальных данных
+            $user->load('profile');
+            
+            \Log::info('ProfileController: Profile updated successfully', [
+                'profile_data' => $user->profile ? $user->profile->toArray() : null
+            ]);
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Профиль обновлен',
+                    'profile' => $user->profile ? [
+                        'last_name' => $user->profile->last_name,
+                        'first_name' => $user->profile->first_name,
+                        'middle_name' => $user->profile->middle_name,
+                        'birth_date' => $user->profile->birth_date ? $user->profile->birth_date->format('Y-m-d') : '',
+                        'city' => $user->profile->city,
+                    ] : null
+                ])->header('Content-Type', 'application/json');
+            }
+            return Redirect::back()->with('ok', 'Сохранено');
+        } catch (\Exception $e) {
+            \Log::error('ProfileController: Error in aboutUpdateInfo', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ошибка при обновлении профиля: ' . $e->getMessage()
+                ], 500)->header('Content-Type', 'application/json');
+            }
+            
+            return Redirect::back()->withErrors(['error' => 'Ошибка при обновлении профиля']);
         }
-        return Redirect::back()->with('ok', 'Сохранено');
     }
 
-    public function aboutUpdatePassword(Request $request): RedirectResponse
+    public function aboutUpdatePassword(Request $request)
     {
-        $request->validate([
-            'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
-        $user = auth()->user();
-        $user->password = Hash::make($request->password);
-        $user->save();
-        
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Пароль обновлён'
-            ]);
+        // Проверяем, что пользователь является админом
+        if (!auth()->user()->hasRole('admin')) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Доступ запрещен. Только администраторы могут изменять пароли.'
+                ], 403);
+            }
+            return Redirect::back()->withErrors(['error' => 'Доступ запрещен. Только администраторы могут изменять пароли.']);
         }
-        return Redirect::back()->with('ok', 'Пароль обновлён');
+
+        try {
+            // Для администратора не требуем текущий пароль — он может сбросить пароль пользователю
+            $request->validate([
+                'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            ], [
+                'password.required' => 'Необходимо указать новый пароль',
+                'password.confirmed' => 'Пароли не совпадают',
+                'password.min' => 'Пароль должен содержать минимум 8 символов',
+            ]);
+            
+            $user = auth()->user();
+            $user->password = Hash::make($request->password);
+            $user->save();
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Пароль успешно обновлён'
+                ]);
+            }
+            return Redirect::back()->with('ok', 'Пароль успешно обновлён');
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ошибка валидации',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ошибка при обновлении пароля: ' . $e->getMessage()
+                ], 500);
+            }
+            return Redirect::back()->withErrors(['error' => 'Ошибка при обновлении пароля']);
+        }
     }
 
-    public function aboutUpdateLogin(Request $request): RedirectResponse
+    public function aboutUpdateLogin(Request $request)
     {
+        // Проверяем, что пользователь является админом
+        if (!auth()->user()->hasRole('admin')) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Доступ запрещен. Только администраторы могут изменять логины.'
+                ], 403);
+            }
+            return Redirect::back()->withErrors(['error' => 'Доступ запрещен. Только администраторы могут изменять логины.']);
+        }
+
         $request->validate([
             'email' => ['required', 'email', 'max:255', 'unique:users,email,' . auth()->id()],
         ]);
@@ -366,36 +661,149 @@ class ProfileController extends Controller
         return Redirect::back()->with('ok', 'Email обновлён');
     }
 
-    // -------- Контакты: телефоны --------
-    public function storePhone(Request $request): RedirectResponse
+    public function aboutUpdatePhoto(Request $request)
     {
-        $data = $request->validate([
-            'value' => 'required|string|max:191',
-            'comment' => 'nullable|string|max:255',
-        ]);
-        $created = auth()->user()->contacts()->create([
-            'type' => 'phone',
-            'value' => $data['value'],
-            'comment' => $data['comment'] ?? null,
-        ]);
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Телефон добавлен',
-                'id' => $created->id,
-                'value' => $created->value,
-                'comment' => $created->comment,
+        try {
+            $request->validate([
+                'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
             ]);
+
+            $user = auth()->user();
+            
+            // Удаляем старое фото если есть
+            if ($user->profile && $user->profile->photo_path) {
+                $oldPath = storage_path('app/public/' . $user->profile->photo_path);
+                if (file_exists($oldPath)) {
+                    unlink($oldPath);
+                }
+            }
+
+            // Сохраняем новое фото
+            $path = $request->file('photo')->store('profile-photos', 'public');
+            
+            // Обновляем или создаем профиль
+            if ($user->profile) {
+                $user->profile->update(['photo_path' => $path]);
+            } else {
+                $user->profile()->create([
+                    'user_id' => $user->id,
+                    'photo_path' => $path,
+                    'last_name' => null,
+                    'first_name' => null,
+                    'middle_name' => null,
+                    'birth_date' => null,
+                    'city' => null,
+                ]);
+            }
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Фото успешно загружено',
+                    'photo_path' => $path
+                ])->header('Content-Type', 'application/json');
+            }
+            return Redirect::back()->with('ok', 'Фото загружено');
+        } catch (\Exception $e) {
+            \Log::error('ProfileController: Error in aboutUpdatePhoto', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ошибка при загрузке фото: ' . $e->getMessage()
+                ], 500)->header('Content-Type', 'application/json');
+            }
+            return Redirect::back()->withErrors(['error' => 'Ошибка при загрузке фото']);
         }
-        return Redirect::back()->with('ok', 'Телефон добавлен');
     }
 
-    public function updatePhone(Request $request, UserContact $phone): RedirectResponse
+
+
+    // -------- Контакты: телефоны --------
+    public function storePhone(Request $request)
+    {
+        try {
+            \Log::info('ProfileController: storePhone called', [
+                'request_data' => $request->all(),
+                'user_id' => auth()->id()
+            ]);
+            
+            $data = $request->validate([
+                'value' => 'required|string|regex:/^[\d+\-()\s]+$/|max:191',
+                'comment' => 'nullable|string|max:255',
+            ]);
+            
+            \Log::info('ProfileController: Validation passed', [
+                'validated_data' => $data
+            ]);
+            
+            $user = auth()->user();
+            
+            // Создаем новую запись
+            $created = $user->contacts()->create([
+                'type' => 'phone',
+                'value' => $data['value'],
+                'comment' => $data['comment'] ?? null,
+            ]);
+            
+            \Log::info('ProfileController: Phone created successfully', [
+                'phone_data' => $created->toArray()
+            ]);
+            
+            \Log::info('ProfileController: About to return response', [
+                'wantsJson' => $request->wantsJson(),
+                'headers' => $request->headers->all()
+            ]);
+            
+            if ($request->wantsJson()) {
+                \Log::info('ProfileController: Returning JSON response');
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Телефон добавлен',
+                    'id' => $created->id,
+                    'value' => $created->value,
+                    'comment' => $created->comment,
+                ])->header('Content-Type', 'application/json');
+            }
+            
+            \Log::info('ProfileController: Returning redirect response');
+            return Redirect::back()->with('ok', 'Телефон добавлен');
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ошибка валидации',
+                    'errors' => $e->errors()
+                ], 422)->header('Content-Type', 'application/json');
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('ProfileController: Error in storePhone', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ошибка при сохранении телефона: ' . $e->getMessage()
+                ], 500)->header('Content-Type', 'application/json');
+            }
+            return Redirect::back()->withErrors(['error' => 'Ошибка при сохранении телефона']);
+        }
+    }
+
+    public function updatePhone(Request $request, UserContact $phone)
     {
         abort_if($phone->user_id !== auth()->id(), 403);
         abort_if($phone->type !== 'phone', 404);
         $data = $request->validate([
-            'value' => 'required|string|max:191',
+            'value' => 'required|string|regex:/^[\d+\-()\s]+$/|max:191',
             'comment' => 'nullable|string|max:255',
         ]);
         $phone->update($data);
@@ -405,56 +813,91 @@ class ProfileController extends Controller
                 'message' => 'Телефон обновлен',
                 'value' => $phone->value,
                 'comment' => $phone->comment,
-            ]);
+            ])->header('Content-Type', 'application/json');
         }
         return Redirect::back()->with('ok', 'Телефон обновлен');
     }
 
-    public function destroyPhone(Request $request, UserContact $phone): RedirectResponse
+    public function destroyPhone(Request $request, UserContact $phone)
     {
         abort_if($phone->user_id !== auth()->id(), 403);
         abort_if($phone->type !== 'phone', 404);
+        
+        // Удаляем запись вместо установки NULL
         $phone->delete();
+        
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Телефон удален',
-            ]);
+            ])->header('Content-Type', 'application/json');
         }
         return Redirect::back()->with('ok', 'Телефон удален');
     }
 
     // -------- Контакты: email --------
-    public function storeEmail(Request $request): RedirectResponse
+    public function storeEmail(Request $request)
     {
-        $data = $request->validate([
-            'value' => 'required|email|max:191',
-            'comment' => 'nullable|string|max:255',
-            'is_primary' => 'nullable|boolean',
-        ]);
-        $email = auth()->user()->contacts()->create([
-            'type' => 'email',
-            'value' => $data['value'],
-            'comment' => $data['comment'] ?? null,
-            'is_primary' => (bool)($data['is_primary'] ?? false),
-        ]);
-        if ($email->is_primary) {
-            $this->demoteOtherEmails($email);
-        }
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Email добавлен',
-                'id' => $email->id,
-                'value' => $email->value,
-                'comment' => $email->comment,
-                'is_primary' => $email->is_primary,
+        try {
+            $data = $request->validate([
+                'value' => 'required|email|max:191',
+                'comment' => 'nullable|string|max:255',
+                'is_primary' => 'nullable|boolean',
             ]);
+            
+            $user = auth()->user();
+            
+            // Создаем новую запись
+            $email = $user->contacts()->create([
+                'type' => 'email',
+                'value' => $data['value'],
+                'comment' => $data['comment'] ?? null,
+                'is_primary' => (bool)($data['is_primary'] ?? false),
+            ]);
+            
+            if ($email->is_primary) {
+                $this->demoteOtherEmails($email);
+            }
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Email добавлен',
+                    'id' => $email->id,
+                    'value' => $email->value,
+                    'comment' => $email->comment,
+                    'is_primary' => $email->is_primary,
+                ])->header('Content-Type', 'application/json');
+            }
+            return Redirect::back()->with('ok', 'Email добавлен');
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ошибка валидации',
+                    'errors' => $e->errors()
+                ], 422)->header('Content-Type', 'application/json');
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('ProfileController: Error in storeEmail', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ошибка при сохранении email: ' . $e->getMessage()
+                ], 500)->header('Content-Type', 'application/json');
+            }
+            return Redirect::back()->withErrors(['error' => 'Ошибка при сохранении email']);
         }
-        return Redirect::back()->with('ok', 'Email добавлен');
     }
 
-    public function updateEmail(Request $request, UserContact $email): RedirectResponse
+    public function updateEmail(Request $request, UserContact $email)
     {
         abort_if($email->user_id !== auth()->id(), 403);
         abort_if($email->type !== 'email', 404);
@@ -474,21 +917,24 @@ class ProfileController extends Controller
                 'value' => $email->value,
                 'comment' => $email->comment,
                 'is_primary' => $email->is_primary,
-            ]);
+            ])->header('Content-Type', 'application/json');
         }
         return Redirect::back()->with('ok', 'Email обновлен');
     }
 
-    public function destroyEmail(Request $request, UserContact $email): RedirectResponse
+    public function destroyEmail(Request $request, UserContact $email)
     {
         abort_if($email->user_id !== auth()->id(), 403);
         abort_if($email->type !== 'email', 404);
+        
+        // Удаляем запись вместо установки NULL
         $email->delete();
+        
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Email удален',
-            ]);
+            ])->header('Content-Type', 'application/json');
         }
         return Redirect::back()->with('ok', 'Email удален');
     }
@@ -502,7 +948,7 @@ class ProfileController extends Controller
     }
 
     // -------- Документы --------
-    public function storeDocument(Request $request): RedirectResponse
+    public function storeDocument(Request $request)
     {
         $data = $this->validateDoc($request);
         
@@ -531,7 +977,7 @@ class ProfileController extends Controller
         return Redirect::back()->with('ok', 'Документ добавлен');
     }
 
-    public function updateDocument(Request $request, UserDocument $document): RedirectResponse
+    public function updateDocument(Request $request, UserDocument $document)
     {
         abort_if($document->user_id !== auth()->id(), 403);
         $data = $this->validateDoc($request);
@@ -561,7 +1007,7 @@ class ProfileController extends Controller
         return Redirect::back()->with('ok', 'Документ обновлен');
     }
 
-    public function destroyDocument(UserDocument $document): RedirectResponse
+    public function destroyDocument(UserDocument $document)
     {
         abort_if($document->user_id !== auth()->id(), 403);
         
@@ -622,8 +1068,19 @@ class ProfileController extends Controller
     }
 
     // -------- Основные контакты --------
-    public function updatePrimaryEmail(Request $request): RedirectResponse
+    public function updatePrimaryEmail(Request $request)
     {
+        // Проверяем, что пользователь является админом
+        if (!auth()->user()->hasRole('admin')) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Доступ запрещен. Только администраторы могут изменять основные контакты.'
+                ], 403);
+            }
+            return Redirect::back()->withErrors(['error' => 'Доступ запрещен. Только администраторы могут изменять основные контакты.']);
+        }
+
         $data = $request->validate([
             'email' => ['required', 'email', 'unique:users,email,' . auth()->id()],
         ]);
@@ -642,10 +1099,21 @@ class ProfileController extends Controller
         return Redirect::back()->with('ok', 'Email обновлен');
     }
 
-    public function updatePrimaryPhone(Request $request): RedirectResponse
+    public function updatePrimaryPhone(Request $request)
     {
+        // Проверяем, что пользователь является админом
+        if (!auth()->user()->hasRole('admin')) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Доступ запрещен. Только администраторы могут изменять основные контакты.'
+                ], 403);
+            }
+            return Redirect::back()->withErrors(['error' => 'Доступ запрещен. Только администраторы могут изменять основные контакты.']);
+        }
+
         $data = $request->validate([
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|regex:/^[\d+\-()\s]*$/|max:191',
         ]);
 
         $user = auth()->user();

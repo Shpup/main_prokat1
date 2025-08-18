@@ -1,5 +1,10 @@
 function openModal(){ document.getElementById('docModal').hidden = false; }
-function closeModal(){ document.getElementById('docModal').hidden = true; }
+function closeModal(){ 
+  const modal = document.getElementById('docModal');
+  if (modal && modal.parentNode) {
+    modal.hidden = true; 
+  }
+}
 
 document.addEventListener('click', (e)=>{
   if(e.target.closest('[data-open-doc]')){
@@ -35,7 +40,15 @@ document.addEventListener('click', (e)=>{
     f.querySelector('[name="_method"]').value = 'PUT';
     openModal();
   }
-  if(e.target.closest('[data-close]')) closeModal();
+  if(e.target.closest('[data-close]')) {
+    const closeBtn = e.target.closest('[data-close]');
+    const modal = closeBtn.closest('.fixed');
+    if (modal && modal.parentNode) {
+      modal.classList.add('hidden');
+    } else {
+      closeModal();
+    }
+  }
 });
 
 

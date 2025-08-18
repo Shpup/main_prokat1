@@ -27,6 +27,7 @@ require __DIR__.'/auth.php';
 Route::middleware(['auth', 'subscription'])->group(function () {
     // Профиль
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
+    Route::get('/profile/autocomplete', [ProfileController::class, 'autocompleteProjects'])->name('profile.autocomplete');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
@@ -35,6 +36,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::put('/profile/about/info', [ProfileController::class, 'aboutUpdateInfo'])->name('profile.about.updateInfo');
     Route::put('/profile/about/password', [ProfileController::class, 'aboutUpdatePassword'])->name('profile.about.updatePassword');
     Route::put('/profile/about/login', [ProfileController::class, 'aboutUpdateLogin'])->name('profile.about.updateLogin');
+    Route::post('/profile/about/photo', [ProfileController::class, 'aboutUpdatePhoto'])->name('profile.about.updatePhoto');
 
     // Основные контакты
     Route::put('/profile/primary/email', [ProfileController::class, 'updatePrimaryEmail'])->name('profile.primary.updateEmail');

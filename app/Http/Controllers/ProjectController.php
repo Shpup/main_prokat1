@@ -25,7 +25,25 @@ class ProjectController extends Controller
      */
     public function index(): View
     {
-        $projects = Project::with('manager')->where('admin_id',auth()->id())->get();
+        $user = auth()->user();
+        
+        // Логика загрузки проектов в зависимости от роли
+        if ($user->hasRole('admin')) {
+            // Админ видит все проекты, которые он создал (admin_id), кроме отмененных
+            $projects = Project::with('manager')->where('admin_id', $user->id)->where('status', '!=', 'cancelled')->get();
+        } else {
+            // Менеджер и обычный пользователь видят проекты, на которые они назначены, кроме отмененных
+            $projects = Project::with('manager')
+                ->where('status', '!=', 'cancelled')
+                ->where(function ($query) use ($user) {
+                    $query->where('manager_id', $user->id) // Проекты, где он менеджер
+                          ->orWhereHas('staff', function ($staffQuery) use ($user) {
+                              $staffQuery->where('user_id', $user->id); // Проекты, где он сотрудник
+                          });
+                })
+                ->get();
+        }
+        
         return view('projects.index', compact('projects'));
     }
     public function table(Request $request)
@@ -39,11 +57,29 @@ class ProjectController extends Controller
         $sort = in_array($sort, $sortableColumns) ? $sort : 'name';
         $direction = in_array($direction, ['asc', 'desc']) ? $direction : 'asc';
 
-        // Базовый запрос
-        $query = Project::query()
-            ->join('users', 'projects.manager_id', '=', 'users.id')
-            ->select('projects.*', 'users.name as manager_name')
-            ->where('projects.admin_id', Auth::id());
+        $user = auth()->user();
+        
+        // Базовый запрос в зависимости от роли
+        if ($user->hasRole('admin')) {
+            // Админ видит все проекты, которые он создал (admin_id), кроме отмененных
+            $query = Project::query()
+                ->join('users', 'projects.manager_id', '=', 'users.id')
+                ->where('projects.admin_id', $user->id)
+                ->where('projects.status', '!=', 'cancelled')
+                ->select('projects.*', 'users.name as manager_name');
+        } else {
+            // Менеджер и обычный пользователь видят проекты, на которые они назначены, кроме отмененных
+            $query = Project::query()
+                ->join('users', 'projects.manager_id', '=', 'users.id')
+                ->where('projects.status', '!=', 'cancelled')
+                ->where(function ($subQuery) use ($user) {
+                    $subQuery->where('projects.manager_id', $user->id)
+                             ->orWhereHas('staff', function ($staffQuery) use ($user) {
+                                 $staffQuery->where('user_id', $user->id);
+                             });
+                })
+                ->select('projects.*', 'users.name as manager_name');
+        }
 
         // Фильтрация по всем столбцам
         if ($search) {

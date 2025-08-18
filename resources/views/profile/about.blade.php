@@ -13,22 +13,29 @@
          <form id="profileForm" action="{{ route('profile.about.updateInfo') }}" method="post">@csrf @method('PUT')
                            <div class="flex items-start gap-6">
           <div class="flex flex-col items-center gap-2">
-            <div class="w-24 h-24 rounded-full bg-gray-100 grid place-items-center text-3xl text-gray-400">👤</div>
-            <button type="button" class="px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700">Загрузить фото</button>
+            <div class="w-24 h-24 rounded-full bg-gray-100 grid place-items-center text-3xl text-gray-400 overflow-hidden" id="profilePhotoContainer">
+              @if($u->profile && $u->profile->photo_path)
+                <img src="{{ asset('storage/' . $u->profile->photo_path) }}" alt="Фото профиля" class="w-full h-full object-cover">
+              @else
+                <span>👤</span>
+              @endif
+            </div>
+            <input type="file" id="profilePhotoInput" accept="image/*" class="hidden">
+            <button type="button" id="uploadPhotoBtn" class="px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700">Загрузить фото</button>
           </div>
           <div class="flex-1">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                <div>
                  <label class="block text-sm text-gray-700 mb-1">Фамилия</label>
-                 <input type="text" name="last_name" value="{{ old('last_name',$u->last_name ?? '') }}" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                 <input type="text" name="last_name" value="{{ old('last_name',$u->profile->last_name ?? '') }}" class="w-full border border-gray-300 rounded-md px-3 py-2">
                </div>
                <div>
                  <label class="block text-sm text-gray-700 mb-1">Имя</label>
-                 <input type="text" name="first_name" value="{{ old('first_name',$u->first_name ?? '') }}" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                 <input type="text" name="first_name" value="{{ old('first_name',$u->profile->first_name ?? '') }}" class="w-full border border-gray-300 rounded-md px-3 py-2">
                </div>
                <div>
                  <label class="block text-sm text-gray-700 mb-1">Отчество</label>
-                 <input type="text" name="middle_name" value="{{ old('middle_name',$u->middle_name ?? '') }}" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                 <input type="text" name="middle_name" value="{{ old('middle_name',$u->profile->middle_name ?? '') }}" class="w-full border border-gray-300 rounded-md px-3 py-2">
                </div>
                <div>
                  <label class="block text-sm text-gray-700 mb-1">Дата рождения</label>
@@ -55,7 +62,7 @@
          <span>Контакты</span>
        </div>
        <div class="flex items-center gap-2">
-         <button type="button" id="addPhoneBtn" class="px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700">+ Телефон</button>
+         <button type="button" id="addPhoneBtn" class="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50">+ Телефон</button>
          <button type="button" id="addEmailBtn" class="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50">+ E‑mail</button>
        </div>
      </header>
@@ -73,70 +80,78 @@
          @endif
 
          <div class="space-y-3">
-           <!-- Основной телефон -->
-                       <div class="contact-item border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[80px]" data-type="primary" data-contact-type="phone">
-             <div class="contact-view flex items-start justify-between gap-3">
-               <div class="flex items-center gap-3">
-                 <div class="text-xl">📱</div>
-                 <div>
-                   <div class="font-semibold text-gray-900">{{ $u->phone ?: 'Не указан' }}</div>
-                   @if($u->phone)
-                     <div class="text-sm text-gray-500">Основной телефон</div>
-                   @endif
-                 </div>
-               </div>
-               <div class="flex items-center gap-2">
-                 <button type="button" class="contact-edit-btn text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
-               </div>
-             </div>
+                       <!-- Основной телефон -->
+                        <div class="contact-item border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[80px]" data-type="primary" data-contact-type="phone">
+              <div class="contact-view flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="text-xl">📱</div>
+                  <div>
+                    <div class="font-semibold text-gray-900">{{ $u->phone ?: 'Не указан' }}</div>
+                    @if($u->phone)
+                      <div class="text-sm text-gray-500">Основной телефон</div>
+                    @endif
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  @if(auth()->user()->hasRole('admin'))
+                    <button type="button" class="contact-edit-btn text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
+                  @endif
+                </div>
+              </div>
              
-             <div class="contact-edit hidden mt-3">
-               <form class="contact-form" action="{{ route('profile.primary.updatePhone') }}" method="post" data-contact-type="phone">@csrf @method('PUT')
-                 <div class="space-y-3">
-                   <div>
-                     <label class="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
-                     <input type="tel" name="phone" value="{{ $u->phone }}" class="w-full border border-gray-300 rounded-md px-3 py-2 phone-mask" placeholder="+7 (999) 123-45-67">
+             @if(auth()->user()->hasRole('admin'))
+               <div class="contact-edit hidden mt-3">
+                 <form class="contact-form" action="{{ route('profile.primary.updatePhone') }}" method="post" data-contact-type="phone">@csrf @method('PUT')
+                   <div class="space-y-3">
+                     <div>
+                       <label class="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
+                       <input type="tel" name="phone" value="{{ $u->phone }}" class="w-full border border-gray-300 rounded-md px-3 py-2 phone-mask" placeholder="Введите номер телефона">
+                     </div>
                    </div>
-                 </div>
-                 <div class="mt-3 flex justify-end gap-2">
-                   <button type="button" class="contact-cancel-btn px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm">Отмена</button>
-                   <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">Сохранить</button>
-                 </div>
-               </form>
-             </div>
+                   <div class="mt-3 flex justify-end gap-2">
+                     <button type="button" class="contact-cancel-btn px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm">Отмена</button>
+                     <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">Сохранить</button>
+                   </div>
+                 </form>
+               </div>
+             @endif
            </div>
            
-           <!-- Основной email -->
-                       <div class="contact-item border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[80px]" data-type="primary" data-contact-type="email">
-             <div class="contact-view flex items-start justify-between gap-3">
-               <div class="flex items-center gap-3">
-                 <div class="text-xl">✉️</div>
-                 <div>
-                   <div class="font-semibold text-gray-900">{{ $u->email ?: 'Не указан' }}</div>
-                   @if($u->email)
-                     <div class="text-sm text-gray-500">Основной email</div>
-                   @endif
-                 </div>
-               </div>
-               <div class="flex items-center gap-2">
-                 <button type="button" class="contact-edit-btn text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
-               </div>
-             </div>
+                       <!-- Основной email -->
+                        <div class="contact-item border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[80px]" data-type="primary" data-contact-type="email">
+              <div class="contact-view flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="text-xl">✉️</div>
+                  <div>
+                    <div class="font-semibold text-gray-900">{{ $u->email ?: 'Не указан' }}</div>
+                    @if($u->email)
+                      <div class="text-sm text-gray-500">Основной email</div>
+                    @endif
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  @if(auth()->user()->hasRole('admin'))
+                    <button type="button" class="contact-edit-btn text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
+                  @endif
+                </div>
+              </div>
              
-             <div class="contact-edit hidden mt-3">
-               <form class="contact-form" action="{{ route('profile.primary.updateEmail') }}" method="post" data-contact-type="email">@csrf @method('PUT')
-                 <div class="space-y-3">
-                   <div>
-                     <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                     <input type="email" name="email" value="{{ $u->email }}" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
+             @if(auth()->user()->hasRole('admin'))
+               <div class="contact-edit hidden mt-3">
+                 <form class="contact-form" action="{{ route('profile.primary.updateEmail') }}" method="post" data-contact-type="email">@csrf @method('PUT')
+                   <div class="space-y-3">
+                     <div>
+                       <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                       <input type="email" name="email" value="{{ $u->email }}" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
+                     </div>
                    </div>
-                 </div>
-                 <div class="mt-3 flex justify-end gap-2">
-                   <button type="button" class="contact-cancel-btn px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm">Отмена</button>
-                   <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">Сохранить</button>
-                 </div>
-               </form>
-             </div>
+                   <div class="mt-3 flex justify-end gap-2">
+                     <button type="button" class="contact-cancel-btn px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm">Отмена</button>
+                     <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">Сохранить</button>
+                   </div>
+                 </form>
+               </div>
+             @endif
            </div>
          </div>
        </div>
@@ -145,96 +160,99 @@
        <div>
          <h3 class="text-md font-semibold text-gray-800 mb-3">Дополнительные контакты</h3>
          
-         @if(($u->phones->count() + $u->emails->count()) === 0)
-           <div class="text-center text-gray-600 py-8">
-             <div class="text-4xl mb-2">📭</div>
-             <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
-           </div>
-         @endif
+                             <div class="space-y-3" id="additionalContacts">
+                                             @if(($u->phones->whereNotNull('value')->count() + $u->emails->whereNotNull('value')->count()) === 0)
+                        <div class="text-center text-gray-600 py-8">
+                          <div class="text-4xl mb-2">📭</div>
+                          <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
+                        </div>
+                      @endif
+                       @foreach($u->phones as $p)
+              @if($p->value)
+                            <div class="contact-item border border-gray-200 rounded-lg p-4 bg-gray-50 hover:shadow-sm transition min-h-[80px]" data-type="additional" data-contact-type="phone" data-id="{{ $p->id }}">
+                <div class="contact-view flex items-start justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="text-xl">📱</div>
+                    <div>
+                      <div class="font-semibold text-gray-900">{{ $p->value }}</div>
+                      @if($p->comment)
+                        <div class="text-sm text-gray-500">{{ $p->comment }}</div>
+                      @endif
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button type="button" class="contact-edit-btn text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
+                    <button type="button" class="contact-delete-btn text-red-600 hover:text-red-700" title="Удалить">🗑</button>
+                  </div>
+                </div>
+                
+                <div class="contact-edit hidden mt-3">
+                  <form class="contact-form" action="{{ route('profile.phones.update', $p) }}" method="post" data-contact-type="phone">@csrf @method('PUT')
+                    <div class="space-y-3">
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
+                        <input type="tel" name="value" value="{{ $p->value }}" class="w-full border border-gray-300 rounded-md px-3 py-2 phone-mask" placeholder="Введите номер телефона" required>
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Комментарий</label>
+                        <input type="text" name="comment" value="{{ $p->comment }}" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Комментарий">
+                      </div>
+                    </div>
+                    <div class="mt-3 flex justify-end gap-2">
+                      <button type="button" class="contact-cancel-btn px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm">Отмена</button>
+                      <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">Сохранить</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+              @endif
+            @endforeach
 
-                   <div class="space-y-3" id="additionalContacts">
-           @foreach($u->phones as $p)
-                           <div class="contact-item border border-gray-200 rounded-lg p-4 bg-gray-50 hover:shadow-sm transition min-h-[80px]" data-type="additional" data-contact-type="phone" data-id="{{ $p->id }}">
-               <div class="contact-view flex items-start justify-between gap-3">
-                 <div class="flex items-center gap-3">
-                   <div class="text-xl">📱</div>
-                   <div>
-                     <div class="font-semibold text-gray-900">{{ $p->value }}</div>
-                     @if($p->comment)
-                       <div class="text-sm text-gray-500">{{ $p->comment }}</div>
-                     @endif
-                   </div>
-                 </div>
-                 <div class="flex items-center gap-2">
-                   <button type="button" class="contact-edit-btn text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
-                   <button type="button" class="contact-delete-btn text-red-600 hover:text-red-700" title="Удалить">🗑</button>
-                 </div>
-               </div>
-               
-               <div class="contact-edit hidden mt-3">
-                 <form class="contact-form" action="{{ route('profile.phones.update', $p) }}" method="post" data-contact-type="phone">@csrf @method('PUT')
-                   <div class="space-y-3">
-                     <div>
-                       <label class="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
-                       <input type="tel" name="value" value="{{ $p->value }}" class="w-full border border-gray-300 rounded-md px-3 py-2 phone-mask" required>
-                     </div>
-                     <div>
-                       <label class="block text-sm font-medium text-gray-700 mb-1">Комментарий</label>
-                       <input type="text" name="comment" value="{{ $p->comment }}" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Комментарий">
-                     </div>
-                   </div>
-                   <div class="mt-3 flex justify-end gap-2">
-                     <button type="button" class="contact-cancel-btn px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm">Отмена</button>
-                     <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">Сохранить</button>
-                   </div>
-                 </form>
-               </div>
-             </div>
-           @endforeach
-
-           @foreach($u->emails as $e)
-                           <div class="contact-item border border-gray-200 rounded-lg p-4 bg-gray-50 hover:shadow-sm transition min-h-[80px]" data-type="additional" data-contact-type="email" data-id="{{ $e->id }}">
-               <div class="contact-view flex items-start justify-between gap-3">
-                 <div class="flex items-center gap-3">
-                   <div class="text-xl">✉️</div>
-                   <div>
-                     <div class="font-semibold text-gray-900">{{ $e->value }}</div>
-                     @if($e->comment)
-                       <div class="text-sm text-gray-500">{{ $e->comment }}</div>
-                     @endif
-                   </div>
-                 </div>
-                 <div class="flex items-center gap-2">
-                   <button type="button" class="contact-edit-btn text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
-                   <button type="button" class="contact-delete-btn text-red-600 hover:text-red-700" title="Удалить">🗑</button>
-                 </div>
-               </div>
-               
-               <div class="contact-edit hidden mt-3">
-                 <form class="contact-form" action="{{ route('profile.emails.update', $e) }}" method="post" data-contact-type="email">@csrf @method('PUT')
-                   <div class="space-y-3">
-                     <div>
-                       <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                       <input type="email" name="value" value="{{ $e->value }}" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
-                     </div>
-                     <div>
-                       <label class="block text-sm font-medium text-gray-700 mb-1">Комментарий</label>
-                       <input type="text" name="comment" value="{{ $e->comment }}" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Комментарий">
-                     </div>
-                     <div>
-                       <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                         <input type="checkbox" name="is_primary" value="1" {{ $e->is_primary ? 'checked' : '' }}> Для уведомлений
-                       </label>
-                     </div>
-                   </div>
-                   <div class="mt-3 flex justify-end gap-2">
-                     <button type="button" class="contact-cancel-btn px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm">Отмена</button>
-                     <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">Сохранить</button>
-                   </div>
-                 </form>
-               </div>
-             </div>
-           @endforeach
+                       @foreach($u->emails as $e)
+              @if($e->value)
+                            <div class="contact-item border border-gray-200 rounded-lg p-4 bg-gray-50 hover:shadow-sm transition min-h-[80px]" data-type="additional" data-contact-type="email" data-id="{{ $e->id }}">
+                <div class="contact-view flex items-start justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="text-xl">✉️</div>
+                    <div>
+                      <div class="font-semibold text-gray-900">{{ $e->value }}</div>
+                      @if($e->comment)
+                        <div class="text-sm text-gray-500">{{ $e->comment }}</div>
+                      @endif
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button type="button" class="contact-edit-btn text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
+                    <button type="button" class="contact-delete-btn text-red-600 hover:text-red-700" title="Удалить">🗑</button>
+                  </div>
+                </div>
+                
+                <div class="contact-edit hidden mt-3">
+                  <form class="contact-form" action="{{ route('profile.emails.update', $e) }}" method="post" data-contact-type="email">@csrf @method('PUT')
+                    <div class="space-y-3">
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" name="value" value="{{ $e->value }}" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Комментарий</label>
+                        <input type="text" name="comment" value="{{ $e->comment }}" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Комментарий">
+                      </div>
+                      <div>
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                          <input type="checkbox" name="is_primary" value="1" {{ $e->is_primary ? 'checked' : '' }}> Для уведомлений
+                        </label>
+                      </div>
+                    </div>
+                    <div class="mt-3 flex justify-end gap-2">
+                      <button type="button" class="contact-cancel-btn px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm">Отмена</button>
+                      <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">Сохранить</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+              @endif
+            @endforeach
          </div>
        </div>
      </div>
@@ -252,53 +270,60 @@
        <label class="block text-sm text-gray-700 mb-2">Логин (email):</label>
        <div id="loginDisplay" class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-md">
          <span class="text-gray-700">{{ $u->login ?? $u->email }}</span>
-         <button type="button" id="editLoginBtn" class="text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
+         @if(auth()->user()->hasRole('admin'))
+           <button type="button" id="editLoginBtn" class="text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
+         @endif
        </div>
        
-       <div id="loginEdit" class="hidden">
-         <form id="loginForm" action="{{ route('profile.about.updateLogin') }}" method="post">@csrf @method('PUT')
-           <div class="flex items-center gap-3">
-             <input type="email" name="email" value="{{ $u->email }}" class="flex-1 border border-gray-300 rounded-md px-3 py-2" required>
-             <button type="submit" class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Сохранить</button>
-             <button type="button" id="cancelLoginBtn" class="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">Отменить</button>
-           </div>
-         </form>
-       </div>
+       @if(auth()->user()->hasRole('admin'))
+         <div id="loginEdit" class="hidden">
+           <form id="loginForm" action="{{ route('profile.about.updateLogin') }}" method="post">@csrf @method('PUT')
+             <div class="flex items-center gap-3">
+               <input type="email" name="email" value="{{ $u->email }}" class="flex-1 border border-gray-300 rounded-md px-3 py-2" required>
+               <button type="submit" class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Сохранить</button>
+               <button type="button" id="cancelLoginBtn" class="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">Отменить</button>
+             </div>
+           </form>
+         </div>
+       @endif
      </div>
      
      <!-- Пароль -->
      <div>
        <label class="block text-sm text-gray-700 mb-2">Пароль:</label>
        <div id="passwordDisplay" class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-md">
-         <span class="text-gray-700" id="passwordText">••••••••</span>
+         <div>
+           <span class="text-gray-700" id="passwordText">••••••••</span>
+           <div class="text-xs text-gray-500 mt-1">Пароль установлен и защищён</div>
+         </div>
          <div class="flex items-center gap-2">
-           <button type="button" id="togglePasswordBtn" class="text-gray-600 hover:text-gray-700" title="Показать/скрыть">👁️</button>
-           <button type="button" id="editPasswordBtn" class="text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
+           @if(auth()->user()->hasRole('admin'))
+             <button type="button" id="editPasswordBtn" class="text-blue-600 hover:text-blue-700" title="Изменить пароль">✏️</button>
+           @endif
          </div>
        </div>
        
-       <div id="passwordEdit" class="hidden">
-         <form id="passwordForm" action="{{ route('profile.about.updatePassword') }}" method="post">@csrf @method('PUT')
-           <div class="space-y-3">
-             <div>
-               <label class="block text-sm text-gray-700 mb-1">Текущий пароль</label>
-               <input type="password" name="current_password" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
+       @if(auth()->user()->hasRole('admin'))
+         <div id="passwordEdit" class="hidden">
+           <form id="passwordForm" action="{{ route('profile.about.updatePassword') }}" method="post">@csrf @method('PUT')
+             <div class="space-y-3">
+               <div>
+                 <label class="block text-sm text-gray-700 mb-1">Новый пароль</label>
+                 <input type="password" name="password" class="w-full border border-gray-300 rounded-md px-3 py-2" required placeholder="Введите новый пароль">
+                 <div class="text-xs text-gray-500 mt-1">Минимум 8 символов</div>
+               </div>
+               <div>
+                 <label class="block text-sm text-gray-700 mb-1">Подтверждение нового пароля</label>
+                 <input type="password" name="password_confirmation" class="w-full border border-gray-300 rounded-md px-3 py-2" required placeholder="Повторите новый пароль">
+               </div>
+               <div class="flex justify-end gap-2">
+                 <button type="submit" class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Сохранить новый пароль</button>
+                 <button type="button" id="cancelPasswordBtn" class="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">Отменить</button>
+               </div>
              </div>
-             <div>
-               <label class="block text-sm text-gray-700 mb-1">Новый пароль</label>
-               <input type="password" name="password" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
-             </div>
-             <div>
-               <label class="block text-sm text-gray-700 mb-1">Подтверждение</label>
-               <input type="password" name="password_confirmation" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
-             </div>
-             <div class="flex justify-end gap-2">
-               <button type="submit" class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Сохранить</button>
-               <button type="button" id="cancelPasswordBtn" class="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">Отменить</button>
-             </div>
-           </div>
-         </form>
-       </div>
+           </form>
+         </div>
+       @endif
      </div>
    </section>
 
@@ -642,13 +667,22 @@
            }, 300);
          }, 5000);
        }
-      const bindModal = (openBtn, modalId) => {
-        const modal = document.getElementById(modalId);
-        if (!modal) return;
-        if (openBtn) openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
-        modal.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', () => modal.classList.add('hidden')));
-        modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
-      };
+             const bindModal = (openBtn, modalId) => {
+         const modal = document.getElementById(modalId);
+         if (!modal) return;
+         if (openBtn) openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+         modal.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', () => {
+           // Проверяем, существует ли модальное окно перед закрытием
+           if (modal && modal.parentNode) {
+             modal.classList.add('hidden');
+           }
+         }));
+         modal.addEventListener('click', (e) => { 
+           if (e.target === modal && modal && modal.parentNode) {
+             modal.classList.add('hidden'); 
+           }
+         });
+       };
       bindModal(document.getElementById('addPhoneBtn'), 'modalAddPhone');
       bindModal(document.getElementById('addEmailBtn'), 'modalAddEmail');
 
@@ -714,11 +748,9 @@
            case 'passport':
              seriesField.classList.remove('hidden');
              issuedByField.classList.remove('hidden');
-             expiresField.classList.remove('hidden');
              numberHint.textContent = '6 цифр';
              docNumber.maxLength = 6;
              docNumber.placeholder = '000000';
-             docExpiresAt.required = false;
              break;
            case 'foreign_passport':
              expiresField.classList.remove('hidden');
@@ -984,68 +1016,55 @@
          });
        });
 
-                // Закрытие модальных окон
-         [docTypeModal, docFormModal, docViewModal, docDeleteModal, contactDeleteModal].forEach(modal => {
-           if (modal) {
-             modal.querySelectorAll('[data-close]').forEach(el => {
-               el.addEventListener('click', () => modal.classList.add('hidden'));
-             });
-             modal.addEventListener('click', (e) => {
-               if (e.target === modal) modal.classList.add('hidden');
-             });
-           }
-         });
+                          // Закрытие модальных окон
+          [docTypeModal, docFormModal, docViewModal, docDeleteModal].forEach(modal => {
+            if (modal) {
+              modal.querySelectorAll('[data-close]').forEach(el => {
+                el.addEventListener('click', () => {
+                  // Проверяем, существует ли модальное окно перед закрытием
+                  if (modal && modal.parentNode) {
+                    modal.classList.add('hidden');
+                  }
+                });
+              });
+              modal.addEventListener('click', (e) => {
+                if (e.target === modal && modal && modal.parentNode) {
+                  modal.classList.add('hidden');
+                }
+              });
+            }
+          });
+          
+          // Отдельная обработка для модального окна удаления контакта
+          if (contactDeleteModal) {
+            contactDeleteModal.addEventListener('click', (e) => {
+              if (e.target === contactDeleteModal && contactDeleteModal && contactDeleteModal.parentNode) {
+                contactDeleteModal.classList.add('hidden');
+              }
+            });
+            
+            // Обработка кнопок закрытия в модальном окне удаления контакта
+            contactDeleteModal.querySelectorAll('[data-close]').forEach(closeBtn => {
+              closeBtn.addEventListener('click', () => {
+                if (contactDeleteModal && contactDeleteModal.parentNode) {
+                  contactDeleteModal.classList.add('hidden');
+                }
+              });
+            });
+          }
 
          // ===== СИСТЕМА КОНТАКТОВ =====
          
-         // Маска для телефонов
+         // Фильтрация для телефонов - разрешаем цифры и символы +, -, (, ), пробел
          function applyPhoneMask(input) {
-           let value = input.value.replace(/\D/g, '');
-           if (value.startsWith('8')) {
-             value = '7' + value.substring(1);
-           }
-           if (value.startsWith('7')) {
-             value = value.substring(1);
-           }
-           if (value.length > 0) {
-             value = '+7 ' + value;
-           }
-           if (value.length > 4) {
-             value = value.substring(0, 4) + '(' + value.substring(4);
-           }
-           if (value.length > 8) {
-             value = value.substring(0, 8) + ') ' + value.substring(8);
-           }
-           if (value.length > 13) {
-             value = value.substring(0, 13) + '-' + value.substring(13);
-           }
-           if (value.length > 16) {
-             value = value.substring(0, 16) + '-' + value.substring(16);
-           }
-           input.value = value;
+           // Убираем все символы кроме цифр, +, -, (, ), пробел
+           input.value = input.value.replace(/[^\d+\-()\s]/g, '');
          }
 
-         // Применяем маску ко всем полям телефонов
+         // Применяем фильтрацию ко всем полям телефонов
          document.querySelectorAll('.phone-mask').forEach(input => {
            input.addEventListener('input', () => applyPhoneMask(input));
-           input.addEventListener('focus', () => applyPhoneMask(input));
          });
-
-         // Функция форматирования телефона для отображения
-         function formatPhoneForDisplay(phone) {
-           if (!phone) return 'Не указан';
-           let value = phone.replace(/\D/g, '');
-           if (value.startsWith('8')) {
-             value = '7' + value.substring(1);
-           }
-           if (value.startsWith('7')) {
-             value = value.substring(1);
-           }
-           if (value.length >= 10) {
-             return `+7 ${value.substring(0, 3)} ${value.substring(3, 6)}-${value.substring(6, 8)}-${value.substring(8, 10)}`;
-           }
-           return phone;
-         }
 
          // Закрытие всех открытых редакторов контактов
          function closeAllContactEditors() {
@@ -1106,10 +1125,25 @@
                method: 'POST',
                body: formData,
                headers: {
-                 'X-Requested-With': 'XMLHttpRequest'
+                 'X-Requested-With': 'XMLHttpRequest',
+                 'Accept': 'application/json'
                }
              })
-             .then(response => response.json())
+             .then(response => {
+               console.log('Response status:', response.status);
+               console.log('Response headers:', response.headers);
+               
+               if (!response.ok) {
+                 throw new Error(`HTTP error! status: ${response.status}`);
+               }
+               
+               const contentType = response.headers.get('content-type');
+               if (contentType && contentType.includes('application/json')) {
+                 return response.json();
+               } else {
+                 throw new Error('Server returned HTML instead of JSON');
+               }
+             })
              .then(data => {
                if (data.success) {
                  // Обновляем отображаемые данные
@@ -1117,7 +1151,7 @@
                  const commentDiv = view.querySelector('.text-sm.text-gray-500');
                  
                  if (contactType === 'phone') {
-                   valueDiv.textContent = formatPhoneForDisplay(data.value || data.phone);
+                   valueDiv.textContent = data.value || data.phone || 'Не указан';
                  } else {
                    valueDiv.textContent = data.value || data.email;
                  }
@@ -1152,7 +1186,15 @@
                })
                .catch(error => {
                  console.error('Ошибка:', error);
-                 showNotification('Ошибка при сохранении контакта', 'error');
+                 
+                 let errorMessage = 'Ошибка при сохранении контакта';
+                 if (error.message.includes('HTML instead of JSON')) {
+                   errorMessage = 'Сервер вернул HTML вместо JSON. Возможно, произошла ошибка на сервере.';
+                 } else if (error.message.includes('HTTP error')) {
+                   errorMessage = `Ошибка HTTP: ${error.message}`;
+                 }
+                 
+                 showNotification(errorMessage, 'error');
                  submitBtn.textContent = 'Ошибка!';
                  setTimeout(() => {
                    submitBtn.textContent = originalText;
@@ -1173,51 +1215,62 @@
              // Показываем модальное окно подтверждения
              contactDeleteModal.classList.remove('hidden');
              
-             // Обработка подтверждения удаления
-             document.getElementById('confirmContactDeleteBtn').onclick = () => {
-               const deleteUrl = contactType === 'phone' 
-                 ? `{{ route('profile.phones.destroy', '__ID__') }}`.replace('__ID__', contactId)
-                 : `{{ route('profile.emails.destroy', '__ID__') }}`.replace('__ID__', contactId);
-               
-               fetch(deleteUrl, {
-                 method: 'DELETE',
-                 headers: {
-                   'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                   'X-Requested-With': 'XMLHttpRequest'
-                 }
-               })
-               .then(response => response.json())
-               .then(data => {
-                                     if (data.success) {
-                      // Удаляем элемент из DOM
-                      contactItem.remove();
-                      
-                      // Закрываем модальное окно
-                      contactDeleteModal.classList.add('hidden');
-                      
-                      // Показываем уведомление об успешном удалении
-                      showNotification('Контакт успешно удален', 'success');
-                      
-                                            // Проверяем, нужно ли показать пустое состояние
-                      const additionalContacts = document.getElementById('additionalContacts');
-                      if (additionalContacts && additionalContacts.children.length === 0) {
-                        additionalContacts.innerHTML = `
-                          <div class="text-center text-gray-600 py-8">
-                            <div class="text-4xl mb-2">📭</div>
-                            <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
-                          </div>
-                        `;
-                      }
-                    } else {
-                      throw new Error(data.message || 'Ошибка удаления');
-                    }
-                  })
-                  .catch(error => {
-                    console.error('Ошибка:', error);
-                    showNotification('Ошибка при удалении контакта', 'error');
-                    contactDeleteModal.classList.add('hidden');
-                  });
-             };
+                           // Обработка подтверждения удаления
+              document.getElementById('confirmContactDeleteBtn').onclick = () => {
+                console.log('Deleting contact:', contactType, contactId); // Отладочная информация
+                console.log('Contact item:', contactItem); // Отладочная информация
+                console.log('Contact item data-id:', contactItem.getAttribute('data-id')); // Отладочная информация
+                console.log('Contact item data-contact-type:', contactItem.getAttribute('data-contact-type')); // Отладочная информация
+                
+                const deleteUrl = contactType === 'phone' 
+                  ? `/profile/phones/${contactId}`
+                  : `/profile/emails/${contactId}`;
+                
+                console.log('Delete URL:', deleteUrl); // Отладочная информация
+                
+                fetch(deleteUrl, {
+                  method: 'DELETE',
+                  headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                  }
+                })
+                .then(response => response.json())
+                                  .then(data => {
+                     if (data.success) {
+                       // Удаляем элемент из DOM
+                       contactItem.remove();
+                       
+                       // Закрываем модальное окно
+                       contactDeleteModal.classList.add('hidden');
+                       
+                       // Показываем уведомление об успешном удалении
+                       showNotification('Контакт успешно удален', 'success');
+                       
+                       // Проверяем, нужно ли показать пустое состояние
+                       const remainingContacts = additionalContacts.querySelectorAll('.contact-item[data-id]');
+                       if (remainingContacts.length === 0) {
+                         additionalContacts.innerHTML = `
+                           <div class="text-center text-gray-600 py-8">
+                             <div class="text-4xl mb-2">📭</div>
+                             <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
+                           </div>
+                         `;
+                       }
+                     } else {
+                       throw new Error(data.message || 'Ошибка удаления');
+                     }
+                   })
+                   .catch(error => {
+                     console.error('Ошибка:', error);
+                     showNotification('Ошибка при удалении контакта', 'error');
+                     contactDeleteModal.classList.add('hidden');
+                   });
+              };
+              
+              // Обработка отмены удаления - используем уже установленные обработчики
+              // Дополнительные обработчики не нужны, так как они уже установлены выше
            });
          });
 
@@ -1229,7 +1282,7 @@
          function createNewContactItem(type) {
            const isPhone = type === 'phone';
            const icon = isPhone ? '📱' : '✉️';
-           const placeholder = isPhone ? '+7 (999) 123-45-67' : 'you@example.com';
+           const placeholder = isPhone ? 'Введите номер телефона' : 'you@example.com';
            const inputType = isPhone ? 'tel' : 'email';
            const inputClass = isPhone ? 'phone-mask' : '';
            const inputName = isPhone ? 'value' : 'value';
@@ -1277,42 +1330,43 @@
                 return;
               }
               
-              // Удаляем пустое состояние если есть
-              const emptyState = additionalContacts.querySelector('.text-center');
-              if (emptyState) {
-                emptyState.remove();
-              }
+              // Удаляем только пустые состояния, сохраняя существующие контакты
+              const emptyStates = additionalContacts.querySelectorAll('.text-center.text-gray-600');
+              emptyStates.forEach(state => state.remove());
               
               // Закрываем все открытые редакторы
               closeAllContactEditors();
               
-              // Добавляем новый элемент
+              // Добавляем новый элемент в начало (телефон всегда сверху)
               const newContactHtml = createNewContactItem('phone');
               additionalContacts.insertAdjacentHTML('afterbegin', newContactHtml);
              
              // Настраиваем обработчики для нового элемента
              const newContact = additionalContacts.firstElementChild;
              
-             // Маска для телефона
+             // Фильтрация для телефона - разрешаем цифры и символы +, -, (, ), пробел
              const phoneInput = newContact.querySelector('.phone-mask');
              if (phoneInput) {
                phoneInput.addEventListener('input', () => applyPhoneMask(phoneInput));
-               phoneInput.addEventListener('focus', () => applyPhoneMask(phoneInput));
                setTimeout(() => phoneInput.focus(), 100);
              }
              
              // Обработчик отмены
              const cancelBtn = newContact.querySelector('.contact-cancel-btn');
              cancelBtn.addEventListener('click', () => {
-               newContact.remove();
-               // Проверяем, нужно ли показать пустое состояние
-               if (additionalContacts.children.length === 0) {
-                 additionalContacts.innerHTML = `
-                   <div class="text-center text-gray-600 py-8">
-                     <div class="text-4xl mb-2">📭</div>
-                     <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
-                   </div>
-                 `;
+               // Проверяем, существует ли элемент перед удалением
+               if (newContact && newContact.parentNode) {
+                 newContact.remove();
+                 // Проверяем, нужно ли показать пустое состояние
+                 const existingContacts = additionalContacts.querySelectorAll('.contact-item[data-id]');
+                 if (existingContacts.length === 0) {
+                   additionalContacts.innerHTML = `
+                     <div class="text-center text-gray-600 py-8">
+                       <div class="text-4xl mb-2">📭</div>
+                       <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
+                     </div>
+                   `;
+                 }
                }
              });
              
@@ -1332,7 +1386,8 @@
                  method: 'POST',
                  body: formData,
                  headers: {
-                   'X-Requested-With': 'XMLHttpRequest'
+                   'X-Requested-With': 'XMLHttpRequest',
+                   'Accept': 'application/json'
                  }
                })
                .then(response => response.json())
@@ -1344,7 +1399,7 @@
                        <div class="flex items-center gap-3">
                          <div class="text-xl">📱</div>
                          <div>
-                           <div class="font-semibold text-gray-900">${formatPhoneForDisplay(data.value)}</div>
+                           <div class="font-semibold text-gray-900">${data.value || 'Не указан'}</div>
                            ${data.comment ? `<div class="text-sm text-gray-500">${data.comment}</div>` : ''}
                          </div>
                        </div>
@@ -1359,7 +1414,7 @@
                          <div class="space-y-3">
                            <div>
                              <label class="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
-                             <input type="tel" name="value" value="${data.value}" class="w-full border border-gray-300 rounded-md px-3 py-2 phone-mask" required>
+                             <input type="tel" name="value" value="${data.value}" class="w-full border border-gray-300 rounded-md px-3 py-2 phone-mask" placeholder="Введите номер телефона" required>
                            </div>
                            <div>
                              <label class="block text-sm font-medium text-gray-700 mb-1">Комментарий</label>
@@ -1376,6 +1431,12 @@
                    
                    newContact.innerHTML = contactHtml;
                    newContact.setAttribute('data-id', data.id);
+                   
+                   // Перемещаем телефон наверх
+                   additionalContacts.insertBefore(newContact, additionalContacts.firstChild);
+                   
+                   // Сортируем контакты для правильного порядка
+                   sortContacts();
                    
                    // Настраиваем обработчики для нового элемента
                    setupContactHandlers(newContact);
@@ -1415,21 +1476,19 @@
                 return;
               }
               
-              // Удаляем пустое состояние если есть
-              const emptyState = additionalContacts.querySelector('.text-center');
-              if (emptyState) {
-                emptyState.remove();
-              }
+              // Удаляем только пустые состояния, сохраняя существующие контакты
+              const emptyStates = additionalContacts.querySelectorAll('.text-center.text-gray-600');
+              emptyStates.forEach(state => state.remove());
               
               // Закрываем все открытые редакторы
               closeAllContactEditors();
               
-              // Добавляем новый элемент
+              // Добавляем новый элемент в конец (email всегда снизу)
               const newContactHtml = createNewContactItem('email');
-              additionalContacts.insertAdjacentHTML('afterbegin', newContactHtml);
+              additionalContacts.insertAdjacentHTML('beforeend', newContactHtml);
              
              // Настраиваем обработчики для нового элемента
-             const newContact = additionalContacts.firstElementChild;
+             const newContact = additionalContacts.lastElementChild;
              
              // Фокус на поле ввода
              const emailInput = newContact.querySelector('input[type="email"]');
@@ -1440,15 +1499,19 @@
              // Обработчик отмены
              const cancelBtn = newContact.querySelector('.contact-cancel-btn');
              cancelBtn.addEventListener('click', () => {
-               newContact.remove();
-               // Проверяем, нужно ли показать пустое состояние
-               if (additionalContacts.children.length === 0) {
-                 additionalContacts.innerHTML = `
-                   <div class="text-center text-gray-600 py-8">
-                     <div class="text-4xl mb-2">📭</div>
-                     <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
-                   </div>
-                 `;
+               // Проверяем, существует ли элемент перед удалением
+               if (newContact && newContact.parentNode) {
+                 newContact.remove();
+                 // Проверяем, нужно ли показать пустое состояние
+                 const existingContacts = additionalContacts.querySelectorAll('.contact-item[data-id]');
+                 if (existingContacts.length === 0) {
+                   additionalContacts.innerHTML = `
+                     <div class="text-center text-gray-600 py-8">
+                       <div class="text-4xl mb-2">📭</div>
+                       <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
+                     </div>
+                   `;
+                 }
                }
              });
              
@@ -1469,7 +1532,8 @@
                  method: 'POST',
                  body: formData,
                  headers: {
-                   'X-Requested-With': 'XMLHttpRequest'
+                   'X-Requested-With': 'XMLHttpRequest',
+                   'Accept': 'application/json'
                  }
                })
                .then(response => response.json())
@@ -1518,6 +1582,11 @@
                    
                    newContact.innerHTML = contactHtml;
                    newContact.setAttribute('data-id', data.id);
+                   
+                   // Email остается в конце (не перемещаем)
+                   
+                   // Сортируем контакты для правильного порядка
+                   sortContacts();
                    
                    // Настраиваем обработчики для нового элемента
                    setupContactHandlers(newContact);
@@ -1587,45 +1656,58 @@
                
                contactDeleteModal.classList.remove('hidden');
                
-               document.getElementById('confirmContactDeleteBtn').onclick = () => {
-                 const deleteUrl = contactType === 'phone' 
-                   ? `{{ route('profile.phones.destroy', '__ID__') }}`.replace('__ID__', contactId)
-                   : `{{ route('profile.emails.destroy', '__ID__') }}`.replace('__ID__', contactId);
-                 
-                 fetch(deleteUrl, {
-                   method: 'DELETE',
-                   headers: {
-                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                     'X-Requested-With': 'XMLHttpRequest'
-                   }
-                 })
-                 .then(response => response.json())
-                 .then(data => {
-                                       if (data.success) {
-                      contactItem.remove();
-                      contactDeleteModal.classList.add('hidden');
-                      
-                      // Показываем уведомление об успешном удалении
-                      showNotification('Контакт успешно удален', 'success');
-                      
-                                            if (additionalContacts && additionalContacts.children.length === 0) {
-                        additionalContacts.innerHTML = `
-                          <div class="text-center text-gray-600 py-8">
-                            <div class="text-4xl mb-2">📭</div>
-                            <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
-                          </div>
-                        `;
-                      }
-                    } else {
-                      throw new Error(data.message || 'Ошибка удаления');
+                               document.getElementById('confirmContactDeleteBtn').onclick = () => {
+                  console.log('Deleting contact (setupContactHandlers):', contactType, contactId); // Отладочная информация
+                  console.log('Contact item (setupContactHandlers):', contactItem); // Отладочная информация
+                  console.log('Contact item data-id (setupContactHandlers):', contactItem.getAttribute('data-id')); // Отладочная информация
+                  console.log('Contact item data-contact-type (setupContactHandlers):', contactItem.getAttribute('data-contact-type')); // Отладочная информация
+                  
+                  const deleteUrl = contactType === 'phone' 
+                    ? `/profile/phones/${contactId}`
+                    : `/profile/emails/${contactId}`;
+                  
+                  console.log('Delete URL (setupContactHandlers):', deleteUrl); // Отладочная информация
+                  
+                  fetch(deleteUrl, {
+                    method: 'DELETE',
+                    headers: {
+                      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                      'X-Requested-With': 'XMLHttpRequest',
+                      'Accept': 'application/json'
                     }
                   })
-                  .catch(error => {
-                    console.error('Ошибка:', error);
-                    showNotification('Ошибка при удалении контакта', 'error');
-                    contactDeleteModal.classList.add('hidden');
-                  });
-               };
+                  .then(response => response.json())
+                                    .then(data => {
+                     if (data.success) {
+                       contactItem.remove();
+                       contactDeleteModal.classList.add('hidden');
+                       
+                       // Показываем уведомление об успешном удалении
+                       showNotification('Контакт успешно удален', 'success');
+                       
+                       // Проверяем, нужно ли показать пустое состояние
+                       const remainingContacts = additionalContacts.querySelectorAll('.contact-item[data-id]');
+                       if (remainingContacts.length === 0) {
+                         additionalContacts.innerHTML = `
+                           <div class="text-center text-gray-600 py-8">
+                             <div class="text-4xl mb-2">📭</div>
+                             <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
+                           </div>
+                         `;
+                       }
+                     } else {
+                       throw new Error(data.message || 'Ошибка удаления');
+                     }
+                   })
+                   .catch(error => {
+                     console.error('Ошибка:', error);
+                     showNotification('Ошибка при удалении контакта', 'error');
+                     contactDeleteModal.classList.add('hidden');
+                   });
+                };
+                
+                // Обработка отмены удаления - используем уже установленные обработчики
+                // Дополнительные обработчики не нужны, так как они уже установлены выше
              });
            }
            
@@ -1649,7 +1731,8 @@
                  method: 'POST',
                  body: formData,
                  headers: {
-                   'X-Requested-With': 'XMLHttpRequest'
+                   'X-Requested-With': 'XMLHttpRequest',
+                   'Accept': 'application/json'
                  }
                })
                .then(response => response.json())
@@ -1659,7 +1742,7 @@
                    const commentDiv = view.querySelector('.text-sm.text-gray-500');
                    
                    if (contactType === 'phone') {
-                     valueDiv.textContent = formatPhoneForDisplay(data.value);
+                     valueDiv.textContent = data.value || 'Не указан';
                    } else {
                      valueDiv.textContent = data.value;
                    }
@@ -1699,16 +1782,38 @@
              });
            }
            
-           // Маска для телефонов
+           // Фильтрация для телефонов - разрешаем цифры и символы +, -, (, ), пробел
            const phoneInput = contactItem.querySelector('.phone-mask');
            if (phoneInput) {
              phoneInput.addEventListener('input', () => applyPhoneMask(phoneInput));
-             phoneInput.addEventListener('focus', () => applyPhoneMask(phoneInput));
            }
          }
 
-         // Горячие клавиши
-         document.addEventListener('keydown', (e) => {
+                   // Функция для сортировки контактов (телефон сверху, email снизу)
+          function sortContacts() {
+            const contacts = additionalContacts.querySelectorAll('.contact-item[data-id]');
+            const phones = [];
+            const emails = [];
+            
+            contacts.forEach(contact => {
+              const type = contact.getAttribute('data-contact-type');
+              if (type === 'phone') {
+                phones.push(contact);
+              } else if (type === 'email') {
+                emails.push(contact);
+              }
+            });
+            
+            // Очищаем контейнер и добавляем сначала телефоны, потом email
+            phones.forEach(phone => additionalContacts.appendChild(phone));
+            emails.forEach(email => additionalContacts.appendChild(email));
+          }
+          
+          // Сортируем контакты при загрузке страницы
+          sortContacts();
+          
+          // Горячие клавиши
+          document.addEventListener('keydown', (e) => {
            const activeContactEdit = document.querySelector('.contact-edit:not(.hidden)');
            if (activeContactEdit) {
              if (e.key === 'Enter' && e.ctrlKey) {
@@ -1741,33 +1846,45 @@
               method: 'POST',
               body: formData,
               headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
               }
             })
-            .then(response => response.json())
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.json();
+            })
             .then(data => {
-              // Обновляем значения полей без перезагрузки
-              const inputs = this.querySelectorAll('input[name]');
-              inputs.forEach(input => {
-                const name = input.getAttribute('name');
-                if (data.profile && data.profile[name] !== undefined) {
-                  if (name === 'birth_date' && data.profile[name]) {
-                    input.value = data.profile[name];
-                  } else {
-                    input.value = data.profile[name] || '';
+              if (data.success) {
+                // Обновляем значения полей без перезагрузки
+                const inputs = this.querySelectorAll('input[name]');
+                inputs.forEach(input => {
+                  const name = input.getAttribute('name');
+                  if (data.profile && data.profile[name] !== undefined) {
+                    if (name === 'birth_date' && data.profile[name]) {
+                      input.value = data.profile[name];
+                    } else {
+                      input.value = data.profile[name] || '';
+                    }
                   }
-                }
-              });
-              
-              // Показываем уведомление об успехе
-              submitBtn.textContent = 'Сохранено!';
-              setTimeout(() => {
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
-              }, 2000);
+                });
+                
+                // Показываем уведомление об успехе
+                submitBtn.textContent = 'Сохранено!';
+                setTimeout(() => {
+                  submitBtn.textContent = originalText;
+                  submitBtn.disabled = false;
+                }, 2000);
+              } else {
+                throw new Error(data.message || 'Неизвестная ошибка');
+              }
             })
             .catch(error => {
               console.error('Ошибка:', error);
+              console.error('Полный ответ сервера:', error.message);
               submitBtn.textContent = 'Ошибка!';
               setTimeout(() => {
                 submitBtn.textContent = originalText;
@@ -1813,7 +1930,8 @@
               method: 'POST',
               body: formData,
               headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
               }
             })
             .then(response => response.json())
@@ -1853,7 +1971,6 @@
         const passwordEdit = document.getElementById('passwordEdit');
         const cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
         const passwordForm = document.getElementById('passwordForm');
-        const togglePasswordBtn = document.getElementById('togglePasswordBtn');
         const passwordText = document.getElementById('passwordText');
 
         if (editPasswordBtn) {
@@ -1872,20 +1989,6 @@
           });
         }
 
-        if (togglePasswordBtn) {
-          let passwordVisible = false;
-          togglePasswordBtn.addEventListener('click', () => {
-            passwordVisible = !passwordVisible;
-            if (passwordVisible) {
-              passwordText.textContent = 'Пароль установлен';
-              togglePasswordBtn.textContent = '🙈';
-            } else {
-              passwordText.textContent = '••••••••';
-              togglePasswordBtn.textContent = '👁️';
-            }
-          });
-        }
-
         if (passwordForm) {
           passwordForm.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -1901,7 +2004,8 @@
               method: 'POST',
               body: formData,
               headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
               }
             })
             .then(response => response.json())
@@ -1933,9 +2037,90 @@
             });
           });
         }
+
+        // Загрузка фото профиля
+        const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
+        const profilePhotoInput = document.getElementById('profilePhotoInput');
+        const profilePhotoContainer = document.getElementById('profilePhotoContainer');
+
+        if (uploadPhotoBtn && profilePhotoInput) {
+          uploadPhotoBtn.addEventListener('click', () => {
+            profilePhotoInput.click();
+          });
+
+          profilePhotoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Проверяем тип файла
+            if (!file.type.startsWith('image/')) {
+              showNotification('Пожалуйста, выберите изображение', 'error');
+              return;
+            }
+
+            // Проверяем размер файла (максимум 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+              showNotification('Размер файла не должен превышать 5MB', 'error');
+              return;
+            }
+
+            // Показываем превью
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              profilePhotoContainer.innerHTML = `<img src="${e.target.result}" alt="Фото профиля" class="w-full h-full object-cover">`;
+            };
+            reader.readAsDataURL(file);
+
+            // Отправляем файл на сервер
+            const formData = new FormData();
+            formData.append('photo', file);
+            formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+            uploadPhotoBtn.textContent = 'Загрузка...';
+            uploadPhotoBtn.disabled = true;
+
+            fetch('{{ route("profile.about.updatePhoto") }}', {
+              method: 'POST',
+              body: formData,
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+              }
+            })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.json();
+            })
+                        .then(data => {
+              if (data.success) {
+                showNotification('Фото успешно загружено', 'success');
+              } else {
+                throw new Error(data.message || 'Ошибка загрузки');
+              }
+            })
+            .catch(error => {
+              console.error('Ошибка:', error);
+              showNotification('Ошибка при загрузке фото', 'error');
+              // Возвращаем иконку по умолчанию
+              profilePhotoContainer.innerHTML = '<span>👤</span>';
+            })
+            .finally(() => {
+              uploadPhotoBtn.textContent = 'Загрузить фото';
+              uploadPhotoBtn.disabled = false;
+              // Очищаем input
+              profilePhotoInput.value = '';
+            });
+          });
+        }
+
+
      });
    </script>
  </div>
  @endsection
+
 
 

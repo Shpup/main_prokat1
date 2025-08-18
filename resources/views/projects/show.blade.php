@@ -5,7 +5,7 @@
     <title>Склад оборудования</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-@include('layouts.navigation')
+    @include('layouts.navigation')
 <div class="container mx-auto p-6">
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-semibold text-gray-800">
@@ -25,8 +25,8 @@
                 $badge = $statusMap[$status] ?? ['label' => ucfirst($status), 'class' => 'bg-gray-100 text-gray-800'];
             @endphp
             <span id="statusBadge" class="px-3 py-1 text-sm rounded-full font-medium {{ $badge['class'] }}">
-                {{ $badge['label'] }}
-            </span>
+                    {{ $badge['label'] }}
+                </span>
 
             @can('edit projects')
                 <button
@@ -70,17 +70,17 @@
             $tab = request('tab', 'estimate');
         @endphp
 
-    <div class="flex space-x-4 border-b border-gray-200 mb-4">
+        <div class="flex space-x-4 border-b border-gray-200 mb-4">
             <a href="{{ route('projects.show', $project->id) }}?tab=estimate" class="px-4 py-2 {{ $tab === 'estimate' ? 'border-b-2 border-blue-600 font-semibold text-blue-700' : 'text-gray-600' }}">
                 Смета
             </a>
             <a href="{{ route('projects.show', $project->id) }}?tab=staff" class="px-4 py-2 {{ $tab === 'staff' ? 'border-b-2 border-blue-600 font-semibold text-blue-700' : 'text-gray-600' }}">
                 Персонал
             </a>
-    </div>
+        </div>
 
         {{-- Контент вкладки --}}
-    @if ($tab === 'estimate')
+        @if ($tab === 'estimate')
             {{-- Смета --}}
         <div class="bg-white rounded-lg shadow-lg p-6">
             <h1 class="text-2xl font-semibold mb-4 text-gray-800">Сметы проекта</h1>
@@ -222,8 +222,8 @@
                         @if ($project->status !== 'completed')
                             <th class="p-2 border">Действия</th>
                         @endif
-                    </tr>
-                    </thead>
+                        </tr>
+                        </thead>
                     <tbody id="estimateTableBody">
                     <!-- Оборудование -->
                     <tr class="bg-gray-100">
@@ -336,10 +336,10 @@
                             <td colspan="{{ $project->status !== 'completed' ? 6 : 5 }}" class="p-2 border text-right">{{ number_format($currentEstimate->calculated['total'] ?? 0, 2) }} ₽</td>
                         </tr>
                     @endcan
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                    </div>
             </div>
-        </div>
         @elseif ($tab === 'staff')
             @php
                 // Сотрудники проекта по прямой привязке (project_user)
@@ -417,7 +417,7 @@
                                              if ($e > $s) { $minutes += ($e - $s) / 60; }
                                              if (!is_null($x->project_rate)) { $projectRate = (float)$x->project_rate; }
                                              if (!is_null($x->hour_rate) && $hourRate === null) { $hourRate = (float)$x->hour_rate; }
-
+                                              
                                          }
                                          if ($projectRate !== null) { $displaySumm = $projectRate; }
                                           elseif ($hourRate !== null) { $displaySumm = $hourRate * ($minutes/60.0); }
@@ -552,7 +552,7 @@
                             <span id="cmtIntervalLabel" class="text-sm text-gray-800"></span>
                         </div>
                         <div id="schedCommentsList" class="space-y-2"></div>
-
+                        
                         <div class="mt-4 border-t pt-4">
                             <div class="text-sm font-medium text-gray-700 mb-2">Добавить комментарий к этому времени</div>
                             <textarea id="intervalCommentText" class="w-full border rounded p-2 text-sm" rows="3" placeholder="Комментарий"></textarea>
@@ -1036,15 +1036,15 @@
             };
             document.getElementById('schedCommentsCloseBtn')?.addEventListener('click', closeComments);
             document.getElementById('schedCommentsOkBtn')?.addEventListener('click', closeComments);
-            const openDelete = (metaText, payload)=>{
+            const openDelete = (metaText, payload)=>{ 
                 document.getElementById('schedDeleteText').textContent = metaText||'Вы действительно хотите удалить выбранный интервал?';
                 deleteModal.dataset.payload = JSON.stringify(payload||{});
-                deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex');
+                deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex'); 
             };
             const closeDelete = ()=>{ if(!deleteModal) return; deleteModal.classList.add('hidden'); deleteModal.classList.remove('flex'); };
             document.getElementById('schedDeleteCancel')?.addEventListener('click', closeDelete);
             const schedDeleteConfirmBtn = document.getElementById('schedDeleteConfirm');
-            if (schedDeleteConfirmBtn) schedDeleteConfirmBtn.onclick = async ()=>{
+            if (schedDeleteConfirmBtn) schedDeleteConfirmBtn.onclick = async ()=>{ 
                 try{
                     const p = JSON.parse(deleteModal.dataset.payload||'{}');
                     await fetch('/personnel/clear', { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(p)});
@@ -1215,7 +1215,7 @@
                             clearSelection();
                             currentRow = null;
                             startCell = null;
-                    hideMenuOnly();
+                            hideMenuOnly();
                     forceClearSelection();
                         } else if (btn.id === 'schedViewComments') {
                             try{
@@ -1478,7 +1478,7 @@
                 if (banner) {
                     banner.insertAdjacentElement('afterend', row);
                 } else {
-                    commentsList.prepend(row);
+                commentsList.prepend(row);
                 }
                 // Навешиваем обработчики на только что вставленную карточку
                 const delBtn = row.querySelector('.cmt-delete');
