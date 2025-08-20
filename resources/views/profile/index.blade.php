@@ -29,6 +29,17 @@
                 </div>
               </div>
               
+              <!-- Сообщение "Нет подходящих проектов" -->
+              <div x-show="!isLoading && suggestions.length === 0 && filters.search.length > 0" class="px-4 py-6 text-center">
+                <div class="mb-3">
+                  <svg class="mx-auto h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <div class="text-base font-medium text-gray-900 mb-1">Проекты не найдены</div>
+                <div class="text-sm text-gray-500">Попробуйте изменить поисковый запрос или проверьте правильность написания</div>
+              </div>
+              
               <!-- Список проектов -->
               <template x-for="(suggestion, index) in suggestions" :key="index">
                 <div class="px-3 py-2 cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
@@ -249,6 +260,17 @@
               </div>
             </div>
             
+            <!-- Сообщение "Нет подходящих проектов" -->
+            <div x-show="!isLoading && suggestions.length === 0 && filters.search.length > 0" class="px-4 py-6 text-center">
+              <div class="mb-3">
+                <svg class="mx-auto h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <div class="text-base font-medium text-gray-900 mb-1">Проекты не найдены</div>
+              <div class="text-sm text-gray-500">Попробуйте изменить поисковый запрос или проверьте правильность написания</div>
+            </div>
+            
             <!-- Список проектов -->
             <template x-for="(suggestion, index) in suggestions" :key="index">
               <div class="px-3 py-2 cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
@@ -363,10 +385,13 @@ function projectsFilter() {
             this.showSuggestions = true;
             this.suggestions = [];
             
+            // Добавляем обработчик клика вне области поиска
+            this.setupClickOutsideHandler();
+            
             // Устанавливаем новый таймаут (300мс задержка)
             this.searchTimeout = setTimeout(async () => {
                 try {
-                    const response = await fetch(`{{ route('profile.autocomplete') }}?q=${encodeURIComponent(this.filters.search)}`, {
+                    const response = await fetch(`{{ route('profile.autocomplete') }}?q=${encodeURIComponent(this.filters.search)}&section=projects`, {
                         headers: {
                             'Accept': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest'
@@ -376,7 +401,7 @@ function projectsFilter() {
                     if (response.ok) {
                         const data = await response.json();
                         this.suggestions = data.suggestions || [];
-                        this.showSuggestions = this.suggestions.length > 0;
+                        this.showSuggestions = true; // Всегда показываем блок, даже если нет результатов
                         this.selectedIndex = -1;
                     }
                 } catch (error) {
@@ -465,6 +490,28 @@ function projectsFilter() {
             this.showSuggestions = false;
             this.selectedIndex = -1;
             this.applyFilters();
+        },
+        
+        setupClickOutsideHandler() {
+            // Удаляем предыдущий обработчик, если он есть
+            if (this.clickOutsideHandler) {
+                document.removeEventListener('click', this.clickOutsideHandler);
+            }
+            
+            // Создаем новый обработчик
+            this.clickOutsideHandler = (event) => {
+                const searchContainer = event.target.closest('[x-data*="projectsFilter"]');
+                if (!searchContainer) {
+                    this.showSuggestions = false;
+                    this.selectedIndex = -1;
+                    document.removeEventListener('click', this.clickOutsideHandler);
+                }
+            };
+            
+            // Добавляем обработчик с небольшой задержкой, чтобы не сработал сразу
+            setTimeout(() => {
+                document.addEventListener('click', this.clickOutsideHandler);
+            }, 100);
         }
     }
 }
@@ -580,10 +627,13 @@ function upcomingFilter() {
             this.isLoading = true;
             this.showSuggestions = true;
             this.suggestions = [];
+            
+            // Добавляем обработчик клика вне области поиска
+            this.setupClickOutsideHandler();
 
             this.searchTimeout = setTimeout(async () => {
                 try {
-                    const response = await fetch(`{{ route('profile.autocomplete') }}?q=${encodeURIComponent(this.filters.search)}`, {
+                    const response = await fetch(`{{ route('profile.autocomplete') }}?q=${encodeURIComponent(this.filters.search)}&section=upcoming`, {
                         headers: {
                             'Accept': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest'
@@ -593,7 +643,7 @@ function upcomingFilter() {
                     if (response.ok) {
                         const data = await response.json();
                         this.suggestions = data.suggestions || [];
-                        this.showSuggestions = this.suggestions.length > 0;
+                        this.showSuggestions = true; // Всегда показываем блок, даже если нет результатов
                         this.selectedIndex = -1;
                     }
                 } catch (error) {
@@ -661,6 +711,28 @@ function upcomingFilter() {
             this.showSuggestions = false;
             this.selectedIndex = -1;
             this.applyFilters();
+        },
+        
+        setupClickOutsideHandler() {
+            // Удаляем предыдущий обработчик, если он есть
+            if (this.clickOutsideHandler) {
+                document.removeEventListener('click', this.clickOutsideHandler);
+            }
+            
+            // Создаем новый обработчик
+            this.clickOutsideHandler = (event) => {
+                const searchContainer = event.target.closest('[x-data*="upcomingFilter"]');
+                if (!searchContainer) {
+                    this.showSuggestions = false;
+                    this.selectedIndex = -1;
+                    document.removeEventListener('click', this.clickOutsideHandler);
+                }
+            };
+            
+            // Добавляем обработчик с небольшой задержкой, чтобы не сработал сразу
+            setTimeout(() => {
+                document.addEventListener('click', this.clickOutsideHandler);
+            }, 100);
         }
     }
 }

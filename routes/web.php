@@ -55,6 +55,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::post('/profile/documents', [ProfileController::class, 'storeDocument'])->name('profile.documents.store');
     Route::put('/profile/documents/{document}', [ProfileController::class, 'updateDocument'])->name('profile.documents.update');
     Route::delete('/profile/documents/{document}', [ProfileController::class, 'destroyDocument'])->name('profile.documents.destroy');
+    Route::delete('/profile/documents/{document}/photo/{photoIndex}', [ProfileController::class, 'destroyDocumentPhoto'])->name('profile.documents.photo.destroy');
 
     // Дашборд
     Route::get('/dashboard', [ProjectController::class, 'index'])->name('dashboard');
