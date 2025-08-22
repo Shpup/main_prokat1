@@ -20,5 +20,3 @@ class WorkInterval extends Model
         'project_rate',
     ];
 }
-
-

@@ -96,4 +96,12 @@ class User extends Authenticatable
     {
         return $this->hasOne(UserProfile::class);
     }
+
+    /**
+     * Связь со статусом сотрудника.
+     */
+    public function employeeStatus()
+    {
+        return $this->hasOne(EmployeeStatus::class, 'employee_id');
+    }
 }

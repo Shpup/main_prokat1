@@ -23,7 +23,7 @@ class ProjectController extends Controller
     /**
      * Отображает список проектов и календарь.
      */
-    public function index(): View
+    public function index(Request $request): View|JsonResponse
     {
         $user = auth()->user();
         
@@ -42,6 +42,10 @@ class ProjectController extends Controller
                           });
                 })
                 ->get();
+        }
+        
+        if ($request->ajax()) {
+            return response()->json($projects);
         }
         
         return view('projects.index', compact('projects'));
@@ -416,6 +420,35 @@ class ProjectController extends Controller
     {
         $project->staff()->detach($user->id);
         return response()->json(['success'=>true]);
+    }
+
+    public function attachStaff(Request $request, Project $project, User $user): JsonResponse
+    {
+        $this->authorize('edit projects');
+        
+        $request->validate([
+            'rate_type' => 'nullable|in:hour,project',
+            'rate' => 'nullable|numeric|min:0',
+        ]);
+
+        // Привязываем сотрудника к проекту
+        $project->staff()->attach($user->id);
+
+        // Если указана ставка, создаем запись в work_intervals с null датами
+        if ($request->rate_type && $request->rate) {
+            WorkInterval::create([
+                'employee_id' => $user->id,
+                'project_id' => $project->id,
+                'date' => null, // Дата не указана - сотрудник просто привязан к проекту
+                'start_time' => null, // Время не указано
+                'end_time' => null, // Время не указано
+                'type' => 'busy',
+                'hour_rate' => $request->rate_type === 'hour' ? $request->rate : null,
+                'project_rate' => $request->rate_type === 'project' ? $request->rate : null,
+            ]);
+        }
+
+        return response()->json(['success' => 'Сотрудник добавлен на проект.']);
     }
 
     /**

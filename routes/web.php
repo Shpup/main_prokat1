@@ -90,10 +90,17 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::put('/equipment/{equipment}', [EquipmentController::class, 'update'])->name('equipment.update');
     Route::delete('/equipment/{equipment}', [EquipmentController::class, 'destroy'])->name('equipment.destroy');
 
-    // Менеджеры
+    // Сотрудники
     Route::get('/managers', [ManagerController::class, 'index'])->name('managers');
     Route::get('/managers/create', [ManagerController::class, 'create'])->name('managers.create');
     Route::post('/managers', [ManagerController::class, 'store'])->name('managers.store');
+    Route::get('/managers/{user}', [ManagerController::class, 'show'])->name('managers.show');
+    Route::patch('/managers/{user}', [ManagerController::class, 'update'])->name('managers.update');
+    Route::delete('/managers/{user}', [ManagerController::class, 'destroy'])->name('managers.destroy');
+    Route::patch('/managers/{user}/status', [ManagerController::class, 'updateStatus'])->name('managers.status.update');
+    Route::post('/managers/{user}/status-comment', [ManagerController::class, 'updateStatusComment'])->name('managers.status-comment.update');
+    Route::get('/managers/{user}/assignments', [ManagerController::class, 'getAssignments'])->name('managers.assignments');
+    Route::post('/assignments', [ManagerController::class, 'createAssignment'])->name('assignments.store');
 
     // Категории
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories');
