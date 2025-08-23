@@ -42,10 +42,10 @@
                                         </svg>
                                     </button>
                                 </div>
-                                <input type="text" id="search-name" placeholder="Поиск по имени..." 
+                                <input type="text" id="search-name" placeholder="Поиск по имени..."
                                        class="mt-2 w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                             </th>
-                            
+
                             <!-- Email -->
                             <th class="px-6 py-3 text-left">
                                 <div class="flex items-center space-x-2">
@@ -56,10 +56,10 @@
                                         </svg>
                                     </button>
                                 </div>
-                                <input type="text" id="search-email" placeholder="Поиск по email..." 
+                                <input type="text" id="search-email" placeholder="Поиск по email..."
                                        class="mt-2 w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                             </th>
-                            
+
                             <!-- Роль -->
                             <th class="px-6 py-3 text-left">
                                 <div class="flex items-center space-x-2">
@@ -70,20 +70,25 @@
                                         </svg>
                                     </button>
                                 </div>
-                                <input type="text" id="search-role" placeholder="Поиск по роли..." 
-                                       class="mt-2 w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <select id="search-role" class="mt-2 w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Все роли</option>
+                                    <option value="нет специальности">Пользователь</option>
+                                    <option value="admin">Админ</option>
+                                    <option value="manager">Менеджер</option>
+                                    <option value="driver">Водитель</option>
+                                </select>
                             </th>
-                            
+
                             <!-- Телефон -->
                             <th class="px-6 py-3 text-left">
                                 <span class="text-sm font-medium text-gray-900">Телефон</span>
                             </th>
-                            
+
                             <!-- Статус -->
                             <th class="px-6 py-3 text-left">
                                 <span class="text-sm font-medium text-gray-900">Статус</span>
                             </th>
-                            
+
                             <!-- Действия -->
                             <th class="px-6 py-3 text-left">
                                 <span class="text-sm font-medium text-gray-900">Действия</span>
@@ -100,7 +105,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $employee->phone ?? '-' }}</td>
                                 <td class="px-6 py-4">
-                                    <select onchange="updateStatus({{ $employee->id }}, this.value)" 
+                                    <select onchange="updateStatus({{ $employee->id }}, this.value)"
                                             class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]">
                                         <option value="free" {{ ($employee->employeeStatus?->status ?? 'free') === 'free' ? 'selected' : '' }}>Свободен</option>
                                         <option value="unavailable" {{ ($employee->employeeStatus?->status ?? 'free') === 'unavailable' ? 'selected' : '' }}>Недоступен</option>
@@ -111,40 +116,40 @@
                                     <div class="flex items-center space-x-2">
                                         <!-- Комментарий к статусу (красный восклицательный знак) -->
                                         @if(($employee->employeeStatus?->status ?? 'free') === 'unavailable')
-                                            <button onclick="openStatusCommentModal({{ $employee->id }})" 
+                                            <button onclick="openStatusCommentModal({{ $employee->id }})"
                                                     class="text-red-600 hover:text-red-800" title="Комментарий к статусу">
                                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                                                 </svg>
                                             </button>
                                         @endif
-                                        
+
                                         <!-- Назначен на проекты (смайлик) -->
-                                        <button onclick="showAssignments({{ $employee->id }})" 
+                                        <button onclick="showAssignments({{ $employee->id }})"
                                                 class="text-blue-600 hover:text-blue-800" title="Назначен на проекты">
                                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                                             </svg>
                                         </button>
-                                        
+
                                         <!-- Редактировать (карандаш) -->
-                                        <button onclick="openEditModal({{ $employee->id }})" 
+                                        <button onclick="openEditModal({{ $employee->id }})"
                                                 class="text-gray-600 hover:text-gray-800" title="Редактировать">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                             </svg>
                                         </button>
-                                        
+
                                         <!-- Добавить в проект (плюс) -->
-                                        <button onclick="openAddToProjectModal({{ $employee->id }})" 
+                                        <button onclick="openAddToProjectModal({{ $employee->id }})"
                                                 class="text-green-600 hover:text-green-800" title="Добавить в проект">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                             </svg>
                                         </button>
-                                        
+
                                         <!-- Удалить (корзина) -->
-                                        <button onclick="deleteEmployee({{ $employee->id }})" 
+                                        <button onclick="deleteEmployee({{ $employee->id }})"
                                                 class="text-red-600 hover:text-red-800" title="Удалить">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -264,16 +269,16 @@
 
             <form id="addToProjectForm">
                 <input type="hidden" id="add-employee-id">
-                
+
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Проект</label>
                     <div class="relative">
-                        <input type="text" id="add-project-search" 
-                               placeholder="Начните вводить название проекта..." 
-                               class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 px-3 py-2" 
+                        <input type="text" id="add-project-search"
+                               placeholder="Начните вводить название проекта..."
+                               class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 px-3 py-2"
                                autocomplete="off">
                         <input type="hidden" id="add-project-id" required>
-                        
+
                         <!-- Выпадающий список автодополнения -->
                         <div id="project-suggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
                             <!-- Заглушка "Загружаются проекты" -->
@@ -286,7 +291,7 @@
                                     Загружаются проекты...
                                 </div>
                             </div>
-                            
+
                             <!-- Сообщение "Нет подходящих проектов" -->
                             <div id="project-no-results" class="px-4 py-6 text-center hidden">
                                 <div class="mb-3">
@@ -297,7 +302,7 @@
                                 <div class="text-base font-medium text-gray-900 mb-1">Проекты не найдены</div>
                                 <div class="text-sm text-gray-500">Попробуйте изменить поисковый запрос</div>
                             </div>
-                            
+
                             <!-- Список проектов -->
                             <div id="project-suggestions-list"></div>
                         </div>
@@ -361,12 +366,12 @@
                     </svg>
                 </button>
             </div>
-            
+
             <div class="mb-6">
                 <p class="text-gray-700">Вы уверены, что хотите удалить этого сотрудника?</p>
                 <p class="text-sm text-gray-500 mt-2">Это действие нельзя будет отменить.</p>
             </div>
-            
+
             <div class="flex justify-end space-x-3">
                 <button onclick="closeModal('deleteConfirmModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200">
                     Отмена
@@ -397,8 +402,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Настройка debounce для поиска
 function setupSearchDebounce() {
-    const searchInputs = ['search-name', 'search-email', 'search-role'];
-    
+    const searchInputs = ['search-name', 'search-email'];
+
     searchInputs.forEach(id => {
         const input = document.getElementById(id);
         if (input) {
@@ -410,6 +415,14 @@ function setupSearchDebounce() {
             });
         }
     });
+
+    // Отдельная обработка для выпадающего списка ролей
+    const roleSelect = document.getElementById('search-role');
+    if (roleSelect) {
+        roleSelect.addEventListener('change', function() {
+            performSearch();
+        });
+    }
 }
 
 // Настройка отправки форм
@@ -419,19 +432,19 @@ function setupFormSubmissions() {
         e.preventDefault();
         createEmployee();
     });
-    
+
     // Форма редактирования
     document.getElementById('editEmployeeForm').addEventListener('submit', function(e) {
         e.preventDefault();
         updateEmployee();
     });
-    
+
     // Форма добавления в проект
     document.getElementById('addToProjectForm').addEventListener('submit', function(e) {
         e.preventDefault();
         addToProject();
     });
-    
+
     // Форма комментария к статусу
     document.getElementById('statusCommentForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -446,7 +459,7 @@ function openCreateModal() {
 
 function openEditModal(employeeId) {
     console.log('openEditModal вызвана, employeeId:', employeeId);
-    
+
     // Загрузить данные сотрудника
     fetch(`/managers/${employeeId}`)
         .then(response => response.json())
@@ -463,12 +476,12 @@ function openEditModal(employeeId) {
 function openAddToProjectModal(employeeId) {
     document.getElementById('add-employee-id').value = employeeId;
     document.getElementById('addToProjectModal').classList.remove('hidden');
-    
+
     // Очищаем поля
     document.getElementById('add-project-search').value = '';
     document.getElementById('add-project-id').value = '';
     document.getElementById('project-suggestions').classList.add('hidden');
-    
+
     // Инициализируем автодополнение
     setTimeout(() => {
         initProjectAutocomplete();
@@ -491,9 +504,9 @@ function closeModal(modalId) {
 // API функции
 function createEmployee() {
     const formData = new FormData(document.getElementById('createEmployeeForm'));
-    
+
     console.log('Отправляем данные для создания сотрудника:', Object.fromEntries(formData));
-    
+
     fetch('/managers', {
         method: 'POST',
         body: formData,
@@ -525,13 +538,13 @@ function createEmployee() {
 function updateEmployee() {
     const employeeId = document.getElementById('edit-employee-id').value;
     const formData = new FormData(document.getElementById('editEmployeeForm'));
-    
+
     // Добавляем _method для эмуляции PATCH через POST
     formData.append('_method', 'PATCH');
-    
+
     console.log('updateEmployee вызвана, employeeId:', employeeId);
     console.log('URL запроса:', `/managers/${employeeId}`);
-    
+
     fetch(`/managers/${employeeId}`, {
         method: 'POST',
         body: formData,
@@ -571,7 +584,7 @@ function confirmDeleteEmployee() {
     if (deleteEmployeeId) {
         const url = `/managers/${deleteEmployeeId}`;
         console.log('Отправляем DELETE запрос на:', url);
-        
+
         fetch(url, {
             method: 'DELETE',
             headers: {
@@ -596,7 +609,7 @@ function confirmDeleteEmployee() {
             console.error('Ошибка:', error);
             showToast('Ошибка при удалении сотрудника');
         });
-        
+
         deleteEmployeeId = null;
     } else {
         console.error('deleteEmployeeId не установлен!');
@@ -630,13 +643,13 @@ function updateStatus(employeeId, status) {
 function addToProject() {
     const employeeId = document.getElementById('add-employee-id').value;
     const projectId = document.getElementById('add-project-id').value;
-    
+
     // Валидация
     if (!projectId) {
         showToast('Выберите проект');
         return;
     }
-    
+
     fetch('/assignments', {
         method: 'POST',
         headers: {
@@ -669,7 +682,7 @@ function addToProject() {
 function saveStatusComment() {
     const employeeId = document.getElementById('comment-employee-id').value;
     const comment = document.getElementById('status-comment').value;
-    
+
     fetch(`/managers/${employeeId}/status-comment`, {
         method: 'POST',
         headers: {
@@ -704,10 +717,10 @@ function showAssignments(employeeId) {
             } else {
                 list.innerHTML = assignments.map((assignment, index) => {
                     const hasUrl = assignment.project_url && assignment.project_url !== '';
-                    const buttonClass = hasUrl 
-                        ? 'bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600' 
+                    const buttonClass = hasUrl
+                        ? 'bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600'
                         : 'bg-gray-300 text-gray-500 px-3 py-1 rounded text-sm cursor-not-allowed';
-                    
+
                     return `
                         <div class="border-b border-gray-200 pb-4 mb-4 last:border-b-0">
                             <div class="flex items-start justify-between">
@@ -721,7 +734,7 @@ function showAssignments(employeeId) {
                                     </div>
                                 </div>
                                 <div class="ml-4 flex-shrink-0">
-                                    ${hasUrl 
+                                    ${hasUrl
                                         ? `<a href="${assignment.project_url}" class="${buttonClass}">Перейти в проект</a>`
                                         : `<button class="${buttonClass}" title="Ссылка недоступна" disabled>Перейти в проект</button>`
                                     }
@@ -740,14 +753,14 @@ function performSearch() {
     const name = document.getElementById('search-name').value;
     const email = document.getElementById('search-email').value;
     const role = document.getElementById('search-role').value;
-    
+
     const params = new URLSearchParams();
     if (name) params.append('query[name]', name);
     if (email) params.append('query[email]', email);
     if (role) params.append('query[role]', role);
     if (currentSort.field) params.append('sort', currentSort.field);
     if (currentSort.order) params.append('order', currentSort.order);
-    
+
     fetch(`/managers?${params.toString()}`, {
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
@@ -766,7 +779,7 @@ function sortTable(field) {
         currentSort.field = field;
         currentSort.order = 'asc';
     }
-    
+
     performSearch();
 }
 
@@ -796,25 +809,25 @@ function updateTable(employees) {
                             </svg>
                         </button>
                     ` : ''}
-                    <button onclick="showAssignments(${employee.id})" 
+                    <button onclick="showAssignments(${employee.id})"
                             class="text-blue-600 hover:text-blue-800" title="Назначен на проекты">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                         </svg>
                     </button>
-                    <button onclick="openEditModal(${employee.id})" 
+                    <button onclick="openEditModal(${employee.id})"
                             class="text-gray-600 hover:text-gray-800" title="Редактировать">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                         </svg>
                     </button>
-                    <button onclick="openAddToProjectModal(${employee.id})" 
+                    <button onclick="openAddToProjectModal(${employee.id})"
                             class="text-green-600 hover:text-green-800" title="Добавить в проект">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
                     </button>
-                    <button onclick="deleteEmployee(${employee.id})" 
+                    <button onclick="deleteEmployee(${employee.id})"
                             class="text-red-600 hover:text-red-800" title="Удалить">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -831,16 +844,16 @@ function loadEmployees() {
     const name = document.getElementById('search-name')?.value || '';
     const email = document.getElementById('search-email')?.value || '';
     const role = document.getElementById('search-role')?.value || '';
-    
+
     const params = new URLSearchParams();
     if (name) params.append('query[name]', name);
     if (email) params.append('query[email]', email);
     if (role) params.append('query[role]', role);
     if (currentSort.field) params.append('sort', currentSort.field);
     if (currentSort.order) params.append('order', currentSort.order);
-    
+
     console.log('Загружаем сотрудников с параметрами:', params.toString());
-    
+
     fetch(`/managers?${params.toString()}`, {
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
@@ -869,7 +882,7 @@ function showToast(message) {
     const toastMessage = document.getElementById('toast-message');
     toastMessage.textContent = message;
     toast.classList.remove('translate-x-full');
-    
+
     setTimeout(() => {
         toast.classList.add('translate-x-full');
     }, 3000);
@@ -883,13 +896,13 @@ let allProjects = []; // Массив всех загруженных проек
 // Инициализация автодополнения при открытии модалки
 function initProjectAutocomplete() {
     console.log('initProjectAutocomplete вызвана');
-    
+
     const searchInput = document.getElementById('add-project-search');
     const suggestionsDiv = document.getElementById('project-suggestions');
     const loadingDiv = document.getElementById('project-loading');
     const noResultsDiv = document.getElementById('project-no-results');
     const suggestionsListDiv = document.getElementById('project-suggestions-list');
-    
+
     console.log('Элементы найдены:', {
         searchInput: !!searchInput,
         suggestionsDiv: !!suggestionsDiv,
@@ -897,54 +910,54 @@ function initProjectAutocomplete() {
         noResultsDiv: !!noResultsDiv,
         suggestionsListDiv: !!suggestionsListDiv
     });
-    
+
     if (!searchInput) {
         console.error('searchInput не найден!');
         return;
     }
-    
+
     // Обработчик фокуса на поле поиска (показываем все проекты)
     searchInput.addEventListener('focus', function() {
         console.log('Фокус на поле поиска - загружаем все проекты');
         loadAllProjects();
     });
-    
+
     // Обработчик ввода в поле поиска
     searchInput.addEventListener('input', function() {
         const query = this.value.trim();
         console.log('Ввод в поле поиска:', query);
-        
+
         // Очищаем предыдущий таймаут
         if (projectSearchTimeout) {
             clearTimeout(projectSearchTimeout);
         }
-        
+
         // Если поиск пустой, показываем все проекты
         if (query.length < 1) {
             console.log('Поиск пустой, показываем все проекты');
             displayProjects(allProjects);
             return;
         }
-        
+
         // Фильтруем проекты локально
         const filteredProjects = allProjects.filter(project => {
             const title = project.title.toLowerCase();
             const location = (project.location || '').toLowerCase();
             const search = query.toLowerCase();
-            
+
             return title.includes(search) || location.includes(search);
         });
-        
+
         console.log('Отфильтрованные проекты:', filteredProjects);
         displayProjects(filteredProjects);
     });
-    
+
     // Обработчик клавиш для навигации
     searchInput.addEventListener('keydown', function(event) {
         const suggestions = document.querySelectorAll('.project-suggestion-item');
-        
+
         if (!suggestions.length) return;
-        
+
         switch(event.key) {
             case 'ArrowDown':
                 event.preventDefault();
@@ -970,7 +983,7 @@ function initProjectAutocomplete() {
                 break;
         }
     });
-    
+
     // Обработчик клика вне области поиска
     document.addEventListener('click', function(event) {
         if (!searchInput.contains(event.target) && !suggestionsDiv.contains(event.target)) {
@@ -998,12 +1011,12 @@ function displayProjects(projects) {
     const loadingDiv = document.getElementById('project-loading');
     const noResultsDiv = document.getElementById('project-no-results');
     const suggestionsListDiv = document.getElementById('project-suggestions-list');
-    
+
     // Показываем список
     suggestionsDiv.classList.remove('hidden');
     loadingDiv.classList.add('hidden');
     selectedProjectIndex = -1;
-    
+
     if (projects.length === 0) {
         // Показываем сообщение "Нет результатов"
         noResultsDiv.classList.remove('hidden');
@@ -1011,7 +1024,7 @@ function displayProjects(projects) {
     } else {
         // Скрываем сообщение "Нет результатов"
         noResultsDiv.classList.add('hidden');
-        
+
         // Отображаем список проектов
         suggestionsListDiv.innerHTML = projects.map((project, index) => `
             <div class="px-3 py-2 cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0 project-suggestion-item"
@@ -1033,14 +1046,14 @@ async function loadAllProjects() {
     const loadingDiv = document.getElementById('project-loading');
     const noResultsDiv = document.getElementById('project-no-results');
     const suggestionsListDiv = document.getElementById('project-suggestions-list');
-    
+
     // Показываем заглушку загрузки
     suggestionsDiv.classList.remove('hidden');
     loadingDiv.classList.remove('hidden');
     noResultsDiv.classList.add('hidden');
     suggestionsListDiv.innerHTML = '';
     selectedProjectIndex = -1;
-    
+
     try {
         const response = await fetch('/managers/projects/autocomplete?q=', {
             headers: {
@@ -1048,17 +1061,17 @@ async function loadAllProjects() {
                 'X-Requested-With': 'XMLHttpRequest'
             }
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             console.log('Все проекты загружены:', data);
-            
+
             const suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
             console.log('Все проекты (массив):', suggestions);
-            
+
             // Сохраняем все проекты в глобальную переменную
             allProjects = suggestions;
-            
+
             // Отображаем проекты
             displayProjects(suggestions);
         }
