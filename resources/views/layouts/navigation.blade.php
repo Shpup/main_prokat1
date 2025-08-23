@@ -60,21 +60,22 @@
 
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="route('personnel')" :active="request()->routeIs('personnel')">
-                        {{ __('Персонал') }}
+                        {{ __('График') }}
                     </x-nav-link>
                 </div>
+
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="route('managers')" :active="request()->routeIs('managers')">
-                        {{ __('Менеджеры') }}
+                        {{ __('Сотрудники') }}
                     </x-nav-link>
                 </div>
+
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')">
                         {{ __('Разрешения') }}
                     </x-nav-link>
                 </div>
             </div>
-
             <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 <div x-data="{ open: false }" class="relative">

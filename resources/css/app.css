@@ -14,6 +14,48 @@
 .category-tree .collapsible .collapsible-content .collapsible .collapsible-content .collapsible {
     padding-left: 3rem;
 }
+
+ .editable:hover {
+     background-color: #f0f0f0;
+     cursor: pointer;
+ }
+.editing {
+    background-color: #e6f3ff;
+}
+.new {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+.visible {
+    opacity: 1;
+}
+.catalog-category {
+    cursor: pointer;
+    padding: 4px 0;
+}
+.catalog-sub {
+    display: none;
+    margin-left: 1.5rem;
+}
+.catalog-sub.open {
+    display: block;
+}
+.catalog-toggle::before {
+    content: '➤';
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 1.2em;
+    color: #4b5563;
+    transition: transform 0.2s, color 0.2s;
+}
+.catalog-toggle:hover::before {
+    color: #1d4ed8;
+}
+.catalog-toggle.open::before {
+    transform: rotate(90deg);
+    color: #1d4ed8;
+}
+
 .category-item {
     display: flex;
     align-items: center;

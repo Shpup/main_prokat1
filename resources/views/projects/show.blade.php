@@ -67,10 +67,13 @@
 
         {{-- Вкладки --}}
         @php
-            $tab = request('tab', 'estimate');
+            $tab = request('tab', 'info');
         @endphp
 
         <div class="flex space-x-4 border-b border-gray-200 mb-4">
+            <a href="{{ route('projects.show', $project->id) }}?tab=info" class="px-4 py-2 {{ $tab === 'info' ? 'border-b-2 border-blue-600 font-semibold text-blue-700' : 'text-gray-600' }}">
+                Информация
+            </a>
             <a href="{{ route('projects.show', $project->id) }}?tab=estimate" class="px-4 py-2 {{ $tab === 'estimate' ? 'border-b-2 border-blue-600 font-semibold text-blue-700' : 'text-gray-600' }}">
                 Смета
             </a>
@@ -78,9 +81,187 @@
                 Персонал
             </a>
         </div>
+    @if ($tab === 'info')
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="grid grid-cols-2 gap-6">
+                <!-- Левая колонка: Информация о проекте -->
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Информация о проекте</h2>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600">Название проекта</label>
+                        <div class="mt-1 text-gray-800">
+                            @can('edit projects')
+                                @if($project->status !== 'completed')
+                                    <span class="editable" data-field="name" data-value="{{ $project->name }}">{{ $project->name }}</span>
+                                @else
+                                    <p>{{ $project->name }}</p>
+                                @endif
+                            @else
+                                <p>{{ $project->name }}</p>
+                            @endcan
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600">Дата начала</label>
+                        <div class="mt-1 text-gray-800">
+                            @can('edit projects')
+                                @if($project->status !== 'completed')
+                                    <span class="editable" data-field="start_date" data-value="{{ $project->start_date }}">{{ $project->start_date ? \Carbon\Carbon::parse($project->start_date)->format('d.m.Y') : '—' }}</span>
+                                @else
+                                    <p>{{ $project->start_date ? \Carbon\Carbon::parse($project->start_date)->format('d.m.Y') : '—' }}</p>
+                                @endif
+                            @else
+                                <p>{{ $project->start_date ? \Carbon\Carbon::parse($project->start_date)->format('d.m.Y') : '—' }}</p>
+                            @endcan
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600">Дата окончания</label>
+                        <div class="mt-1 text-gray-800">
+                            @can('edit projects')
+                                @if($project->status !== 'completed')
+                                    <span class="editable" data-field="end_date" data-value="{{ $project->end_date }}">{{ $project->end_date ? \Carbon\Carbon::parse($project->end_date)->format('d.m.Y') : '—' }}</span>
+                                @else
+                                    <p>{{ $project->end_date ? \Carbon\Carbon::parse($project->end_date)->format('d.m.Y') : '—' }}</p>
+                                @endif
+                            @else
+                                <p>{{ $project->end_date ? \Carbon\Carbon::parse($project->end_date)->format('d.m.Y') : '—' }}</p>
+                            @endcan
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600">Менеджер</label>
+                        <div class="mt-1 text-gray-800">
+                            @can('edit projects')
+                                @if($project->status !== 'completed')
+                                    <span class="editable-select" data-field="manager_id" data-value="{{ $project->manager_id }}">{{ $project->manager ? $project->manager->name : '—' }}</span>
+                                @else
+                                    <p>{{ $project->manager ? $project->manager->name : '—' }}</p>
+                                @endif
+                            @else
+                                <p>{{ $project->manager ? $project->manager->name : '—' }}</p>
+                            @endcan
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600">Комментарий</label>
+                        <div class="mt-1 text-gray-800">
+                            @can('edit projects')
+                                @if($project->status !== 'completed')
+                                    <span class="editable" data-field="description" data-value="{{ $project->description ?? '' }}" style="white-space: pre-wrap;">{{ $project->description ?? '—' }}</span>
+                                @else
+                                    <p style="white-space: pre-wrap;">{{ $project->description ?? '—' }}</p>
+                                @endif
+                            @else
+                                <p style="white-space: pre-wrap;">{{ $project->description ?? '—' }}</p>
+                            @endcan
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600">Создатель</label>
+                        <p class="mt-1 text-gray-800">{{ $project->admin ? $project->admin->name : '—' }} ({{ $project->created_at ? \Carbon\Carbon::parse($project->created_at)->format('d.m.Y H:i') : '—' }})</p>
+                    </div>
+                </div>
+
+                <!-- Правая колонка: Информация о заказчике -->
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Информация о заказчике</h2>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600">Клиент</label>
+                        <div class="mt-1 text-gray-800">
+                            @can('edit projects')
+                                @if($project->status !== 'completed')
+                                    <span class="editable-select" data-field="client_id" data-value="{{ $project->client_id }}">{{ $project->client ? $project->client->name : '—' }}</span>
+                                @else
+                                    <p>{{ $project->client ? $project->client->name : '—' }}</p>
+                                @endif
+                            @else
+                                <p>{{ $project->client ? $project->client->name : '—' }}</p>
+                            @endcan
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600">Телефон клиента</label>
+                        <div class="mt-1 text-gray-800">
+                            @can('edit projects')
+                                @if($project->status !== 'completed')
+                                    <span class="editable-client" data-field="phone" data-value="{{ $project->client ? $project->client->phone : '' }}" data-client-id="{{ $project->client_id }}" data-client-name="{{ $project->client ? $project->client->name : '' }}">{{ $project->client ? $project->client->phone : '—' }}</span>
+                                @else
+                                    <p>{{ $project->client ? $project->client->phone : '—' }}</p>
+                                @endif
+                            @else
+                                <p>{{ $project->client ? $project->client->phone : '—' }}</p>
+                            @endcan
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600">Площадка</label>
+                        <div class="mt-1 text-gray-800 flex items-center">
+                            @can('edit projects')
+                                @if($project->status !== 'completed')
+                                    <span class="editable-select" data-field="site_id" data-value="{{ $project->site_id }}">{{ $project->site ? $project->site->name : '—' }}</span>
+                                    <button type="button" onclick="openModal('createSiteModal')" class="text-green-600 hover:text-green-700 inline-block ml-2">+</button>
+                                @else
+                                    <p>{{ $project->site ? $project->site->name : '—' }}</p>
+                                @endif
+                            @else
+                                <p>{{ $project->site ? $project->site->name : '—' }}</p>
+                            @endcan
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600">Адрес</label>
+                        <p id="siteAddress" class="mt-1 text-gray-800">{{ $project->site ? $project->site->address : '—' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Модальное окно для создания площадки -->
+            <div id="createSiteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+                <div class="bg-white rounded-lg p-6 w-full max-w-lg">
+                    <h2 id="modalTitle" class="text-xl font-semibold text-gray-800 mb-4">Добавить площадку</h2>
+                    <form id="createSiteForm" action="{{ route('sites.store') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="id" id="site_id">
+                        <div class="mb-4">
+                            <label for="site_name" class="block text-sm font-medium text-gray-600">Наименование</label>
+                            <input type="text" name="name" id="site_name" class="mt-1 block w-full border-gray-300 rounded-md">
+                        </div>
+                        <div class="mb-4">
+                            <label for="site_address" class="block text-sm font-medium text-gray-600">Адрес</label>
+                            <input type="text" name="address" id="site_address" class="mt-1 block w-full border-gray-300 rounded-md">
+                        </div>
+                        <div class="mb-4">
+                            <label for="site_phone" class="block text-sm font-medium text-gray-600">Телефон</label>
+                            <input type="text" name="phone" id="site_phone" class="mt-1 block w-full border-gray-300 rounded-md">
+                        </div>
+                        <div class="mb-4">
+                            <label for="site_manager" class="block text-sm font-medium text-gray-600">Менеджер</label>
+                            <input type="text" name="manager" id="site_manager" class="mt-1 block w-full border-gray-300 rounded-md">
+                        </div>
+                        <div class="mb-4">
+                            <label for="site_access_mode" class="block text-sm font-medium text-gray-600">Режим доступа</label>
+                            <select name="access_mode" id="site_access_mode" class="mt-1 block w-full border-gray-300 rounded-md">
+                                <option value="none">Без контроля</option>
+                                <option value="documents">По документам</option>
+                                <option value="passes">По пропускам</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="site_comment" class="block text-sm font-medium text-gray-600">Комментарий</label>
+                            <textarea name="comment" id="site_comment" class="mt-1 block w-full border-gray-300 rounded-md"></textarea>
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="button" onclick="closeModal('createSiteModal')" class="mr-2 bg-gray-300 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-400">Отмена</button>
+                            <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Сохранить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
         {{-- Контент вкладки --}}
-        @if ($tab === 'estimate')
+        @elseif ($tab === 'estimate')
             {{-- Смета --}}
         <div class="bg-white rounded-lg shadow-lg p-6">
             <h1 class="text-2xl font-semibold mb-4 text-gray-800">Сметы проекта</h1>
@@ -103,7 +284,6 @@
                 <div id="catalogTree" class="text-gray-600"></div>
             </div>
 
-            {{-- Суб-табы для смет --}}
             <div class="flex space-x-4 border-b border-gray-200 mb-4">
                 @foreach($estimates as $est)
                     <a href="{{ route('projects.show', $project->id) }}?tab=estimate&est_id={{ $est->id }}" class="px-4 py-2 {{ $currentEstimate->id === $est->id ? 'border-b-2 border-blue-600 font-semibold text-blue-700' : 'text-gray-600 hover:text-blue-600' }}">
@@ -112,17 +292,59 @@
                 @endforeach
             </div>
 
-            {{-- Контент текущей сметы --}}
             <div class="mb-8 border-b pb-4">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-xl font-semibold text-gray-800">{{ $currentEstimate->name }}</h2>
+                <h2 class="text-xl font-semibold text-gray-800">
+                    {{ $currentEstimate->name }}
+                </h2>
+
+                <div class="flex items-center space-x-2">
+                    @php
+                        $btn = 'relative group flex items-center h-8 w-8 overflow-hidden rounded-full transition-all duration-500 ease-in-out';
+                        $icon = 'flex-shrink-0 flex items-center justify-center w-8 h-8';
+                        $label = 'absolute left-8 top-1/2 transform -translate-y-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200';
+                    @endphp
+
                     @if($project->status !== 'completed')
-                        <button onclick="deleteEstimate({{ $currentEstimate->id }})" class="text-red-600 hover:text-red-800">Удалить</button>
+                        <button
+                            onclick="deleteEstimate({{ $currentEstimate->id }})"
+                            title="Удалить"
+                            class="{{ $btn }} bg-red-100 text-red-600 hover:w-24"
+                        >
+                            <span class="{{ $icon }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </span>
+                            <span class="{{ $label }}">Удалить</span>
+                        </button>
                     @endif
-                    <a href="{{ route('estimates.export', $currentEstimate) }}" class="text-green-600 hover:text-green-800">Экспорт в PDF</a>
-                    <a href="{{ route('estimates.exportExcel', $currentEstimate) }}"
-                       class="text-blue-600 hover:text-blue-800">
-                        Экспорт в Excel
+
+                    <a
+                        href="{{ route('estimates.export', $currentEstimate) }}"
+                        target="_blank"
+                        title="PDF"
+                        class="{{ $btn }} bg-green-100 text-green-600 hover:w-20"
+                    >
+                        <span class="{{ $icon }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10M7 11h10M7 15h10M5 3h10a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/>
+                            </svg>
+                        </span>
+                        <span class="{{ $label }}">PDF</span>
+                    </a>
+
+                    <a
+                        href="{{ route('estimates.exportExcel', $currentEstimate) }}"
+                        target="_blank"
+                        title="Excel"
+                        class="{{ $btn }} bg-blue-100 text-blue-600 hover:w-20"
+                    >
+                        <span class="{{ $icon }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h13M4 10h13M4 4v16M20 4v16M8 4v16M16 4v16"/>
+                            </svg>
+                        </span>
+                        <span class="{{ $label }}">Excel</span>
                     </a>
                 </div>
 
@@ -161,185 +383,202 @@
                     </form>
                 @endif
 
-
-                @php
-                    if (!function_exists('renderTree1')) {
-                        function renderTree1($tree, $level = 0, $calculated, $section = 'equipment', $estimateId, $hasViewPrices, $canEdit) {
-                            \Log::debug('renderTree1 data', ['tree' => $tree, 'section' => $section]);
-                            foreach ($tree as $key => $val) {
-                                $colspan = 2 + ($hasViewPrices ? 4 : 0) + ($canEdit ? 1 : 0);
-
-                                // Рендеринг категории
-                                echo '<tr><td class="p-2 border pl-' . ($level * 4) . '" colspan="' . $colspan . '">' . htmlspecialchars($key) . '</td></tr>';
-
-                                // Рекурсия для подкатегорий
-                                if (isset($val['sub']) && !empty($val['sub'])) {
-                                    renderTree1($val['sub'], $level + 1, $calculated, $section, $estimateId, $hasViewPrices, $canEdit);
-                                }
-                                // Рендеринг оборудования
-                                if (isset($val['equipment']) && !empty($val['equipment'])) {
-                                    foreach ($val['equipment'] as $eqName => $eq) {
-                                        $sum = ($eq['price'] ?? 0) * ($eq['qty'] ?? 0);
-                                        $discount = $calculated[$section]['discount'] ?? 0;
-                                        $afterDisc = $sum * (1 - $discount / 100);
-
-                                        echo '<tr data-equipment-id="' . ($eq['id'] ?? 0) . '">';
-                                        echo '<td class="p-2 border pl-' . (($level + 1) * 4) . '">' . htmlspecialchars($eqName) . '</td>';
-                                        echo '<td class="p-2 border">' . ($eq['qty'] ?? 0) . '</td>'; // Количество
-                                        if ($hasViewPrices) {
-                                            echo '<td class="p-2 border">' . number_format($eq['price'] ?? 0, 2) . '</td>'; // Цена
-                                            echo '<td class="p-2 border">' . number_format($sum, 2) . '</td>'; // Сумма
-                                            echo '<td class="p-2 border">' . $discount . '</td>'; // Скидка
-                                            echo '<td class="p-2 border">' . number_format($afterDisc, 2) . '</td>'; // После скидки
-                                        }
-                                        if ($canEdit) {
-                                            // Столбец для действий (крестик удаления)
-                                            echo '<td class="p-2 border">';
-                                            echo '<button onclick="removeEquipment(' . ($eq['id'] ?? 0) . ', ' . $estimateId . ')" class="text-red-600 hover:text-red-800">';
-                                            echo '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
-                                            echo '</button>';
-                                            echo '</td>';
-                                        }
-                                        echo '</tr>';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                @endphp
-
                 <table class="w-full border-collapse">
                     <thead>
                     <tr class="bg-gray-200">
-                        <th class="p-2 border">Наименование</th>
+                        <th class="p-2 border text-left">Наименование</th>
+                        <th class="p-2 border text-left">Описание</th>
                         <th class="p-2 border">Кол-во</th>
-                        @can('view prices')
-                            <th class="p-2 border">Цена</th>
-                            <th class="p-2 border">Сумма</th>
-                            <th class="p-2 border">Скидка (%)</th>
-                            <th class="p-2 border">После скидки</th>
-                        @endcan
-                        @if ($project->status !== 'completed')
+                        <th class="p-2 border">Цена за ед. (₽)</th>
+                        <th class="p-2 border">Коэффициент</th>
+                        <th class="p-2 border">Сумма (₽)</th>
+                        <th class="p-2 border">Скидка (%)</th>
+                        <th class="p-2 border">Сумма со скидкой (₽)</th>
+                        @if($project->status !== 'completed')
                             <th class="p-2 border">Действия</th>
                         @endif
-                        </tr>
-                        </thead>
+                    </tr>
+                    </thead>
                     <tbody id="estimateTableBody">
-                    <!-- Оборудование -->
-                    <tr class="bg-gray-100">
-                        <td colspan="{{ auth()->user()->can('view prices') ? ($project->status !== 'completed' ? 7 : 6) : ($project->status !== 'completed' ? 3 : 2) }}" class="p-2 font-bold text-gray-800">Оборудование</td>
-                    </tr>
-                    @if (empty($currentEstimate->calculated['equipment']['tree']))
-                        <tr><td colspan="{{ auth()->user()->can('view prices') ? ($project->status !== 'completed' ? 7 : 6) : ($project->status !== 'completed' ? 3 : 2) }}" class="p-2 border text-center">Нет оборудования</td></tr>
-                    @else
-                        {!! renderTree1($currentEstimate->calculated['equipment']['tree'], 0, $currentEstimate->calculated, 'equipment', $currentEstimate->id, auth()->user()->can('view prices'), $project->status !== 'completed') !!}
-                    @endif
-                    <tr class="font-bold">
-                        <td class="p-2 border">Итого оборудование</td>
-                        <td class="p-2 border"></td>
-                        @can('view prices')
-                            <td class="p-2 border"></td>
-                            <td class="p-2 border">{{ number_format($currentEstimate->calculated['equipment']['total'] ?? 0, 2) }}</td>
-                            <td class="p-2 border">{{ $currentEstimate->calculated['equipment']['discount'] ?? 0 }}</td>
-                            <td class="p-2 border">{{ number_format($currentEstimate->calculated['equipment']['after_disc'] ?? 0, 2) }}</td>
-                        @endcan
-                        @if ($project->status !== 'completed')
-                            <td class="p-2 border"></td>
-                        @endif
-                    </tr>
+                    @php
+                        if (! function_exists('renderTree1')) {
+                            function renderTree1($tree, $level = 0, $isMain = true, $project, $currentEstimate) {
+                                $html = '';
+                                if (empty($tree)) {
+                                    \Log::debug('Tree is empty at level ' . $level . ', isMain: ' . ($isMain ? 'true' : 'false'));
+                                    return $html;
+                                }
 
-                    <!-- Материалы -->
-                    <tr class="bg-gray-100">
-                        <td colspan="{{ auth()->user()->can('view prices') ? ($project->status !== 'completed' ? 7 : 6) : ($project->status !== 'completed' ? 3 : 2) }}" class="p-2 font-bold text-gray-800">Материалы</td>
-                    </tr>
-                    @if (empty($currentEstimate->calculated['materials']['tree']))
-                        <tr><td colspan="{{ auth()->user()->can('view prices') ? ($project->status !== 'completed' ? 7 : 6) : ($project->status !== 'completed' ? 3 : 2) }}" class="p-2 border text-center">Нет материалов</td></tr>
-                    @else
-                        {!! renderTree1($currentEstimate->calculated['materials']['tree'], 0, $currentEstimate->calculated, 'materials', $currentEstimate->id, auth()->user()->can('view prices'), $project->status !== 'completed') !!}
-                    @endif
-                    <tr class="font-bold">
-                        <td class="p-2 border">Итого материалы</td>
-                        <td class="p-2 border"></td>
-                        @can('view prices')
-                            <td class="p-2 border"></td>
-                            <td class="p-2 border">{{ number_format($currentEstimate->calculated['materials']['total'] ?? 0, 2) }}</td>
-                            <td class="p-2 border">{{ $currentEstimate->calculated['materials']['discount'] ?? 0 }}</td>
-                            <td class="p-2 border">{{ number_format($currentEstimate->calculated['materials']['after_disc'] ?? 0, 2) }}</td>
-                        @endcan
-                        @if ($project->status !== 'completed')
-                            <td class="p-2 border"></td>
-                        @endif
-                    </tr>
+                                foreach ($tree as $catName => $node) {
+                                    \Log::debug('Processing category: ' . $catName . ' at level ' . $level . ', Node: ' . json_encode($node));
+                                    $hasEquipment = !empty($node['equipment']) && is_array($node['equipment']);
+                                    $hasSub = !empty($node['sub']) && is_array($node['sub']);
+                                    $hasSubEquipment = false;
+                                    if ($hasSub) {
+                                        foreach ($node['sub'] as $subNode) {
+                                            if (!empty($subNode['equipment']) || !empty($subNode['sub'])) {
+                                                $hasSubEquipment = true;
+                                                break;
+                                            }
+                                        }
+                                    }
 
-                    <!-- Услуги -->
-                    <tr class="bg-gray-100">
-                        <td colspan="{{ auth()->user()->can('view prices') ? ($project->status !== 'completed' ? 7 : 6) : ($project->status !== 'completed' ? 3 : 2) }}" class="p-2 font-bold text-gray-800">Услуги</td>
-                    </tr>
-                    @if (empty($currentEstimate->calculated['services']['staff']) && $currentEstimate->delivery_cost == 0)
-                        <tr><td colspan="{{ auth()->user()->can('view prices') ? ($project->status !== 'completed' ? 7 : 6) : ($project->status !== 'completed' ? 3 : 2) }}" class="p-2 border text-center">Нет услуг</td></tr>
-                    @else
-                        @foreach($currentEstimate->calculated['services']['staff'] as $st)
-                            <tr>
-                                <td class="p-2 border">{{ htmlspecialchars($st['name']) }} ({{ $st['rate_type'] }}, {{ $st['minutes'] }} мин)</td>
-                                <td class="p-2 border">1</td>
-                                @can('view prices')
-                                    <td class="p-2 border">{{ number_format($st['rate'] ?? 0, 2) }}</td>
-                                    <td class="p-2 border">{{ number_format($st['sum'] ?? 0, 2) }}</td>
-                                    <td class="p-2 border">{{ $currentEstimate->calculated['services']['discount'] ?? 0 }}</td>
-                                    <td class="p-2 border">{{ number_format(($st['sum'] ?? 0) * (1 - ($currentEstimate->calculated['services']['discount'] ?? 0)/100), 2) }}</td>
-                                @endcan
-                                @if ($project->status !== 'completed')
-                                    <td class="p-2 border"></td> <!-- Нет удаления для услуг -->
-                                @endif
+                                    if ($hasEquipment || $hasSubEquipment) {
+                                        $class = $isMain ? 'bg-gray-100 font-bold' : 'font-bold';
+                                        $padding = $isMain ? '' : 'pl-' . ($level * 4);
+                                        $colspan = $project->status !== 'completed' ? 9 : 8;
+                                        $html .= '<tr class="' . $class . '" data-level="' . $level . '"><td class="p-2 border ' . $padding . '" colspan="' . $colspan . '">' . htmlspecialchars($catName) . '</td></tr>';
+                                        if ($hasSub || $hasEquipment) {
+                                            $html .= '<tr class="catalog-sub" style="display: none;"><td colspan="' . $colspan . '" class="p-0"><div class="pl-' . ($level + 1) * 4 . '">';
+                                        }
+
+                                        if ($hasEquipment) {
+                                            foreach ($node['equipment'] as $eqKey => $eq) {
+                                                \Log::debug('Rendering equipment: ' . $eq['name'] . ', Key: ' . $eqKey . ', Data: ' . json_encode($eq));
+                                                $sum = ($eq['price'] ?? 0) * ($eq['coefficient'] ?? 1.0) * ($eq['qty'] ?? 1);
+                                                $afterDiscount = $sum * (1 - (($eq['discount'] ?? 0) / 100));
+                                                $html .= '<tr data-equipment-id="' . ($eq['id'] ?? 0) . '" data-is-consumable="' . (isset($eq['is_consumable']) && $eq['is_consumable'] ? 'true' : 'false') . '">';
+                                                $html .= '<td class="p-2 border pl-' . (($level + 1) * 4) . '">' . htmlspecialchars($eq['name']) . '</td>';
+                                                $html .= '<td class="p-2 border pl-' . (($level + 1) * 4) . '">' . htmlspecialchars($eq['description'] ?? '') . '</td>';
+                                                $html .= '<td class="p-2 border editable" data-field="quantity" data-equipment-id="' . ($eq['id'] ?? 0) . '">' . ($eq['qty'] ?? 1) . '</td>';
+                                                $html .= '<td class="p-2 border editable" data-field="price" data-equipment-id="' . ($eq['id'] ?? 0) . '">' . number_format($eq['price'] ?? 0, 2) . '</td>';
+                                                $html .= '<td class="p-2 border editable" data-field="coefficient" data-equipment-id="' . ($eq['id'] ?? 0) . '">' . number_format($eq['coefficient'] ?? 1.0, 2) . '</td>';
+                                                $html .= '<td class="p-2 border">' . number_format($sum, 2) . '</td>';
+                                                $html .= '<td class="p-2 border editable" data-field="discount" data-equipment-id="' . ($eq['id'] ?? 0) . '">' . number_format($eq['discount'] ?? 0, 2) . '</td>';
+                                                $html .= '<td class="p-2 border">' . number_format($afterDiscount, 2) . '</td>';
+                                                if ($project->status !== 'completed') {
+                                                    $html .= '<td class="p-2 border"><button onclick="removeEquipment(' . ($eq['id'] ?? 0) . ', ' . ($currentEstimate->id ?? 0) . ')" class="text-red-600 hover:text-red-800"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></td>';
+                                                }
+                                                $html .= '</tr>';
+                                            }
+                                        }
+
+                                        if ($hasSub && $hasSubEquipment) {
+                                            $html .= renderTree1($node['sub'], $level + 1, false, $project, $currentEstimate);
+                                        }
+
+                                        if ($hasSub || $hasEquipment) {
+                                            $html .= '</div></td></tr>';
+                                        }
+                                    } else {
+                                        \Log::debug('Skipping category: ' . $catName . ' - no equipment or non-empty subcategories');
+                                    }
+                                }
+                                return $html;
+                            }
+                        }
+                    @endphp
+                    @foreach(['equipment' => 'Оборудование', 'materials' => 'Материалы', 'services' => 'Услуги'] as $key => $label)
+                        @php
+                            $tree = $currentEstimate->calculated[$key]['tree'] ?? [];
+                            $total = $currentEstimate->calculated[$key]['total'] ?? 0;
+                            $discount = $currentEstimate->calculated[$key]['discount'] ?? 0;
+                            $afterDisc = $currentEstimate->calculated[$key]['after_disc'] ?? 0;
+                            \Log::debug("Rendering section: $key, Tree: " . json_encode($tree));
+                            $hasContent = false;
+                            if (!empty($tree)) {
+                                foreach ($tree as $node) {
+                                    if (!empty($node['equipment']) || !empty($node['sub'])) {
+                                        $hasContent = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        @endphp
+                        @if ($hasContent || ($key === 'services' && (!empty($currentEstimate->calculated['services']['staff']) || $currentEstimate->calculated['services']['delivery'] > 0)))
+                            <tr class="bg-gray-100 font-bold">
+                                <td class="p-2 border" colspan="{{ $project->status !== 'completed' ? 9 : 8 }}">{{ $label }}</td>
                             </tr>
-                        @endforeach
-                        <tr>
-                            <td class="p-2 border">Доставка</td>
-                            <td class="p-2 border">1</td>
-                            @can('view prices')
-                                <td class="p-2 border">{{ number_format($currentEstimate->delivery_cost ?? 0, 2) }}</td>
-                                <td class="p-2 border">{{ number_format($currentEstimate->delivery_cost ?? 0, 2) }}</td>
-                                <td class="p-2 border">{{ $currentEstimate->calculated['services']['discount'] ?? 0 }}</td>
-                                <td class="p-2 border">{{ number_format(($currentEstimate->delivery_cost ?? 0) * (1 - ($currentEstimate->calculated['services']['discount'] ?? 0)/100), 2) }}</td>
-                            @endcan
-                            @if ($project->status !== 'completed')
-                                <td class="p-2 border"></td>
+                            {!! renderTree1($tree, 0, true, $project, $currentEstimate) !!}
+                            @if ($key === 'services')
+                                @foreach($currentEstimate->calculated['services']['staff'] as $st)
+                                    <tr data-staff-id="{{ $st['id'] ?? 0 }}">
+                                        <td class="p-2 border pl-4">{{ $st['name'] }}</td>
+                                        <td class="p-2 border pl-4">{{ $st['description'] ?? '' }}</td>
+                                        <td class="p-2 border">{{ number_format($st['minutes'] / 60, 2) }}</td>
+                                        <td class="p-2 border editable" data-field="rate" data-staff-id="{{ $st['id'] ?? 0 }}">{{ number_format($st['rate'] ?? 0, 2) }}</td>
+                                        <td class="p-2 border editable" data-field="coefficient" data-staff-id="{{ $st['id'] ?? 0 }}">{{ number_format($st['coefficient'] ?? 1.0, 2) }}</td>
+                                        <td class="p-2 border">{{ number_format($st['sum'], 2) }}</td>
+                                        <td class="p-2 border editable" data-field="discount" data-staff-id="{{ $st['id'] ?? 0 }}">{{ number_format($st['discount'] ?? 0, 2) }}</td>
+                                        <td class="p-2 border">{{ number_format($st['sum'] * (1 - ($currentEstimate->calculated['services']['discount'] / 100)), 2) }}</td>
+                                        @if($project->status !== 'completed')
+                                            <td class="p-2 border"></td>
+                                        @endif
+                                    </tr>
+                                @endforeach
+                                @if($currentEstimate->calculated['services']['delivery'] > 0)
+                                    <tr>
+                                        <td class="p-2 border pl-4">Доставка</td>
+                                        <td class="p-2 border pl-4"></td>
+                                        <td class="p-2 border"></td>
+                                        <td class="p-2 border"></td>
+                                        <td class="p-2 border"></td>
+                                        <td class="p-2 border">{{ number_format($currentEstimate->calculated['services']['delivery'], 2) }}</td>
+                                        <td class="p-2 border">{{ number_format($currentEstimate->calculated['services']['discount'], 2) }}</td>
+                                        <td class="p-2 border">{{ number_format($currentEstimate->calculated['services']['delivery'] * (1 - ($currentEstimate->calculated['services']['discount'] / 100)), 2) }}</td>
+                                        @if($project->status !== 'completed')
+                                            <td class="p-2 border"></td>
+                                        @endif
+                                    </tr>
+                                @endif
+                                @if ($total > 0 || !empty($currentEstimate->calculated['services']['staff']) || $currentEstimate->calculated['services']['delivery'] > 0)
+                                    <tr class="font-bold">
+                                        <td class="p-2 border">Итого {{ strtolower($label) }}</td>
+                                        <td class="p-2 border"></td>
+                                        <td class="p-2 border"></td>
+                                        <td class="p-2 border"></td>
+                                        <td class="p-2 border"></td>
+                                        <td class="p-2 border" id="total-{{ $key }}">{{ number_format($total, 2) }}</td>
+                                        <td class="p-2 border" id="discount-{{ $key }}">{{ number_format($discount, 2) }}</td>
+                                        <td class="p-2 border" id="after-disc-{{ $key }}">{{ number_format($afterDisc, 2) }}</td>
+                                        @if($project->status !== 'completed')
+                                            <td class="p-2 border"></td>
+                                        @endif
+                                    </tr>
+                                @endif
                             @endif
-                        </tr>
-                    @endif
+                            @if ($key !== 'services' && $total > 0)
+                                <tr class="font-bold">
+                                    <td class="p-2 border">Итого {{ strtolower($label) }}</td>
+                                    <td class="p-2 border"></td>
+                                    <td class="p-2 border"></td>
+                                    <td class="p-2 border"></td>
+                                    <td class="p-2 border"></td>
+                                    <td class="p-2 border" id="total-{{ $key }}">{{ number_format($total, 2) }}</td>
+                                    <td class="p-2 border" id="discount-{{ $key }}">{{ number_format($discount, 2) }}</td>
+                                    <td class="p-2 border" id="after-disc-{{ $key }}">{{ number_format($afterDisc, 2) }}</td>
+                                    @if($project->status !== 'completed')
+                                        <td class="p-2 border"></td>
+                                    @endif
+                                </tr>
+                            @endif
+                        @endif
+                    @endforeach
                     <tr class="font-bold">
-                        <td class="p-2 border">Итого услуги</td>
-                        <td class="p-2 border"></td>
-                        @can('view prices')
-                            <td class="p-2 border"></td>
-                            <td class="p-2 border">{{ number_format($currentEstimate->calculated['services']['total'] ?? 0, 2) }}</td>
-                            <td class="p-2 border">{{ $currentEstimate->calculated['services']['discount'] ?? 0 }}</td>
-                            <td class="p-2 border">{{ number_format($currentEstimate->calculated['services']['after_disc'] ?? 0, 2) }}</td>
-                        @endcan
-                        @if ($project->status !== 'completed')
+                        <td class="p-2 border">Подытог</td>
+                        <td class="p-2 border" colspan="{{ $project->status !== 'completed' ? 7 : 6 }}" id="subtotal">{{ number_format($currentEstimate->calculated['subtotal'] ?? 0, 2) }} ₽</td>
+                        @if($project->status !== 'completed')
                             <td class="p-2 border"></td>
                         @endif
                     </tr>
-
-                    <!-- Итоговые строки -->
-                    @can('view prices')
-                        <tr class="font-bold bg-gray-100">
-                            <td class="p-2 border">Подытог</td>
-                            <td colspan="{{ $project->status !== 'completed' ? 6 : 5 }}" class="p-2 border text-right">{{ number_format($currentEstimate->calculated['subtotal'] ?? 0, 2) }} ₽</td>
-                        </tr>
-                        <tr class="font-bold">
-                            <td class="p-2 border">Налог ({{ $currentEstimate->calculated['tax_method'] ?? 'none' }})</td>
-                            <td colspan="{{ $project->status !== 'completed' ? 6 : 5 }}" class="p-2 border text-right">{{ number_format($currentEstimate->calculated['tax'] ?? 0, 2) }} ₽</td>
-                        </tr>
-                        <tr class="font-bold bg-green-100">
-                            <td class="p-2 border">Итого</td>
-                            <td colspan="{{ $project->status !== 'completed' ? 6 : 5 }}" class="p-2 border text-right">{{ number_format($currentEstimate->calculated['total'] ?? 0, 2) }} ₽</td>
-                        </tr>
-                    @endcan
-                        </tbody>
-                    </table>
-                    </div>
+                    <tr class="font-bold">
+                        <td class="p-2 border">Налог ({{ $currentEstimate->calculated['tax_method'] ?? 'none' }})</td>
+                        <td class="p-2 border" colspan="{{ $project->status !== 'completed' ? 7 : 6 }}" id="tax">{{ number_format($currentEstimate->calculated['tax'] ?? 0, 2) }} ₽</td>
+                        @if($project->status !== 'completed')
+                            <td class="p-2 border"></td>
+                        @endif
+                    </tr>
+                    <tr class="font-bold">
+                        <td class="p-2 border">Итого</td>
+                        <td class="p-2 border" colspan="{{ $project->status !== 'completed' ? 7 : 6 }}" id="total">{{ number_format($currentEstimate->calculated['total'] ?? 0, 2) }} ₽</td>
+                        @if($project->status !== 'completed')
+                            <td class="p-2 border"></td>
+                        @endif
+                    </tr>
+                    </tbody>
+                </table>
             </div>
+        </div>
         @elseif ($tab === 'staff')
             @php
                 // Сотрудники проекта по прямой привязке (project_user)
@@ -417,7 +656,7 @@
                                              if ($e > $s) { $minutes += ($e - $s) / 60; }
                                              if (!is_null($x->project_rate)) { $projectRate = (float)$x->project_rate; }
                                              if (!is_null($x->hour_rate) && $hourRate === null) { $hourRate = (float)$x->hour_rate; }
-                                              
+
                                          }
                                          if ($projectRate !== null) { $displaySumm = $projectRate; }
                                           elseif ($hourRate !== null) { $displaySumm = $hourRate * ($minutes/60.0); }
@@ -552,7 +791,7 @@
                             <span id="cmtIntervalLabel" class="text-sm text-gray-800"></span>
                         </div>
                         <div id="schedCommentsList" class="space-y-2"></div>
-                        
+
                         <div class="mt-4 border-t pt-4">
                             <div class="text-sm font-medium text-gray-700 mb-2">Добавить комментарий к этому времени</div>
                             <textarea id="intervalCommentText" class="w-full border rounded p-2 text-sm" rows="3" placeholder="Комментарий"></textarea>
@@ -660,46 +899,43 @@
             }
             userSel.innerHTML = '<option value="">Имя</option>' + filtered.map(u=>`<option value="${u.id}" data-role="${u.role||''}">${u.name}</option>`).join('');
         });
-        document.getElementById('changeStatusForm')?.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const form = event.target;
+        document.getElementById('changeStatusForm')?.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const form = e.target;
             const status = form.querySelector('#project_status').value;
-            console.log('Sending updateStatus request', { status, action: form.action });
-
             try {
                 const response = await fetch(form.action, {
                     method: 'PUT',
                     headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json',
                         'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
-                    body: JSON.stringify({ status }),
+                    body: JSON.stringify({ status })
                 });
                 const data = await response.json();
-                console.log('updateStatus response', data);
-
-                if (response.ok) {
-
-                    closeModal('changeStatusModal');
-
-                    // Обновление бейджа
-                    const badge = document.getElementById('statusBadge');
-                    const statusMap = {
-                        new: { label: 'Новый', class: 'bg-yellow-100 text-yellow-800' },
-                        active: { label: 'В работе', class: 'bg-green-100 text-green-800' },
-                        completed: { label: 'Завершён', class: 'bg-blue-100 text-blue-800' },
-                        cancelled: { label: 'Отменён', class: 'bg-red-100 text-red-800' },
-                    };
-                    const { label, class: className } = statusMap[status] || { label: status, class: 'bg-gray-100 text-gray-800' };
-                    badge.textContent = label;
-                    badge.className = `px-3 py-1 text-sm rounded-full font-medium ${className}`;
-                } else {
-
+                if (!response.ok) throw new Error(data.error || 'Ошибка изменения статуса');
+                document.getElementById('statusBadge').textContent = {
+                    new: 'Новый',
+                    active: 'В работе',
+                    completed: 'Завершён',
+                    cancelled: 'Отменён'
+                }[data.status] || data.status;
+                document.getElementById('statusBadge').className = `px-3 py-1 text-sm rounded-full font-medium ${
+                    {
+                        new: 'bg-yellow-100 text-yellow-800',
+                        active: 'bg-green-100 text-green-800',
+                        completed: 'bg-blue-100 text-blue-800',
+                        cancelled: 'bg-red-100 text-red-800'
+                    }[data.status] || 'bg-gray-100 text-gray-800'
+                }`;
+                closeModal('changeStatusModal');
+                showToast('Статус обновлён');
+                if (data.status === 'completed') {
+                    location.reload();
                 }
             } catch (e) {
-                console.error('updateStatus network error', e);
-
+                console.error('changeStatus error:', e);
+                showToast('Ошибка: ' + e.message, true);
             }
         });
         // Наполняем при открытии
@@ -881,52 +1117,83 @@
         });
         document.getElementById('staffSchedInterval')?.addEventListener('change', renderStaffSchedule);
             document.getElementById('staffSchedDate')?.addEventListener('change', ()=>{ renderStaffSchedule().then(()=>{ const m = document.getElementById('schedInlineMenu'); if(m) m.dataset.payload='{}'; }); });
-        document.getElementById('addEstimateBtn')?.addEventListener('click', async () => {
-            const name = prompt('Название новой сметы:');
-            if (!name) return;
-            const resp = await fetch('{{ route('projects.estimates.create', $project) }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                body: JSON.stringify({ name })
-            });
-            const data = await resp.json();
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.error);
+        document.getElementById('addEstimateBtn')?.addEventListener('click', function () {
+            const name = prompt('Введите название сметы:');
+            if (name) {
+                fetch('{{ route('projects.estimates.create', $project) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ name })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = data.redirect;
+                        } else {
+                            showToast('Ошибка: ' + (data.error || 'Не удалось создать смету'), true);
+                        }
+                    })
+                    .catch(e => {
+                        console.error('createEstimate error:', e);
+                        showToast('Ошибка: ' + e.message, true);
+                    });
             }
         });
 
+
         // Удаление сметы
-        async function deleteEstimate(id) {
-            if (!confirm('Удалить смету?')) return;
-            const resp = await fetch(`/estimates/${id}`, {
+        function deleteEstimate(estimateId) {
+            if (!confirm('Удалить эту смету?')) return;
+            fetch('{{ url('estimates') }}/' + estimateId, {
                 method: 'DELETE',
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-            });
-            const data = await resp.json();
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.error);
-            }
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '{{ route('projects.show', $project) }}?tab=estimate';
+                    } else {
+                        showToast('Ошибка: ' + (data.error || 'Не удалось удалить смету'), true);
+                    }
+                })
+                .catch(e => {
+                    console.error('deleteEstimate error:', e);
+                    showToast('Ошибка: ' + e.message, true);
+                });
         }
 
         // Обновление формы сметы (AJAX)
         document.querySelectorAll('.estimateForm').forEach(form => {
-            form.addEventListener('submit', async (e) => {
+            form.addEventListener('submit', async function (e) {
                 e.preventDefault();
-                const formData = new FormData(e.target);
-                const resp = await fetch(e.target.action, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                    body: formData
-                });
-                const data = await resp.json();
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert(data.error);
+                const estimateId = form.dataset.id;
+                const formData = new FormData(form);
+                const data = {
+                    client_id: formData.get('client_id') || null,
+                    company_id: formData.get('company_id') || null,
+                    delivery_cost: parseFloat(formData.get('delivery_cost')) || 0
+                };
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error || 'Ошибка обновления сметы');
+                    updateEstimateTotals(result.estimate);
+                    showToast('Смета обновлена');
+                } catch (e) {
+                    console.error('updateEstimate error:', e);
+                    showToast('Ошибка: ' + e.message, true);
                 }
             });
         });
@@ -1036,15 +1303,15 @@
             };
             document.getElementById('schedCommentsCloseBtn')?.addEventListener('click', closeComments);
             document.getElementById('schedCommentsOkBtn')?.addEventListener('click', closeComments);
-            const openDelete = (metaText, payload)=>{ 
+            const openDelete = (metaText, payload)=>{
                 document.getElementById('schedDeleteText').textContent = metaText||'Вы действительно хотите удалить выбранный интервал?';
                 deleteModal.dataset.payload = JSON.stringify(payload||{});
-                deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex'); 
+                deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex');
             };
             const closeDelete = ()=>{ if(!deleteModal) return; deleteModal.classList.add('hidden'); deleteModal.classList.remove('flex'); };
             document.getElementById('schedDeleteCancel')?.addEventListener('click', closeDelete);
             const schedDeleteConfirmBtn = document.getElementById('schedDeleteConfirm');
-            if (schedDeleteConfirmBtn) schedDeleteConfirmBtn.onclick = async ()=>{ 
+            if (schedDeleteConfirmBtn) schedDeleteConfirmBtn.onclick = async ()=>{
                 try{
                     const p = JSON.parse(deleteModal.dataset.payload||'{}');
                     await fetch('/personnel/clear', { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(p)});
@@ -1626,7 +1893,10 @@
 
         const categoriesBase = "{{ url('/categories') }}"; // базовый URL
         const projectEquipmentListBase = "{{ route('projects.equipmentList', $project) }}"; // новый эндпоинт (ниже добавим)
-
+        const hasViewPrices = {{ auth()->user()->hasPermissionTo('view prices') ? 'true' : 'false' }};
+        const projectStatus = '{{ $project->status }}';
+        const estimateId = {{ $currentEstimate->id }};
+        const canEditProjects = {{ auth()->user()->hasPermissionTo('edit projects') ? 'true' : 'false' }};
         async function loadEquipment(categoryId) {
             try {
                 window.currentCategoryId = categoryId;
@@ -1798,40 +2068,69 @@
                 alert('Ошибка сети при удалении');
             }
         }
-
-            const openCatalogBtn = document.getElementById('openCatalog');
-            const closeCatalogBtn = document.getElementById('closeCatalog');
+        document.getElementById('openCatalog')?.addEventListener('click', async function () {
             const sidebar = document.getElementById('catalogSidebar');
-            const container = document.querySelector('.container.mx-auto.p-6');
+            sidebar.classList.remove('hidden', '-translate-x-full');
+            try {
+                const response = await fetch('{{ route('projects.catalog') }}');
+                const tree = await response.json();
+                document.getElementById('catalogTree').innerHTML = renderCatalogTree(tree);
+                // Добавляем обработчики для сворачивания/разворачивания
+                document.querySelectorAll('.catalog-toggle').forEach(toggle => {
+                    toggle.addEventListener('click', function () {
+                        const sub = this.nextElementSibling;
+                        if (sub) {
+                            sub.classList.toggle('open');
+                            this.classList.toggle('open');
+                        }
+                    });
+                });
+            } catch (e) {
+                console.error('loadCatalog error:', e);
+                showToast('Ошибка загрузки каталога: ' + e.message, true);
+            }
+        });
 
-            if (openCatalogBtn) {
-                openCatalogBtn.addEventListener('click', function() {
-                    if (sidebar) {
-                        sidebar.classList.toggle('hidden');
-                        sidebar.classList.toggle('translate-x-0');
-                        sidebar.classList.toggle('-translate-x-full');
-                        container.classList.toggle('ml-[33%]');
-                        container.classList.toggle('transition-all');
-                        container.classList.toggle('duration-300');
-                        if (!sidebar.classList.contains('hidden') && !document.getElementById('catalogTree').innerHTML) {
-                            loadCatalog();
+        document.getElementById('closeCatalog')?.addEventListener('click', function () {
+            const sidebar = document.getElementById('catalogSidebar');
+            sidebar.classList.add('-translate-x-full');
+            setTimeout(() => sidebar.classList.add('hidden'), 300);
+        });
+        function renderCatalogTree(tree, level = 0) {
+            let html = '';
+            for (const [name, node] of Object.entries(tree)) {
+                const hasSub = Object.keys(node.sub).length > 0;
+                const hasEquipment = Object.keys(node.equipment).length > 0;
+                if (hasSub || hasEquipment) {
+                    html += `
+                        <div class="catalog-category pl-${level * 2}">
+                            <span class="catalog-toggle">${htmlspecialchars(name)}</span>
+                            <div class="catalog-sub">
+                    `;
+                    if (hasEquipment) {
+                        for (const [eqName, eq] of Object.entries(node.equipment)) {
+                            html += `
+                                <div class="pl-${(level + 1) * 2} py-1 flex justify-between items-center">
+                                    <span>${htmlspecialchars(eqName)} (${eq.qty})</span>
+                                    <button
+                                        onclick="addToEstimate(${eq.id}, ${eq.is_consumable ? 'true' : 'false'})"
+                                        class="bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200"
+                                    >
+                                        Добавить
+                                    </button>
+                                </div>
+                            `;
                         }
                     }
-                });
-            }
-
-            if (closeCatalogBtn) {
-                closeCatalogBtn.addEventListener('click', function() {
-                    if (sidebar) {
-                        sidebar.classList.add('hidden');
-                        sidebar.classList.remove('translate-x-0');
-                        sidebar.classList.add('-translate-x-full');
-                        container.classList.remove('ml-[33%]');
-                        container.classList.remove('transition-all');
-                        container.classList.remove('duration-300');
+                    if (hasSub) {
+                        html += renderCatalogTree(node.sub, level + 1);
                     }
-                });
+                    html += `</div></div>`;
+                }
             }
+            return html;
+        }
+
 
             async function loadCatalog() {
                 try {
@@ -1904,252 +2203,311 @@
                     alert('Ошибка загрузки каталога: ' + e.message);
                 }
             }
-
-            async function addToEstimate(equipmentId, quantity, status) {
-                try {
-                    equipmentId = parseInt(equipmentId);
-                    quantity = parseInt(quantity);
-                    if (isNaN(equipmentId) || equipmentId <= 0) {
-                        throw new Error('Некорректный ID оборудования');
-                    }
-                    if (isNaN(quantity) || quantity < 1) {
-                        throw new Error('Количество должно быть целым числом больше 0');
-                    }
-                    if (!['on_stock', 'assigned', 'used'].includes(status)) {
-                        status = 'assigned';
-                    }
-
-                    const response = await fetch('{{ route('estimates.add_equipment', $currentEstimate) }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({ equipment_id: equipmentId, quantity: quantity, status: status })
-                    });
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.error || 'Ошибка добавления оборудования');
-                    console.log('addToEstimate response:', data);
-                    updateEstimateTable(data);
-                    alert('Оборудование добавлено в смету');
-                } catch (e) {
-                    console.error('addToEstimate error:', e);
-                    alert('Ошибка: ' + e.message);
-                }
+        function htmlspecialchars(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            toastMessage.textContent = message;
+            toast.classList.remove('hidden', 'bg-gray-800', 'bg-red-600');
+            toast.classList.add(isError ? 'bg-red-600' : 'bg-gray-800');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+        async function addToEstimate(equipmentId, isConsumable) {
+            if (projectStatus === 'completed') {
+                showToast('Проект завершён, нельзя добавлять оборудование', true);
+                return;
             }
-
-
-
-        function updateEstimateTable(data) {
-            const tbody = document.getElementById('estimateTableBody');
-            if (!tbody) {
-                console.error('Table body not found');
+            if (!canEditProjects) {
+                showToast('У вас нет прав на редактирование проекта', true);
                 return;
             }
 
-            const newEquipment = data.new_equipment || {};
-            const calculated = data.calculated || {};
-            const section = newEquipment.is_consumable ? 'materials' : 'equipment';
-            const sectionHeaderText = newEquipment.is_consumable ? 'Материалы' : 'Оборудование';
-            const hasViewPrices = {{ auth()->user()->can('view prices') ? 'true' : 'false' }};
-            const canEdit = {{ $project->status !== 'completed' ? 'true' : 'false' }};
-
-            // Функция для поиска заголовка секции
-            const findHeaderRow = (text) => {
-                return Array.from(tbody.querySelectorAll('tr')).find(tr => {
-                    const td = tr.querySelector('td[colspan]');
-                    return td && td.textContent.trim() === text;
+            try {
+                const response = await fetch(`{{ route('estimates.add_equipment', $currentEstimate) }}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        equipment_id: equipmentId,
+                        quantity: 1,
+                        status: 'assigned',
+                        coefficient: 1.0,
+                        discount: 0
+                    })
                 });
-            };
-
-            // Находим или создаём заголовок секции
-            let sectionHeader = findHeaderRow(sectionHeaderText);
-            if (!sectionHeader) {
-                const colspan = hasViewPrices ? (canEdit && section === 'equipment' ? 7 : 6) : (canEdit && section === 'equipment' ? 3 : 2);
-                sectionHeader = document.createElement('tr');
-                sectionHeader.className = 'bg-gray-100';
-                sectionHeader.innerHTML = `<td colspan="${colspan}" class="p-2 font-bold text-gray-800">${sectionHeaderText}</td>`;
-                const insertBefore = section === 'equipment' ? tbody.firstChild : findHeaderRow('Услуги') || tbody.firstChild;
-                tbody.insertBefore(sectionHeader, insertBefore);
-            }
-
-            // Находим или создаём строки категорий
-            let lastCategoryRow = sectionHeader;
-            let level = 0;
-            (newEquipment.category_path || ['Без категории']).forEach((category, index) => {
-                const categoryKey = (newEquipment.category_path || ['Без категории']).slice(0, index + 1).join(' > ');
-                let categoryRow = findHeaderRow(categoryKey); // Используем ту же функцию, но для категорий без bg-gray-100
-                if (!categoryRow) {
-                    const colspan = hasViewPrices ? (canEdit && section === 'equipment' ? 7 : 6) : (canEdit && section === 'equipment' ? 3 : 2);
-                    categoryRow = document.createElement('tr');
-                    categoryRow.innerHTML = `<td class="p-2 border pl-${index * 4}" colspan="${colspan}">${category}</td>`;
-                    lastCategoryRow.insertAdjacentElement('afterend', categoryRow);
-                }
-                lastCategoryRow = categoryRow;
-                level = index + 1;
-            });
-
-            // Проверяем, существует ли строка с таким оборудованием
-            let existingRow = tbody.querySelector(`tr[data-equipment-id="${newEquipment.id || 0}"]`);
-            if (existingRow) {
-                // Обновляем количество и суммы
-                const qtyCell = existingRow.cells[1];
-                const newQty = parseInt(qtyCell.textContent || 0) + (newEquipment.quantity || 0);
-                qtyCell.textContent = newQty;
-                if (hasViewPrices) {
-                    const sumCell = existingRow.cells[3];
-                    const afterDiscCell = existingRow.cells[5];
-                    sumCell.textContent = ((newEquipment.price || 0) * newQty).toFixed(2);
-                    afterDiscCell.textContent = ((newEquipment.price || 0) * newQty * (1 - ((calculated[section]?.discount || 0) / 100))).toFixed(2);
-                }
-            } else {
-                // Добавляем новую строку
-                const newRow = document.createElement('tr');
-                newRow.dataset.equipmentId = newEquipment.id || 0;
-                newRow.innerHTML = `
-            <td class="p-2 border pl-${level * 4}">${newEquipment.name || 'Без названия'}</td>
-            <td class="p-2 border">${newEquipment.quantity || 0}</td>
-            ${hasViewPrices ? `
-                <td class="p-2 border">${(newEquipment.price || 0).toFixed(2)}</td>
-                <td class="p-2 border">${(newEquipment.sum || 0).toFixed(2)}</td>
-                <td class="p-2 border">${(calculated[section]?.discount || 0)}</td>
-                <td class="p-2 border">${(newEquipment.after_discount || 0).toFixed(2)}</td>
-            ` : ''}
-            ${canEdit && section === 'equipment' ? `
-                <td class="p-2 border">
-                    <button onclick="removeEquipment(${newEquipment.id || 0}, ${data.estimate_id})" class="text-red-600 hover:text-red-800">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </td>
-            ` : ''}
-        `;
-                newRow.classList.add('new');
-                setTimeout(() => newRow.classList.add('visible'), 10);
-                lastCategoryRow.insertAdjacentElement('afterend', newRow);
-            }
-
-            // После добавления/обновления: Удаляем placeholder "Нет ..." если теперь есть строки в разделе
-            const removeNoItemsRow = (headerText, noItemsText) => {
-                const header = findHeaderRow(headerText);
-                if (header) {
-                    const nextRow = header.nextElementSibling;
-                    if (nextRow && nextRow.querySelector('td').textContent.trim() === noItemsText) {
-                        // Проверяем, есть ли теперь строки с data-equipment-id после заголовка (до следующего раздела)
-                        let hasItems = false;
-                        let current = nextRow.nextElementSibling;
-                        while (current && !current.classList.contains('bg-gray-100') && !current.classList.contains('font-bold')) {
-                            if (current.dataset.equipmentId) {
-                                hasItems = true;
-                                break;
-                            }
-                            current = current.nextElementSibling;
-                        }
-                        if (hasItems) {
-                            nextRow.remove();
-                        }
-                    }
-                }
-            };
-
-            removeNoItemsRow('Оборудование', 'Нет оборудования');
-            removeNoItemsRow('Материалы', 'Нет материалов');
-            removeNoItemsRow('Услуги', 'Нет услуг');
-
-            // Обновляем значения в существующих строках итого (без удаления и добавления)
-            const updateTotalRow = (label, sectionKey) => {
-                const row = Array.from(tbody.querySelectorAll('tr.font-bold')).find(tr => tr.querySelector('td').textContent.trim() === label);
-                if (row && hasViewPrices) {
-                    row.cells[3].textContent = (calculated[sectionKey]?.total || 0).toFixed(2);
-                    row.cells[4].textContent = (calculated[sectionKey]?.discount || 0);
-                    row.cells[5].textContent = (calculated[sectionKey]?.after_disc || 0).toFixed(2);
-                }
-            };
-
-            updateTotalRow('Итого оборудование', 'equipment');
-            updateTotalRow('Итого материалы', 'materials');
-            updateTotalRow('Итого услуги', 'services');
-
-            // Обновляем подытог, налог, итого (они в colspan, обновляем последний td)
-            if (hasViewPrices) {
-                const subTotalRow = Array.from(tbody.querySelectorAll('tr.font-bold')).find(tr => tr.querySelector('td').textContent.trim() === 'Подытог');
-                if (subTotalRow) subTotalRow.cells[subTotalRow.cells.length - 1].textContent = (calculated.subtotal || 0).toFixed(2) + ' ₽';
-
-                const taxRow = Array.from(tbody.querySelectorAll('tr.font-bold')).find(tr => tr.querySelector('td').textContent.includes('Налог'));
-                if (taxRow) {
-                    taxRow.cells[0].textContent = `Налог (${calculated.tax_method || 'none'})`;
-                    taxRow.cells[taxRow.cells.length - 1].textContent = (calculated.tax || 0).toFixed(2) + ' ₽';
-                }
-
-                const totalRow = Array.from(tbody.querySelectorAll('tr.font-bold')).find(tr => tr.querySelector('td').textContent.trim() === 'Итого');
-                if (totalRow) totalRow.cells[totalRow.cells.length - 1].textContent = (calculated.total || 0).toFixed(2) + ' ₽';
-            }
-
-            // Применяем фильтр, если он активен
-            const filterInput = document.getElementById('filterEquipment');
-            if (filterInput && filterInput.value) {
-                const filter = filterInput.value.toLowerCase();
-                document.querySelectorAll('#estimateTableBody tr').forEach(row => {
-                    const name = row.querySelector('td')?.textContent.toLowerCase();
-                    row.style.display = name && name.includes(filter) ? '' : 'none';
-                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Ошибка добавления оборудования');
+                updateEstimateTable({{ $currentEstimate->id }});
+                showToast('Оборудование добавлено в смету');
+            } catch (e) {
+                console.error('addToEstimate error:', e);
+                showToast('Ошибка: ' + e.message, true);
             }
         }
-
-            function attachFilterHandler() {
-                const filterInput = document.getElementById('filterEquipment');
-                if (filterInput) {
-                    filterInput.addEventListener('input', function() {
-                        const filter = this.value.toLowerCase();
-                        document.querySelectorAll('#estimateTableBody tr').forEach(row => {
-                            const name = row.querySelector('td')?.textContent.toLowerCase();
-                            row.style.display = name && name.includes(filter) ? '' : 'none';
-                        });
-                    });
-                }
-            }
-
-            // Инициализация фильтра
-            attachFilterHandler();
-        /**
-         * Обновляем только строки Подытог, Налог, Итого
-         */
-        function refreshSummary(calculated) {
+        function addNoItemsRow(headerText, noItemsText) {
             const tbody = document.getElementById('estimateTableBody');
             if (!tbody) return;
 
-            // Подытог
-            const subRow = Array.from(tbody.querySelectorAll('tr.font-bold')).find(
-                tr => tr.firstElementChild.textContent.trim() === 'Подытог'
-            );
-            if (subRow) {
-                const lastTd = subRow.cells[subRow.cells.length - 1];
-                lastTd.textContent = (calculated.subtotal || 0).toFixed(2) + ' ₽';
+            const header = findHeaderRow(headerText);
+            if (!header) return;
+
+            const existingNoRow = header.nextElementSibling;
+            if (existingNoRow && existingNoRow.querySelector('td').textContent.trim() === noItemsText) {
+                return;
             }
 
-            // Налог
-            const taxRow = Array.from(tbody.querySelectorAll('tr.font-bold')).find(
-                tr => tr.firstElementChild.textContent.includes('Налог')
-            );
-            if (taxRow) {
-                taxRow.firstElementChild.textContent = `Налог (${calculated.tax_method || 'none'})`;
-                const lastTd = taxRow.cells[taxRow.cells.length - 1];
-                lastTd.textContent = (calculated.tax || 0).toFixed(2) + ' ₽';
+            let hasItems = false;
+            let current = header.nextElementSibling;
+            while (current && !current.classList.contains('bg-gray-100') && !current.classList.contains('font-bold')) {
+                if (current.dataset.equipmentId) {
+                    hasItems = true;
+                    break;
+                }
+                current = current.nextElementSibling;
             }
 
-            // Итого
-            const totRow = Array.from(tbody.querySelectorAll('tr.font-bold')).find(
-                tr => tr.firstElementChild.textContent.trim() === 'Итого'
-            );
-            if (totRow) {
-                const lastTd = totRow.cells[totRow.cells.length - 1];
-                lastTd.textContent = (calculated.total || 0).toFixed(2) + ' ₽';
+            if (!hasItems) {
+                const colspan = header.querySelector('td').colSpan;
+                const noRow = document.createElement('tr');
+                noRow.innerHTML = `<td colspan="${colspan}" class="p-2 border text-center">${noItemsText}</td>`;
+                header.insertAdjacentElement('afterend', noRow);
             }
         }
 
+        function updateEstimateTable(estimateId) {
+            // Если estimateId не передан, используем текущий ID сметы
+            const id = estimateId || {{ $currentEstimate->id }};
+            fetch(`/estimates/${id}/render`, {
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Ошибка при обновлении таблицы: ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const tbody = document.getElementById('estimateTableBody');
+                    if (!tbody) {
+                        console.error('Элемент estimateTableBody не найден');
+                        return;
+                    }
+
+                    // Обновляем содержимое таблицы
+                    tbody.innerHTML = data.html;
+
+                    // Обновляем итоговые суммы
+                    refreshSummary(data.calculated);
+
+                    // Добавляем строки "Нет элементов", если секции пусты
+
+                    // Повторная привязка обработчиков для toggle
+                    document.querySelectorAll('#estimateTableBody .catalog-toggle').forEach(toggle => {
+                        toggle.removeEventListener('click', toggleHandler);
+                        toggle.addEventListener('click', toggleHandler);
+                    });
+
+                    showToast('Таблица сметы успешно обновлена');
+                })
+                .catch(error => {
+                    console.error('Ошибка при обновлении таблицы сметы:', error);
+                    showToast('Ошибка обновления таблицы: ' + error.message, true);
+                });
+        }
+
+        function updateEstimateTotals(calculated) {
+            const tbody = document.getElementById('estimateTableBody');
+            if (!tbody) return;
+
+            const sections = [
+                { key: 'equipment', label: 'Оборудование', id: 'equipment' },
+                { key: 'materials', label: 'Материалы', id: 'materials' },
+                { key: 'services', label: 'Услуги', id: 'services' }
+            ];
+
+            sections.forEach(section => {
+                const totalCell = document.getElementById(`total-${section.id}`);
+                const discountCell = document.getElementById(`discount-${section.id}`);
+                const afterDiscCell = document.getElementById(`after-disc-${section.id}`);
+                if (totalCell && discountCell && afterDiscCell) {
+                    totalCell.textContent = (calculated[section.key].total || 0).toFixed(2);
+                    discountCell.textContent = (calculated[section.key].discount || 0).toFixed(2);
+                    afterDiscCell.textContent = (calculated[section.key].after_disc || 0).toFixed(2);
+                }
+            });
+
+            const subtotalCell = document.getElementById('subtotal');
+            if (subtotalCell) {
+                subtotalCell.textContent = (calculated.subtotal || 0).toFixed(2) + ' ₽';
+            }
+
+            const taxCell = document.getElementById('tax');
+            if (taxCell) {
+                taxCell.textContent = (calculated.tax || 0).toFixed(2) + ' ₽';
+            }
+
+            const totalCell = document.getElementById('total');
+            if (totalCell) {
+                totalCell.textContent = (calculated.total || 0).toFixed(2) + ' ₽';
+            }
+        }
+        document.getElementById('estimateTableBody')?.addEventListener('click', async function (e) {
+            if (projectStatus === 'completed') {
+                showToast('Проект завершён, нельзя редактировать смету', true);
+                return;
+            }
+            if (!canEditProjects) {
+                showToast('У вас нет прав на редактирование проекта', true);
+                return;
+            }
+            const target = e.target;
+            if (!target.classList.contains('editable')) return;
+
+            const equipmentId = target.dataset.equipmentId;
+            const staffId = target.dataset.staffId;
+            const field = target.dataset.field;
+            const originalValue = target.textContent.trim();
+            const input = document.createElement('input');
+            input.type = field === 'quantity' ? 'number' : 'text';
+            input.value = originalValue;
+            input.className = 'w-full p-1 border rounded';
+            input.style.minWidth = '60px';
+
+            if (field === 'quantity') input.min = '1';
+            if (field === 'coefficient') input.min = '0.1';
+            if (field === 'discount') {
+                input.min = '0';
+                input.max = '100';
+            }
+            if (field === 'price' || field === 'rate') input.min = '0';
+
+            target.classList.add('editing');
+            target.innerHTML = '';
+            target.appendChild(input);
+            input.focus();
+
+            const saveValue = async () => {
+                let value = input.value.trim();
+                if (value === '') {
+                    target.textContent = originalValue;
+                    target.classList.remove('editing');
+                    return;
+                }
+
+                if (field === 'quantity') {
+                    value = parseInt(value);
+                    if (isNaN(value) || value < 1) {
+                        showToast('Количество должно быть больше 0', true);
+                        target.textContent = originalValue;
+                        target.classList.remove('editing');
+                        return;
+                    }
+                } else if (field === 'coefficient') {
+                    value = parseFloat(value);
+                    if (isNaN(value) || value < 0.1) {
+                        showToast('Коэффициент должен быть не менее 0.1', true);
+                        target.textContent = originalValue;
+                        target.classList.remove('editing');
+                        return;
+                    }
+                } else if (field === 'discount') {
+                    value = parseFloat(value);
+                    if (isNaN(value) || value < 0 || value > 100) {
+                        showToast('Скидка должна быть от 0 до 100%', true);
+                        target.textContent = originalValue;
+                        target.classList.remove('editing');
+                        return;
+                    }
+                } else if (field === 'price' || field === 'rate') {
+                    value = parseFloat(value);
+                    if (isNaN(value) || value < 0) {
+                        showToast('Цена должна быть неотрицательной', true);
+                        target.textContent = originalValue;
+                        target.classList.remove('editing');
+                        return;
+                    }
+                }
+
+                try {
+                    let response;
+                    if (equipmentId) {
+                        response = await fetch(`{{ route('estimates.update_equipment', $currentEstimate) }}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({
+                                equipment_id: equipmentId,
+                                [field]: value
+                            })
+                        });
+                    } else if (staffId) {
+                        response = await fetch(`{{ route('estimates.update_staff', $currentEstimate) }}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({
+                                employee_id: staffId,
+                                [field]: value
+                            })
+                        });
+                    }
+
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'Ошибка обновления данных');
+                    target.textContent = field === 'quantity' ? value : value.toFixed(2);
+                    target.classList.remove('editing');
+
+                    const row = target.closest('tr');
+                    const qty = parseFloat(row.cells[2].textContent) || 0;
+                    const price = parseFloat(row.cells[3].textContent) || 0;
+                    const coefficient = parseFloat(row.cells[4].textContent) || 1.0;
+                    const discount = parseFloat(row.cells[6].textContent) || 0;
+                    row.cells[5].textContent = (price * coefficient * qty).toFixed(2);
+                    row.cells[7].textContent = (price * coefficient * qty * (1 - (discount / 100))).toFixed(2);
+
+                    updateEstimateTable({{ $currentEstimate->id }});
+                    showToast('Данные обновлены');
+                } catch (e) {
+                    console.error('update error:', e);
+                    target.textContent = originalValue;
+                    target.classList.remove('editing');
+                    showToast('Ошибка: ' + e.message, true);
+                }
+            };
+
+            input.addEventListener('blur', saveValue);
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    input.blur();
+                }
+            });
+        });
+
         async function removeEquipment(equipmentId, estimateId) {
+            if (projectStatus === 'completed') {
+                showToast('Проект завершён, нельзя удалять оборудование', true);
+                return;
+            }
+            if (!canEditProjects) {
+                showToast('У вас нет прав на редактирование проекта', true);
+                return;
+            }
             if (!confirm('Удалить это оборудование из сметы?')) return;
             try {
-                const response = await fetch(`/estimates/${estimateId}/remove-equipment`, {
+                const response = await fetch(`{{ route('estimates.remove_equipment', $currentEstimate) }}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2159,16 +2517,438 @@
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Ошибка удаления оборудования');
-                // Удаляем строку
                 const row = document.querySelector(`tr[data-equipment-id="${equipmentId}"]`);
                 if (row) row.remove();
-                // Обновляем таблицу
-                refreshSummary(data.calculated);
-                alert('Оборудование удалено из сметы');
+                updateEstimateTotals(data.calculated);
+                updateEstimateTable({{ $currentEstimate->id }});
+                showToast('Оборудование удалено из сметы');
             } catch (e) {
                 console.error('removeEquipment error:', e);
-                alert('Ошибка: ' + e.message);
+                showToast('Ошибка: ' + e.message, true);
             }
         }
+
+        function refreshSectionTotals(calculated) {
+            const tbody = document.getElementById('estimateTableBody');
+            if (!tbody) return;
+
+            [
+                { key: 'equipment', caption: 'Итого оборудование' },
+                { key: 'materials', caption: 'Итого материалы' },
+                { key: 'services', caption: 'Итого услуги' },
+            ].forEach(({ key, caption }) => {
+                const row = Array.from(tbody.querySelectorAll('tr')).find(tr =>
+                    tr.firstElementChild &&
+                    tr.firstElementChild.textContent.trim() === caption
+                );
+                if (!row) return;
+
+                // в секциях с ценами у нас колонки: 0=name, 1=qty, 2=price, 3=sum, 4=discount, 5=after_disc
+                const total    = calculated[key]?.total     ?? 0;
+                const discount = calculated[key]?.discount  ?? 0;
+                const after    = calculated[key]?.after_disc ?? 0;
+
+                // если пользователь не может видеть цены, то индексы смещаются на –4
+                const hasPrices = !!row.querySelector('td:nth-child(3)');
+                const base = hasPrices ? 2 : 1;
+
+                // sum
+                if (row.cells[base + 1]) row.cells[base + 1].textContent = total.toFixed(2);
+                // discount
+                if (row.cells[base + 2]) row.cells[base + 2].textContent = discount;
+                // after discount
+                if (row.cells[base + 3]) row.cells[base + 3].textContent = after.toFixed(2);
+            });
+        }
+
+        function findHeaderRow(headerText) {
+            const tbody = document.getElementById('estimateTableBody');
+            if (!tbody) return null;
+            return Array.from(tbody.querySelectorAll('tr.bg-gray-100')).find(tr => {
+                const td = tr.querySelector('td[colspan]');
+                return td && td.textContent.trim() === headerText;
+            });
+        }
+        function refreshSummary(calculated) {
+            const tbody = document.getElementById('estimateTableBody');
+            if (!tbody) return;
+
+            const sections = [
+                { key: 'equipment', label: 'Оборудование', id: 'equipment' },
+                { key: 'materials', label: 'Материалы', id: 'materials' },
+                { key: 'services', label: 'Услуги', id: 'services' }
+            ];
+
+            sections.forEach(section => {
+                const totalCell = document.getElementById(`total-${section.id}`);
+                const discountCell = document.getElementById(`discount-${section.id}`);
+                const afterDiscCell = document.getElementById(`after-disc-${section.id}`);
+                if (totalCell && discountCell && afterDiscCell) {
+                    totalCell.textContent = (calculated[section.key]?.total || 0).toFixed(2);
+                    discountCell.textContent = (calculated[section.key]?.discount || 0).toFixed(2);
+                    afterDiscCell.textContent = (calculated[section.key]?.after_disc || 0).toFixed(2);
+                }
+            });
+
+            const subtotalCell = document.getElementById('subtotal');
+            if (subtotalCell) {
+                subtotalCell.textContent = (calculated.subtotal || 0).toFixed(2) + ' ₽';
+            }
+
+            const taxCell = document.getElementById('tax');
+            if (taxCell) {
+                taxCell.textContent = (calculated.tax || 0).toFixed(2) + ' ₽';
+            }
+
+            const totalCell = document.getElementById('total');
+            if (totalCell) {
+                totalCell.textContent = (calculated.total || 0).toFixed(2) + ' ₽';
+            }
+        }
+        function findCategoryRowForRow(row) {
+            let current = row.previousElementSibling;
+            while (current && !current.querySelector('td[colspan]')) {
+                current = current.previousElementSibling;
+            }
+            return current && current.querySelector('td[colspan]') ? current : null;
+        }
+
+        // Обработка отправки формы редактирования проекта
+        document.querySelectorAll('.editable').forEach(cell => {
+            cell.addEventListener('click', function () {
+                if (projectStatus === 'completed') {
+                    showToast('Проект завершён, редактирование невозможно', true);
+                    return;
+                }
+                if (!canEditProjects) {
+                    showToast('У вас нет прав на редактирование проекта', true);
+                    return;
+                }
+                const field = this.dataset.field;
+                const originalValue = this.dataset.value || '';
+                const input = document.createElement(field === 'description' ? 'textarea' : 'input');
+                input.type = field === 'start_date' || field === 'end_date' ? 'date' : 'text';
+                input.value = originalValue;
+                input.className = 'w-full border-gray-300 rounded-md p-1 bg-blue-50';
+                if (field === 'description') {
+                    input.style.minHeight = '100px';
+                    input.style.resize = 'vertical';
+                }
+                this.innerHTML = '';
+                this.appendChild(input);
+                this.classList.add('editing');
+                input.focus();
+
+                const saveValue = async () => {
+                    const value = field === 'description' ? input.value : input.value.trim();
+                    console.log(`Saving project ${field}:`, value);
+                    if (value === originalValue) {
+                        this.textContent = field === 'start_date' || field === 'end_date' ? (value ? new Date(value).toLocaleDateString('ru-RU') : '—') : (value || '—');
+                        this.classList.remove('editing');
+                        return;
+                    }
+                    try {
+                        const payload = { [field]: value, '_method': 'PUT' };
+                        console.log('Sending project payload:', payload);
+                        const response = await fetch(`{{ route('projects.update', $project) }}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                        const data = await response.json();
+                        console.log('Response data:', data);
+                        if (!response.ok) throw new Error(data.error || 'Ошибка обновления');
+                        this.textContent = field === 'start_date' || field === 'end_date' ? (value ? new Date(value).toLocaleDateString('ru-RU') : '—') : (value || '—');
+                        this.dataset.value = value;
+                        this.classList.remove('editing');
+                        showToast('Данные проекта обновлены');
+                    } catch (e) {
+                        console.error('Update error:', e);
+                        this.textContent = originalValue || '—';
+                        this.classList.remove('editing');
+                        showToast('Ошибка: ' + e.message, true);
+                    }
+                };
+
+                input.addEventListener('blur', saveValue);
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && field !== 'description') {
+                        input.blur();
+                    } else if (e.key === 'Enter' && field === 'description' && !e.shiftKey) {
+                        input.blur();
+                    }
+                });
+            });
+        });
+
+        // Инлайн-редактирование для полей клиента
+        document.querySelectorAll('.editable-client').forEach(cell => {
+            cell.addEventListener('click', function () {
+                if (projectStatus === 'completed') {
+                    showToast('Проект завершён, редактирование невозможно', true);
+                    return;
+                }
+                if (!canEditProjects) {
+                    showToast('У вас нет прав на редактирование клиента', true);
+                    return;
+                }
+                const field = this.dataset.field;
+                const clientId = this.dataset.clientId;
+                const clientName = this.dataset.clientName;
+                if (!clientId) {
+                    showToast('Клиент не выбран', true);
+                    return;
+                }
+                const originalValue = this.dataset.value || '';
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = originalValue;
+                input.className = 'w-full border-gray-300 rounded-md p-1 bg-blue-50';
+                this.innerHTML = '';
+                this.appendChild(input);
+                this.classList.add('editing');
+                input.focus();
+
+                const saveValue = async () => {
+                    const value = input.value.trim();
+                    console.log(`Saving client ${field}:`, value);
+                    if (value === originalValue) {
+                        this.textContent = value || '—';
+                        this.classList.remove('editing');
+                        return;
+                    }
+                    try {
+                        // Отправляем name, так как оно обязательно для валидации
+                        const payload = {
+                            name: clientName,
+                            [field]: value,
+                            '_method': 'PUT'
+                        };
+                        console.log('Sending client payload:', payload);
+                        const response = await fetch(`/clients/${clientId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                        const text = await response.text();
+                        console.log('Response text:', text);
+                        let data;
+                        try {
+                            data = JSON.parse(text);
+                        } catch (e) {
+                            // Если ответ не JSON, обрабатываем как редирект или ошибку
+                            if (response.ok) {
+                                // Предполагаем успешное обновление
+                                this.textContent = value || '—';
+                                this.dataset.value = value;
+                                this.classList.remove('editing');
+                                showToast('Данные клиента обновлены');
+                                return;
+                            }
+                            throw new Error('Ошибка сервера: не удалось обработать ответ');
+                        }
+                        if (!response.ok) throw new Error(data.error || 'Ошибка обновления');
+                        this.textContent = value || '—';
+                        this.dataset.value = value;
+                        this.classList.remove('editing');
+                        showToast('Данные клиента обновлены');
+                    } catch (e) {
+                        console.error('Update error:', e);
+                        this.textContent = originalValue || '—';
+                        this.classList.remove('editing');
+                        showToast('Ошибка: ' + e.message, true);
+                    }
+                };
+
+                input.addEventListener('blur', saveValue);
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        input.blur();
+                    }
+                });
+            });
+        });
+
+        // Инлайн-редактирование для выпадающих списков
+        document.querySelectorAll('.editable-select').forEach(cell => {
+            cell.addEventListener('click', function (e) {
+                if (projectStatus === 'completed') {
+                    showToast('Проект завершён, редактирование невозможно', true);
+                    return;
+                }
+                if (!canEditProjects) {
+                    showToast('У вас нет прав на редактирование проекта', true);
+                    return;
+                }
+                e.stopPropagation();
+                if (this.classList.contains('editing')) return;
+
+                const field = this.dataset.field;
+                const originalValue = this.dataset.value || '';
+                const select = document.createElement('select');
+                select.className = 'w-full border-gray-300 rounded-md p-1 bg-blue-50';
+                this.innerHTML = '';
+                this.appendChild(select);
+                this.classList.add('editing');
+                select.focus();
+
+                const options = {
+                    manager_id: @json($managers->map(function($manager) { return ['id' => $manager->id, 'name' => $manager->name]; })),
+                    client_id: @json($clients->map(function($client) { return ['id' => $client->id, 'name' => $client->name, 'phone' => $client->phone]; })),
+                    site_id: @json($sites->map(function($site) { return ['id' => $site->id, 'name' => $site->name, 'address' => $site->address]; }))
+                }[field];
+
+                select.innerHTML = '<option value="">Выберите...</option>' + options.map(opt =>
+                    `<option value="${opt.id}" ${opt.id == originalValue ? 'selected' : ''}>${opt.name}</option>`
+                ).join('');
+
+                const saveValue = async () => {
+                    const value = select.value;
+                    console.log(`Saving ${field}:`, value);
+                    if (!value || value === originalValue) {
+                        this.textContent = options.find(opt => opt.id == originalValue)?.name || '—';
+                        this.classList.remove('editing');
+                        return;
+                    }
+                    try {
+                        const response = await fetch(`{{ route('projects.update', $project) }}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({ [field]: value, '_method': 'PUT' })
+                        });
+                        const data = await response.json();
+                        console.log('Response data:', data);
+                        if (!response.ok) throw new Error(data.error || 'Ошибка обновления');
+                        this.textContent = options.find(opt => opt.id == value)?.name || '—';
+                        this.dataset.value = value;
+                        this.classList.remove('editing');
+                        showToast('Данные обновлены');
+                        if (field === 'site_id') updateSiteAddress();
+                        if (field === 'client_id') updateClientPhone();
+                    } catch (e) {
+                        console.error('Update error:', e);
+                        this.textContent = options.find(opt => opt.id == originalValue)?.name || '—';
+                        this.classList.remove('editing');
+                        showToast('Ошибка: ' + e.message, true);
+                    }
+                };
+
+                select.addEventListener('change', saveValue);
+                select.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        saveValue();
+                    }
+                });
+
+                const cancelEdit = (e) => {
+                    if (!select.contains(e.target)) {
+                        this.textContent = options.find(opt => opt.id == originalValue)?.name || '—';
+                        this.classList.remove('editing');
+                        document.removeEventListener('click', cancelEdit);
+                    }
+                };
+                setTimeout(() => {
+                    document.addEventListener('click', cancelEdit);
+                }, 0);
+            });
+        });
+
+        // Функция обновления номера телефона клиента
+        function updateClientPhone() {
+            const clientId = document.querySelector('.editable-select[data-field="client_id"]').dataset.value;
+            const phoneField = document.querySelector('.editable-client[data-field="phone"]');
+            const clients = @json($clients->map(function($client) { return ['id' => $client->id, 'name' => $client->name, 'phone' => $client->phone]; }));
+            const client = clients.find(c => c.id == clientId);
+            phoneField.dataset.value = client ? client.phone : '';
+            phoneField.dataset.clientId = clientId || '';
+            phoneField.dataset.clientName = client ? client.name : '';
+            phoneField.textContent = client ? client.phone : '—';
+        }
+
+        // Функция обновления списка площадок
+        async function updateSites() {
+            const clientId = document.querySelector('.editable-select[data-field="client_id"]').dataset.value;
+            const siteSelect = document.querySelector('.editable-select[data-field="site_id"]');
+            const siteOptions = @json($sites->map(function($site) { return ['id' => $site->id, 'name' => $site->name, 'address' => $site->address]; }));
+            siteSelect.dataset.value = '';
+            siteSelect.textContent = '—';
+
+            try {
+                const response = await fetch(`/sites`, {
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                });
+                if (!response.ok) throw new Error('Ошибка загрузки площадок');
+                const sites = await response.json();
+                console.log('Fetched sites:', sites);
+                siteOptions.length = 0;
+                siteOptions.push(...sites);
+                updateSiteAddress();
+            } catch (e) {
+                console.error('Error fetching sites:', e);
+                showToast('Ошибка загрузки площадок: ' + e.message, true);
+            }
+        }
+
+        // Функция подтягивания адреса площадки
+        function updateSiteAddress() {
+            const siteId = document.querySelector('.editable-select[data-field="site_id"]').dataset.value;
+            const addressField = document.getElementById('siteAddress');
+            const sites = @json($sites->map(function($site) { return ['id' => $site->id, 'name' => $site->name, 'address' => $site->address]; }));
+            const site = sites.find(s => s.id == siteId);
+            addressField.textContent = site ? site.address : '—';
+        }
+
+        // Обработка отправки формы создания площадки
+        document.getElementById('createSiteForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (projectStatus === 'completed') {
+                showToast('Проект завершён, добавление площадки невозможно', true);
+                return;
+            }
+            if (!canEditProjects) {
+                showToast('У вас нет прав на редактирование проекта', true);
+                return;
+            }
+            try {
+                const formData = new FormData(this);
+                formData.append('client_id', document.querySelector('.editable-select[data-field="client_id"]').dataset.value);
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    const siteSelect = document.querySelector('.editable-select[data-field="site_id"]');
+                    siteSelect.dataset.value = data.id;
+                    siteSelect.textContent = data.name;
+                    const sites = @json($sites->map(function($site) { return ['id' => $site->id, 'name' => $site->name, 'address' => $site->address]; }));
+                    sites.push({ id: data.id, name: data.name, address: data.address });
+                    updateSiteAddress();
+                    closeModal('createSiteModal');
+                    showToast('Площадка добавлена');
+                } else {
+                    throw new Error(data.error || 'Ошибка сохранения');
+                }
+            } catch (e) {
+                console.error('Error creating site:', e);
+                showToast('Ошибка: ' + e.message, true);
+            }
+        });
     </script>
 

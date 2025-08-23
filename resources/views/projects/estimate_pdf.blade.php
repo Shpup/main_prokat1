@@ -93,40 +93,95 @@
     <!-- Оборудование -->
     <tr><th colspan="6">Оборудование</th></tr>
     @php
-        if (!function_exists('renderPdfTree')) {
-            function renderPdfTree($tree, $level = 0, $discount) {
-                $html = '';
-                foreach ($tree as $key => $val) {
-                    if (isset($val['sub']) && !empty($val['sub'])) {
-                        $html .= '<tr><td colspan="6" style="padding-left: ' . ($level * 20) . 'px; font-weight: bold;">' . htmlspecialchars($key) . '</td></tr>';
-                        $html .= renderPdfTree($val['sub'], $level + 1, $discount);
-                    }
-                    if (isset($val['equipment']) && !empty($val['equipment'])) {
-                        foreach ($val['equipment'] as $eqName => $eq) {
-                            $sum = $eq['price'] * $eq['qty'];
-                            $afterDisc = $sum * (1 - $discount / 100);
-                            $html .= '<tr>';
-                            $html .= '<td style="padding-left: ' . ($level * 20) . 'px;">' . htmlspecialchars($eqName) . '</td>';
-                            $html .= '<td>' . $eq['qty'] . '</td>';
-                            $html .= '<td>' . number_format($eq['price'], 2) . '</td>';
-                            $html .= '<td>' . number_format($sum, 2) . '</td>';
-                            $html .= '<td>' . $discount . '</td>';
-                            $html .= '<td>' . number_format($afterDisc, 2) . '</td>';
-                            $html .= '</tr>';
-                        }
+        if (! function_exists('hasEquipment')) {
+        function hasEquipment(array $node): bool
+        {
+            if (! empty($node['equipment'])) {
+                return true;
+            }
+            if (! empty($node['sub'])) {
+                foreach ($node['sub'] as $sub) {
+                    if (hasEquipment($sub)) {
+                        return true;
                     }
                 }
-                return $html;
             }
+            return false;
         }
+    }
+
+    if (! function_exists('collectEquipment')) {
+        function collectEquipment(array $node, array &$result = []): array
+        {
+            if (! empty($node['equipment'])) {
+                $result = array_merge($result, $node['equipment']);
+            }
+            if (! empty($node['sub'])) {
+                foreach ($node['sub'] as $sub) {
+                    collectEquipment($sub, $result);
+                }
+            }
+            return $result;
+        }
+    }
+
+            if (! function_exists('renderPdfTree')) {
+        /**
+         * @param  array  $tree     — начиная с топ-категорий
+         * @param  float  $discount — сквозная скидка
+         * @return string
+         */
+        function renderPdfTree(array $tree, float $discount): string
+        {
+            $html = '';
+
+            // Для каждой топ-категории
+            foreach ($tree as $categoryName => $node) {
+
+                // 1) Пропускаем, если нет оборудования в этой ветке
+                if (! hasEquipment($node)) {
+                    continue;
+                }
+
+                // 2) Рендерим строку заголовка категории
+                $html .= '<tr>';
+                $html .= '<td colspan="6" style="font-weight:bold; padding-left:0;">'
+                       . htmlspecialchars($categoryName)
+                       . '</td>';
+                $html .= '</tr>';
+
+                // 3) Собираем всё оборудование «плоско»
+                $allEquipment = collectEquipment($node);
+
+                // 4) Рендерим каждую позицию с отступом
+                foreach ($allEquipment as $eqName => $eq) {
+                    $qty   = $eq['qty']   ?? 0;
+                    $price = $eq['price'] ?? 0;
+                    $sum   = $price * $qty;
+                    $after = $sum * (1 - $discount / 100);
+
+                    $html .= '<tr>';
+                    $html .= '<td style="padding-left:20px;">' . htmlspecialchars($eqName) . '</td>';
+                    $html .= '<td>' . $qty . '</td>';
+                    $html .= '<td>' . number_format($price, 2) . '</td>';
+                    $html .= '<td>' . number_format($sum, 2) . '</td>';
+                    $html .= '<td>' . $discount . '</td>';
+                    $html .= '<td>' . number_format($after, 2) . '</td>';
+                    $html .= '</tr>';
+                }
+            }
+
+            return $html;
+        }
+    }
+
     @endphp
     @php
-        // Гарантируем, что у нас есть массив дерева
-        $equipTree = $calculated['equipment']['tree'] ?? [];
+        $equipTree     = $calculated['equipment']['tree'] ?? [];
         $equipDiscount = $calculated['equipment']['discount'] ?? 0;
     @endphp
 
-    {!! renderPdfTree($equipTree, 0, $equipDiscount) !!}
+    {!! renderPdfTree($equipTree, $equipDiscount) !!}
 
     <tr><td>Итого по оборудованию</td><td></td><td></td><td>{{ number_format($calculated['equipment']['total'], 2) }}</td><td>{{ $calculated['equipment']['discount'] }}</td><td>{{ number_format($calculated['equipment']['after_disc'], 2) }}</td></tr>
 

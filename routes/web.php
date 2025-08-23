@@ -63,6 +63,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::get('/projects/table', [ProjectController::class, 'table'])->name('projects.table');
     Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::put('/projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
     Route::get('/projects/catalog', [ProjectController::class, 'getCatalog'])->name('projects.catalog'); // Переставили выше show
     Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])->name('projects.status.update');
@@ -81,14 +82,45 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::post('/estimates/{estimate}/add-equipment', [ProjectController::class, 'addToEstimate'])->name('estimates.add_equipment');
     Route::post('/estimates/{estimate}/remove-equipment', [ProjectController::class, 'removeFromEstimate'])->name('estimates.remove_equipment');
     Route::get('/estimates/{estimate}/export-excel', [ProjectController::class, 'exportExcel'])->name('estimates.exportExcel');
+    Route::post('/estimates/{estimate}/update-equipment', [ProjectController::class, 'updateEquipmentPivot'])->name('estimates.update_equipment');
+    Route::get('/estimates/{estimate}/render', function (App\Models\Estimate $estimate) {
+        $project = $estimate->project;
+        $estimate->calculated = $estimate->getEstimate();
+        $html = view('estimates.render', [
+            'currentEstimate' => $estimate,
+            'project' => $project
+        ])->render();
+        return response()->json([
+            'html' => $html,
+            'calculated' => $estimate->calculated
+        ]);
+    })->middleware('auth');
+    Route::post('/estimates/{estimate}/update-staff', function (App\Models\Estimate $estimate) {
+        try {
+            $data = request()->validate([
+                'employee_id' => 'required|integer',
+                'rate' => 'nullable|numeric|min:0',
+                'coefficient' => 'nullable|numeric|min:0.1',
+                'discount' => 'nullable|numeric|min:0|max:100'
+            ]);
 
+            $estimate->updateStaff($data['employee_id'], key(array_intersect_key($data, array_flip(['rate', 'coefficient', 'discount']))), $data[key(array_intersect_key($data, array_flip(['rate', 'coefficient', 'discount'])))]);
+            $estimate->calculated = $estimate->getEstimate();
+
+            return response()->json([
+                'calculated' => $estimate->calculated
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    })->middleware('auth')->name('estimates.update_staff');
     // Оборудование
     Route::get('/equipment', [EquipmentController::class, 'index'])->name('equipment');
     Route::post('/equipment', [EquipmentController::class, 'store'])->name('equipment.store');
     Route::get('/equipment/{equipment}/edit', [EquipmentController::class, 'edit'])->name('equipment.edit');
     Route::put('/equipment/{equipment}', [EquipmentController::class, 'update'])->name('equipment.update');
     Route::delete('/equipment/{equipment}', [EquipmentController::class, 'destroy'])->name('equipment.destroy');
-
+    Route::get('/equipment/create', [EquipmentController::class, 'create'])->name('equipment.create');
     // Менеджеры
     Route::get('/managers', [ManagerController::class, 'index'])->name('managers');
     Route::get('/managers/create', [ManagerController::class, 'create'])->name('managers.create');
