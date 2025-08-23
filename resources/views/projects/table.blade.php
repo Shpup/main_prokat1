@@ -239,9 +239,12 @@
                     </div>
                     <div class="mb-4">
                         <label for="manager_id" class="block text-sm font-medium text-gray-600">Менеджер</label>
-                        <select name="manager_id" id="manager_id" x-model="projectForm.manager_id" class="mt-1 block w-full border-gray-300 rounded-md" required>
-                            @foreach (\App\Models\User::role('manager')->where('admin_id', auth()->id())->get() as $manager)
-                                <option value="{{ $manager->id }}">{{ $manager->name }}</option>
+                        <select name="manager_id" id="manager_id" class="mt-1 block w-full border-gray-300 rounded-md" required>
+                            <option value="{{ auth()->id() }}">{{ auth()->user()->name }} (я)</option>
+                            @foreach(\App\Models\User::role('manager')->where('admin_id', auth()->id())->get() as $manager)
+                                @if($manager->id !== auth()->id())
+                                    <option value="{{ $manager->id }}">{{ $manager->name }}</option>
+                                @endif
                             @endforeach
                         </select>
                     </div>

@@ -31,8 +31,11 @@
                     <div class="mb-4">
                         <label for="manager_id" class="block text-sm font-medium text-gray-600">Менеджер</label>
                         <select name="manager_id" id="manager_id" class="mt-1 block w-full border-gray-300 rounded-md" required>
-                            @foreach (\App\Models\User::role('manager')->where('admin_id',auth()->id())->get() as $manager)
-                                <option value="{{ $manager->id }}">{{ $manager->name }}</option>
+                            <option value="{{ auth()->id() }}">{{ auth()->user()->name }} (я)</option>
+                            @foreach(\App\Models\User::role('manager')->where('admin_id', auth()->id())->get() as $manager)
+                                @if($manager->id !== auth()->id())
+                                    <option value="{{ $manager->id }}">{{ $manager->name }}</option>
+                                @endif
                             @endforeach
                         </select>
                     </div>
@@ -62,9 +65,9 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         var calendarEl = document.getElementById('calendar');
-        calendar = new FullCalendar.Calendar(calendarEl, {
+        window.calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
-            eventTimeFormat: false, // Отключаем отображение времени
+            eventTimeFormat: false,
             events: [
                     @foreach ($projects as $project)
                 {
@@ -74,23 +77,25 @@
                     url: "{{ route('projects.show', $project->id) }}",
                     allDay: true,
                     color: "{{ match ($project->status) {
-                        'active' => 'rgba(34,197,94,0.71)',
-                        'new' => 'rgba(248,233,95,0.72)',
-                        'completed' => 'rgba(105,159,255,0.74)',
-                        'cancelled' => 'rgba(255,87,87,0.76)',
-                        default => '#9ca3af'
-                    } }}"
+                    'active'    => 'rgba(34,197,94,0.71)',
+                    'new'       => 'rgba(248,233,95,0.72)',
+                    'completed' => 'rgba(105,159,255,0.74)',
+                    'cancelled' => 'rgba(255,87,87,0.76)',
+                    default     => '#9ca3af'
+                } }}"
                 },
                 @endforeach
             ],
             dateClick: function(info) {
                 @can('create projects')
-                document.getElementById('start_date').value = info.dateStr;
-                document.getElementById('createProjectModal').classList.remove('hidden');
+                window.dispatchEvent(new CustomEvent('open-project-modal', {
+                    detail: { date: info.dateStr }
+                }));
                 @endcan
             }
         });
-        calendar.render();
+
+        window.calendar.render();
     });
 
     function createProject(event) {

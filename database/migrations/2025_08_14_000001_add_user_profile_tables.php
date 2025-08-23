@@ -7,16 +7,6 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('user_contacts', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $t->enum('type', ['phone','email']);
-            $t->string('value', 191)->nullable();
-            $t->string('comment', 255)->nullable();
-            $t->boolean('is_primary')->default(false);
-            $t->timestamps();
-            $t->index(['user_id','type']);
-        });
 
         Schema::create('user_documents', function (Blueprint $t) {
             $t->id();
