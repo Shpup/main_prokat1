@@ -579,7 +579,6 @@ class ProjectController extends Controller
     }
     public function store(Request $request): RedirectResponse|JsonResponse
     {
-        $this->authorize('create projects');
         $validated=$request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
