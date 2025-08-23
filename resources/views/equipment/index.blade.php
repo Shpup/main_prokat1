@@ -240,8 +240,33 @@
                                 </div>
                             ` : ''}
                             <div class="mb-4">
-                                <label for="specifications" class="block text-sm font-medium text-gray-600">Характеристики (JSON)</label>
-                                <textarea name="specifications" id="specifications" class="mt-1 block w-full border-gray-300 rounded-md" placeholder='{"weight": "10kg", "size": "100x50cm"}'></textarea>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Характеристики</label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="length_cm" class="block text-xs font-medium text-gray-500">Длина (см)</label>
+                                        <input type="text" name="length_cm" id="length_cm" placeholder="например: 120" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="width_cm" class="block text-xs font-medium text-gray-500">Ширина (см)</label>
+                                        <input type="text" name="width_cm" id="width_cm" placeholder="например: 60" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="height_cm" class="block text-xs font-medium text-gray-500">Высота (см)</label>
+                                        <input type="text" name="height_cm" id="height_cm" placeholder="например: 80" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="weight_kg" class="block text-xs font-medium text-gray-500">Вес (кг)</label>
+                                        <input type="text" name="weight_kg" id="weight_kg" placeholder="например: 7.5" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="power_w" class="block text-xs font-medium text-gray-500">Мощность (Вт)</label>
+                                        <input type="text" name="power_w" id="power_w" placeholder="например: 350" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="current_a" class="block text-xs font-medium text-gray-500">Ток (А)</label>
+                                        <input type="text" name="current_a" id="current_a" placeholder="например: 1.2" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                    </div>
+                                </div>
                             </div>
                             <div class="mb-4">
                                 <label for="image" class="block text-sm font-medium text-gray-600">Изображение</label>
@@ -462,7 +487,233 @@
     }
 
     function editEquipment(id) {
-        window.location.href = `/equipment/${id}/edit`;
+        const token = document.querySelector('meta[name="csrf-token"]').content;
+        
+        // Сначала загружаем категории, потом данные оборудования
+        Promise.all([
+            fetch('/equipment/create', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(response => response.json()),
+            fetch(`/equipment/${id}/edit`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(response => response.json())
+        ])
+            .then(([categoriesData, equipmentData]) => {
+                const categories = categoriesData.categories || [];
+                const data = equipmentData;
+                const modal = document.createElement('div');
+                modal.innerHTML = `
+                <div class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+                    <div class="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
+                        <h2 class="text-lg font-semibold mb-4">Редактировать оборудование</h2>
+                        <form id="editEquipmentForm" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="_token" value="${token}">
+                            <input type="hidden" name="_method" value="PUT">
+                            <div class="mb-4">
+                                <label for="edit_name" class="block text-sm font-medium text-gray-600">Название</label>
+                                <input type="text" name="name" id="edit_name" value="${data.name || ''}" class="mt-1 block w-full border-gray-300 rounded-md" required>
+                            </div>
+                            <div class="mb-4">
+                                <label for="edit_category_id" class="block text-sm font-medium text-gray-600">Категория</label>
+                                <select name="category_id" id="edit_category_id" class="mt-1 block w-full border-gray-300 rounded-md">
+                                    <option value="">Нет</option>
+                                    ${categories.map(category => `
+                                        <option value="${category.id}" ${data.category_id == category.id ? 'selected' : ''}>${category.name}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label for="edit_description" class="block text-sm font-medium text-gray-600">Описание</label>
+                                <textarea name="description" id="edit_description" class="mt-1 block w-full border-gray-300 rounded-md">${data.description || ''}</textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label for="edit_price" class="block text-sm font-medium text-gray-600">Цена</label>
+                                <input type="number" step="0.01" name="price" id="edit_price" value="${data.price || ''}" class="mt-1 block w-full border-gray-300 rounded-md">
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Характеристики</label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="edit_length_cm" class="block text-xs font-medium text-gray-500">Длина (см)</label>
+                                        <input type="text" name="length_cm" id="edit_length_cm" value="${data.specifications?.length_cm || ''}" placeholder="например: 120" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="edit_width_cm" class="block text-xs font-medium text-gray-500">Ширина (см)</label>
+                                        <input type="text" name="width_cm" id="edit_width_cm" value="${data.specifications?.width_cm || ''}" placeholder="например: 60" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="edit_height_cm" class="block text-xs font-medium text-gray-500">Высота (см)</label>
+                                        <input type="text" name="height_cm" id="edit_height_cm" value="${data.specifications?.height_cm || ''}" placeholder="например: 80" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="edit_weight_kg" class="block text-xs font-medium text-gray-500">Вес (кг)</label>
+                                        <input type="text" name="weight_kg" id="edit_weight_kg" value="${data.specifications?.weight_kg || ''}" placeholder="например: 7.5" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="edit_power_w" class="block text-xs font-medium text-gray-500">Мощность (Вт)</label>
+                                        <input type="text" name="power_w" id="edit_power_w" value="${data.specifications?.power_w || ''}" placeholder="например: 350" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="edit_current_a" class="block text-xs font-medium text-gray-500">Ток (А)</label>
+                                        <input type="text" name="current_a" id="edit_current_a" value="${data.specifications?.current_a || ''}" placeholder="например: 1.2" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label for="edit_image" class="block text-sm font-medium text-gray-600">Изображение</label>
+                                <input type="file" name="image" id="edit_image" class="mt-1 block w-full border-gray-300 rounded-md">
+                            </div>
+                            <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Обновить</button>
+                            <button type="button" onclick="this.closest('.fixed').remove()" class="ml-2 text-gray-600 hover:underline">Отмена</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+                document.body.appendChild(modal);
+                document.getElementById('editEquipmentForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const formData = new FormData(this);
+                    fetch(`/equipment/${id}`, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Ошибка: ' + response.statusText);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                modal.remove();
+                                alert(data.success);
+                                
+                                // Обновляем QR код в таблице без перезагрузки страницы
+                                updateQRCodeInTable(id);
+                                
+                                // Также обновляем другие данные в строке (название, характеристики, цену)
+                                updateEquipmentRowData(id);
+                            } else {
+                                alert('Ошибка: ' + (data.error || 'Не удалось обновить оборудование'));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Ошибка:', error);
+                            alert('Ошибка: ' + error.message);
+                        });
+                });
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки данных оборудования:', error);
+                alert('Ошибка: ' + error.message);
+            });
+    }
+
+    // Функция для обновления QR кода в таблице без перезагрузки страницы
+    function updateQRCodeInTable(equipmentId) {
+        // Находим строку с оборудованием в таблице
+        const equipmentRow = document.querySelector(`tr[data-id="${equipmentId}"]`);
+        if (!equipmentRow) {
+            console.log('Строка оборудования не найдена, перезагружаем страницу');
+            location.reload();
+            return;
+        }
+        
+        // Находим изображение QR кода в этой строке
+        const qrImage = equipmentRow.querySelector('img[alt="QR-код"]');
+        if (qrImage) {
+            // Добавляем временную метку к URL, чтобы браузер не кэшировал старое изображение
+            const currentSrc = qrImage.src;
+            const separator = currentSrc.includes('?') ? '&' : '?';
+            qrImage.src = currentSrc + separator + 't=' + Date.now();
+            
+            console.log('QR код обновлен для оборудования ID:', equipmentId);
+        } else {
+            console.log('QR код не найден в строке, перезагружаем страницу');
+            location.reload();
+        }
+    }
+
+    // Функция для обновления данных оборудования в строке таблицы
+    function updateEquipmentRowData(equipmentId) {
+        // Получаем обновленные данные оборудования
+        fetch(`/equipment/${equipmentId}/edit`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const equipmentRow = document.querySelector(`tr[data-id="${equipmentId}"]`);
+            if (!equipmentRow) {
+                console.log('Строка оборудования не найдена');
+                return;
+            }
+            
+            // Обновляем название
+            const nameCell = equipmentRow.querySelector('td:first-child');
+            if (nameCell) {
+                nameCell.textContent = data.name || '';
+            }
+            
+            // Обновляем цену (если есть)
+            const priceCell = equipmentRow.querySelector('td:nth-child(3)');
+            if (priceCell && data.price) {
+                priceCell.textContent = parseFloat(data.price).toFixed(2);
+            }
+            
+            // Обновляем характеристики
+            const specsCell = equipmentRow.querySelector('td:nth-child(4)');
+            if (specsCell && data.specifications) {
+                const specs = data.specifications;
+                let specsHtml = '';
+                
+                // Проверяем, есть ли заполненные характеристики
+                const filledSpecs = Object.entries(specs).filter(([key, value]) => value !== null && value !== '');
+                
+                if (filledSpecs.length > 0) {
+                    specsHtml = '<div class="text-sm text-gray-600">';
+                    
+                    // Маппинг ключей на отображаемые названия и единицы
+                    const specLabels = {
+                        'length_cm': { label: 'Длина', unit: 'см' },
+                        'width_cm': { label: 'Ширина', unit: 'см' },
+                        'height_cm': { label: 'Высота', unit: 'см' },
+                        'weight_kg': { label: 'Вес', unit: 'кг' },
+                        'power_w': { label: 'Мощность', unit: 'Вт' },
+                        'current_a': { label: 'Ток', unit: 'А' }
+                    };
+                    
+                    filledSpecs.forEach(([key, value]) => {
+                        if (specLabels[key]) {
+                            specsHtml += `<div class="whitespace-nowrap">${specLabels[key].label}: ${value} ${specLabels[key].unit}</div>`;
+                        }
+                    });
+                    
+                    specsHtml += '</div>';
+                } else {
+                    specsHtml = '<span class="text-sm text-gray-400">Не указаны</span>';
+                }
+                
+                specsCell.innerHTML = specsHtml;
+            }
+            
+            console.log('Данные оборудования обновлены для ID:', equipmentId);
+        })
+        .catch(error => {
+            console.error('Ошибка при обновлении данных оборудования:', error);
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function() {

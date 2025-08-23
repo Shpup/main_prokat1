@@ -76,7 +76,12 @@ class EquipmentController extends Controller
                 'category_id' => 'nullable|exists:categories,id,admin_id,' . $adminId,
                 'description' => 'nullable|string',
                 'price' => 'nullable|numeric|min:0',
-                'specifications' => 'nullable|json',
+                'length_cm' => 'nullable|string',
+                'width_cm' => 'nullable|string',
+                'height_cm' => 'nullable|string',
+                'weight_kg' => 'nullable|string',
+                'power_w' => 'nullable|string',
+                'current_a' => 'nullable|string',
                 'image' => 'nullable|image|max:2048',
             ]);
 
@@ -84,19 +89,67 @@ class EquipmentController extends Controller
 
             $data = $validated;
             $data['admin_id'] = $adminId;
-            $barcodeContent = $request->name . '-' . uniqid();
-            $barcodePath = 'barcodes/' . uniqid() . '.png';
+            
+            // Собираем характеристики из отдельных полей
+            $data['specifications'] = $this->buildSpecificationsFromForm($request);
+            
+            $qrPath = 'qrcodes/' . uniqid() . '.svg';
 
-
-            $barcodeImage = 1;
-            Storage::put('public/' . $barcodePath, $barcodeImage);
-            $data['barcode'] = $barcodePath;
+            // Генерируем QR-код с данными оборудования
+            $qrData = [
+                'id' => null, // Будет установлен после создания записи
+                'name' => $request->name,
+                'description' => $request->description,
+                'specifications' => $this->buildSpecificationsFromForm($request)
+            ];
+            
+            $qrContent = json_encode($qrData, JSON_UNESCAPED_UNICODE);
+            Log::info('QR Content: ' . $qrContent);
+            
+            try {
+                $generator = new \Milon\Barcode\DNS2D();
+                Log::info('Generator created successfully');
+                
+                $qrImage = $generator->getBarcodeSVG("123, asdasd", 'QRCODE');
+                Log::info('QR Image generated, size: ' . strlen($qrImage));
+                
+                Storage::put('public/' . $qrPath, $qrImage);
+                Log::info('QR Code saved to: ' . $qrPath);
+                
+                // Проверяем, что файл действительно создался
+                if (Storage::exists('public/' . $qrPath)) {
+                    $fileSize = Storage::size('public/' . $qrPath);
+                    Log::info('File exists, size: ' . $fileSize . ' bytes');
+                } else {
+                    Log::error('File was not created!');
+                }
+            } catch (\Exception $e) {
+                Log::error('QR Code generation failed: ' . $e->getMessage());
+                Log::error('Exception trace: ' . $e->getTraceAsString());
+                // Fallback - создаем простой QR-код
+                $qrImage = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+                Storage::put('public/' . $qrPath, $qrImage);
+            }
+            $data['qrcode'] = $qrPath;
 
             if ($request->hasFile('image')) {
                 $data['image'] = $request->file('image')->store('equipment', 'public');
             }
 
             $equipment = Equipment::create($data);
+
+            // Обновляем QR-код с правильным ID
+            $qrData = [
+                'id' => $equipment->id,
+                'name' => $equipment->name,
+                'description' => $equipment->description,
+                'specifications' => $equipment->specifications
+            ];
+            
+            $qrContent = json_encode($qrData, JSON_UNESCAPED_UNICODE);
+            $generator = new \Milon\Barcode\DNS2D();
+            $qrImage = $generator->getBarcodeSVG($qrContent, 'QRCODE');
+            Storage::put('public/' . $equipment->qrcode, $qrImage);
 
             return response()->json([
                 'success' => 'Оборудование добавлено.',
@@ -132,8 +185,14 @@ class EquipmentController extends Controller
             return response()->json(['error' => 'У вас нет доступа к этому оборудованию'], 403);
         }
 
-        Log::info('Equipment data for edit: ', $equipment->toArray());
-        return response()->json($equipment);
+        // Получаем характеристики в нужном формате для формы
+        $specifications = $equipment->getSpecificationsForForm();
+        
+        $equipmentData = $equipment->toArray();
+        $equipmentData['specifications'] = $specifications;
+
+        Log::info('Equipment data for edit: ', $equipmentData);
+        return response()->json($equipmentData);
     }
 
     public function update(Request $request, $id)
@@ -153,11 +212,41 @@ class EquipmentController extends Controller
             'category_id' => 'nullable|exists:categories,id,admin_id,' . $adminId,
             'description' => 'nullable|string',
             'price' => 'nullable|numeric',
-            'specifications' => 'nullable|json',
+            'length_cm' => 'nullable|string',
+            'width_cm' => 'nullable|string',
+            'height_cm' => 'nullable|string',
+            'weight_kg' => 'nullable|string',
+            'power_w' => 'nullable|string',
+            'current_a' => 'nullable|string',
             'image' => 'nullable|image|max:2048',
         ]);
 
-        $equipment->update($request->all());
+        $data = $request->all();
+        // Собираем характеристики из отдельных полей
+        $data['specifications'] = $this->buildSpecificationsFromForm($request);
+        
+        $equipment->update($data);
+        
+        // Обновляем QR-код с новыми данными
+        $qrData = [
+            'id' => $equipment->id,
+            'name' => $equipment->name,
+            'description' => $equipment->description,
+            'specifications' => $equipment->specifications
+        ];
+        
+        $qrContent = json_encode($qrData, JSON_UNESCAPED_UNICODE);
+        Log::info('Updating QR Code for equipment ' . $equipment->id . ' with content: ' . $qrContent);
+        
+        try {
+            $generator = new \Milon\Barcode\DNS2D();
+            $qrImage = $generator->getBarcodeSVG($qrContent, 'QRCODE');
+            Storage::put('public/' . $equipment->qrcode, $qrImage);
+            Log::info('QR Code updated successfully for equipment ' . $equipment->id);
+        } catch (\Exception $e) {
+            Log::error('Failed to update QR Code for equipment ' . $equipment->id . ': ' . $e->getMessage());
+        }
+        
         if ($request->hasFile('image')) {
             if ($equipment->image) {
                 Storage::delete('public/' . $equipment->image);
@@ -184,11 +273,64 @@ class EquipmentController extends Controller
         if ($equipment->image) {
             Storage::delete('public/' . $equipment->image);
         }
-        if ($equipment->barcode) {
-            Storage::delete('public/' . $equipment->barcode);
+        if ($equipment->qrcode) {
+            Storage::delete('public/' . $equipment->qrcode);
         }
         $equipment->delete();
 
         return response()->json(['success' => 'Оборудование успешно удалено']);
+    }
+
+    /**
+     * Нормализует значение характеристики, убирая единицы измерения и приводя к числу
+     */
+    private function normalizeSpecificationValue($value): ?float
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        // Убираем пробелы и приводим к строке
+        $value = trim((string) $value);
+        
+        // Заменяем запятую на точку
+        $value = str_replace(',', '.', $value);
+        
+        // Убираем единицы измерения (см, кг, Вт, А и их варианты)
+        $value = preg_replace('/\s*(см|cm|кг|kg|Вт|W|А|A)\s*$/i', '', $value);
+        
+        // Проверяем, что осталось число
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Собирает характеристики из отдельных полей формы
+     */
+    private function buildSpecificationsFromForm(Request $request): array
+    {
+        $specifications = [];
+        
+        $fields = [
+            'length_cm' => 'length_cm',
+            'width_cm' => 'width_cm', 
+            'height_cm' => 'height_cm',
+            'weight_kg' => 'weight_kg',
+            'power_w' => 'power_w',
+            'current_a' => 'current_a'
+        ];
+
+        foreach ($fields as $fieldName => $jsonKey) {
+            $value = $request->input($fieldName);
+            $normalizedValue = $this->normalizeSpecificationValue($value);
+            if ($normalizedValue !== null) {
+                $specifications[$jsonKey] = $normalizedValue;
+            }
+        }
+
+        return $specifications;
     }
 }

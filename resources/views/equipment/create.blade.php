@@ -36,10 +36,38 @@
                     <input type="number" step="0.01" name="price" id="price" class="mt-1 block w-full border-gray-300 rounded-md">
                 </div>
             @endcan
+            
+            <!-- Характеристики -->
             <div class="mb-4">
-                <label for="specifications" class="block text-sm font-medium text-gray-600">Характеристики (JSON)</label>
-                <textarea name="specifications" id="specifications" class="mt-1 block w-full border-gray-300 rounded-md" placeholder='{"weight": "10kg", "size": "100x50cm"}'></textarea>
+                <label class="block text-sm font-medium text-gray-600 mb-2">Характеристики</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="length_cm" class="block text-xs font-medium text-gray-500">Длина (см)</label>
+                        <input type="text" name="length_cm" id="length_cm" placeholder="например: 120" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                    </div>
+                    <div>
+                        <label for="width_cm" class="block text-xs font-medium text-gray-500">Ширина (см)</label>
+                        <input type="text" name="width_cm" id="width_cm" placeholder="например: 60" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                    </div>
+                    <div>
+                        <label for="height_cm" class="block text-xs font-medium text-gray-500">Высота (см)</label>
+                        <input type="text" name="height_cm" id="height_cm" placeholder="например: 80" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                    </div>
+                    <div>
+                        <label for="weight_kg" class="block text-xs font-medium text-gray-500">Вес (кг)</label>
+                        <input type="text" name="weight_kg" id="weight_kg" placeholder="например: 7.5" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                    </div>
+                    <div>
+                        <label for="power_w" class="block text-xs font-medium text-gray-500">Мощность (Вт)</label>
+                        <input type="text" name="power_w" id="power_w" placeholder="например: 350" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                    </div>
+                    <div>
+                        <label for="current_a" class="block text-xs font-medium text-gray-500">Ток (А)</label>
+                        <input type="text" name="current_a" id="current_a" placeholder="например: 1.2" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                    </div>
+                </div>
             </div>
+            
             <div class="mb-4">
                 <label for="image" class="block text-sm font-medium text-gray-600">Изображение</label>
                 <input type="file" name="image" id="image" class="mt-1 block w-full border-gray-300 rounded-md">
@@ -50,4 +78,3 @@
 </div>
 </body>
 </html>
-```
