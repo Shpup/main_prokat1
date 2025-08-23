@@ -121,6 +121,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::get('/equipment/{equipment}/edit', [EquipmentController::class, 'edit'])->name('equipment.edit');
     Route::put('/equipment/{equipment}', [EquipmentController::class, 'update'])->name('equipment.update');
     Route::delete('/equipment/{equipment}', [EquipmentController::class, 'destroy'])->name('equipment.destroy');
+    Route::get('/equipment/create', [EquipmentController::class, 'create'])->name('equipment.create');
 
     // Менеджеры
     Route::get('/managers', [ManagerController::class, 'index'])->name('managers');
