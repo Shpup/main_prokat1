@@ -13,7 +13,7 @@ class EquipmentController extends Controller
     {
         // Валидация входных данных
         $request->validate([
-            'id' => 'required|integer|exists:equipments,id',
+            'id' => 'required|integer|exists:equipment,id',
             'action' => 'required|in:send,accept',
         ]);
 
