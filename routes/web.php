@@ -101,6 +101,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::post('/managers/{user}/status-comment', [ManagerController::class, 'updateStatusComment'])->name('managers.status-comment.update');
     Route::get('/managers/{user}/assignments', [ManagerController::class, 'getAssignments'])->name('managers.assignments');
     Route::post('/assignments', [ManagerController::class, 'createAssignment'])->name('assignments.store');
+    Route::get('/managers/projects/autocomplete', [ManagerController::class, 'autocompleteProjects'])->name('managers.projects.autocomplete');
 
     // Категории
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories');

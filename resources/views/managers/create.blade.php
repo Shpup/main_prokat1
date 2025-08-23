@@ -28,7 +28,7 @@
                     <option value="нет специальности">Пользователь</option>
                     <option value="admin">Админ</option>
                     <option value="manager">Менеджер</option>
-                    <option value="driver">Грузчик</option>
+                    <option value="driver">Водитель</option>
                 </select>
             </div>
             <div class="mb-4">

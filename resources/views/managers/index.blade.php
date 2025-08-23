@@ -193,7 +193,7 @@
                     <option value="нет специальности">Пользователь</option>
                     <option value="admin">Админ</option>
                     <option value="manager">Менеджер</option>
-                    <option value="driver">Грузчик</option>
+                    <option value="driver">Водитель</option>
                 </select>
             </div>
             <div class="mb-4">
@@ -238,7 +238,7 @@
                     <option value="нет специальности">Пользователь</option>
                     <option value="admin">Админ</option>
                     <option value="manager">Менеджер</option>
-                    <option value="driver">Грузчик</option>
+                    <option value="driver">Водитель</option>
                 </select>
             </div>
             <div class="flex justify-end space-x-3">
@@ -267,12 +267,41 @@
                 
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Проект</label>
-                    <select id="add-project" class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none" required>
-                        <option value="">Выберите проект</option>
-                        @foreach($projects ?? [] as $project)
-                            <option value="{{ $project->id }}">{{ $project->name }}</option>
-                        @endforeach
-                    </select>
+                    <div class="relative">
+                        <input type="text" id="add-project-search" 
+                               placeholder="Начните вводить название проекта..." 
+                               class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 px-3 py-2" 
+                               autocomplete="off">
+                        <input type="hidden" id="add-project-id" required>
+                        
+                        <!-- Выпадающий список автодополнения -->
+                        <div id="project-suggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
+                            <!-- Заглушка "Загружаются проекты" -->
+                            <div id="project-loading" class="px-3 py-4 text-center text-gray-500 hidden">
+                                <div class="flex items-center justify-center">
+                                    <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Загружаются проекты...
+                                </div>
+                            </div>
+                            
+                            <!-- Сообщение "Нет подходящих проектов" -->
+                            <div id="project-no-results" class="px-4 py-6 text-center hidden">
+                                <div class="mb-3">
+                                    <svg class="mx-auto h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                                <div class="text-base font-medium text-gray-900 mb-1">Проекты не найдены</div>
+                                <div class="text-sm text-gray-500">Попробуйте изменить поисковый запрос</div>
+                            </div>
+                            
+                            <!-- Список проектов -->
+                            <div id="project-suggestions-list"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex justify-end space-x-3 pt-3">
@@ -351,7 +380,7 @@
 </div>
 
 <!-- Toast уведомления -->
-<div id="toast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-md shadow-lg transform translate-x-full transition-transform duration-300 z-50">
+<div id="toast" class="fixed top-4 right-0 bg-green-500 text-white px-6 py-3 rounded-l-md shadow-lg transform translate-x-full transition-transform duration-300 z-50">
     <span id="toast-message"></span>
 </div>
 
@@ -416,10 +445,13 @@ function openCreateModal() {
 }
 
 function openEditModal(employeeId) {
+    console.log('openEditModal вызвана, employeeId:', employeeId);
+    
     // Загрузить данные сотрудника
     fetch(`/managers/${employeeId}`)
         .then(response => response.json())
         .then(data => {
+            console.log('Данные сотрудника загружены:', data);
             document.getElementById('edit-employee-id').value = employeeId;
             document.getElementById('edit-name').value = data.name;
             document.getElementById('edit-phone').value = data.phone || '';
@@ -431,6 +463,16 @@ function openEditModal(employeeId) {
 function openAddToProjectModal(employeeId) {
     document.getElementById('add-employee-id').value = employeeId;
     document.getElementById('addToProjectModal').classList.remove('hidden');
+    
+    // Очищаем поля
+    document.getElementById('add-project-search').value = '';
+    document.getElementById('add-project-id').value = '';
+    document.getElementById('project-suggestions').classList.add('hidden');
+    
+    // Инициализируем автодополнение
+    setTimeout(() => {
+        initProjectAutocomplete();
+    }, 100);
 }
 
 function openStatusCommentModal(employeeId) {
@@ -484,19 +526,29 @@ function updateEmployee() {
     const employeeId = document.getElementById('edit-employee-id').value;
     const formData = new FormData(document.getElementById('editEmployeeForm'));
     
+    // Добавляем _method для эмуляции PATCH через POST
+    formData.append('_method', 'PATCH');
+    
+    console.log('updateEmployee вызвана, employeeId:', employeeId);
+    console.log('URL запроса:', `/managers/${employeeId}`);
+    
     fetch(`/managers/${employeeId}`, {
-        method: 'PATCH',
+        method: 'POST',
         body: formData,
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Ответ сервера:', response.status, response.statusText);
+        return response.json();
+    })
     .then(data => {
+        console.log('Данные ответа:', data);
         if (data.success) {
             showToast(data.success);
             closeModal('editEmployeeModal');
-            loadEmployees(); // Обновляем таблицу без перезагрузки
+            loadEmployees();
         } else {
             showToast('Ошибка при обновлении сотрудника: ' + (data.message || 'Неизвестная ошибка'));
         }
@@ -577,7 +629,7 @@ function updateStatus(employeeId, status) {
 
 function addToProject() {
     const employeeId = document.getElementById('add-employee-id').value;
-    const projectId = document.getElementById('add-project').value;
+    const projectId = document.getElementById('add-project-id').value;
     
     // Валидация
     if (!projectId) {
@@ -822,6 +874,209 @@ function showToast(message) {
         toast.classList.add('translate-x-full');
     }, 3000);
 }
+
+// Автодополнение проектов
+let projectSearchTimeout = null;
+let selectedProjectIndex = -1;
+let allProjects = []; // Массив всех загруженных проектов
+
+// Инициализация автодополнения при открытии модалки
+function initProjectAutocomplete() {
+    console.log('initProjectAutocomplete вызвана');
+    
+    const searchInput = document.getElementById('add-project-search');
+    const suggestionsDiv = document.getElementById('project-suggestions');
+    const loadingDiv = document.getElementById('project-loading');
+    const noResultsDiv = document.getElementById('project-no-results');
+    const suggestionsListDiv = document.getElementById('project-suggestions-list');
+    
+    console.log('Элементы найдены:', {
+        searchInput: !!searchInput,
+        suggestionsDiv: !!suggestionsDiv,
+        loadingDiv: !!loadingDiv,
+        noResultsDiv: !!noResultsDiv,
+        suggestionsListDiv: !!suggestionsListDiv
+    });
+    
+    if (!searchInput) {
+        console.error('searchInput не найден!');
+        return;
+    }
+    
+    // Обработчик фокуса на поле поиска (показываем все проекты)
+    searchInput.addEventListener('focus', function() {
+        console.log('Фокус на поле поиска - загружаем все проекты');
+        loadAllProjects();
+    });
+    
+    // Обработчик ввода в поле поиска
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        console.log('Ввод в поле поиска:', query);
+        
+        // Очищаем предыдущий таймаут
+        if (projectSearchTimeout) {
+            clearTimeout(projectSearchTimeout);
+        }
+        
+        // Если поиск пустой, показываем все проекты
+        if (query.length < 1) {
+            console.log('Поиск пустой, показываем все проекты');
+            displayProjects(allProjects);
+            return;
+        }
+        
+        // Фильтруем проекты локально
+        const filteredProjects = allProjects.filter(project => {
+            const title = project.title.toLowerCase();
+            const location = (project.location || '').toLowerCase();
+            const search = query.toLowerCase();
+            
+            return title.includes(search) || location.includes(search);
+        });
+        
+        console.log('Отфильтрованные проекты:', filteredProjects);
+        displayProjects(filteredProjects);
+    });
+    
+    // Обработчик клавиш для навигации
+    searchInput.addEventListener('keydown', function(event) {
+        const suggestions = document.querySelectorAll('.project-suggestion-item');
+        
+        if (!suggestions.length) return;
+        
+        switch(event.key) {
+            case 'ArrowDown':
+                event.preventDefault();
+                selectedProjectIndex = Math.min(selectedProjectIndex + 1, suggestions.length - 1);
+                updateProjectSelection();
+                break;
+            case 'ArrowUp':
+                event.preventDefault();
+                selectedProjectIndex = Math.max(selectedProjectIndex - 1, -1);
+                updateProjectSelection();
+                break;
+            case 'Enter':
+                event.preventDefault();
+                if (selectedProjectIndex >= 0 && suggestions[selectedProjectIndex]) {
+                    const projectId = suggestions[selectedProjectIndex].getAttribute('data-project-id');
+                    const projectTitle = suggestions[selectedProjectIndex].getAttribute('data-project-title');
+                    selectProject(projectId, projectTitle);
+                }
+                break;
+            case 'Escape':
+                suggestionsDiv.classList.add('hidden');
+                selectedProjectIndex = -1;
+                break;
+        }
+    });
+    
+    // Обработчик клика вне области поиска
+    document.addEventListener('click', function(event) {
+        if (!searchInput.contains(event.target) && !suggestionsDiv.contains(event.target)) {
+            suggestionsDiv.classList.add('hidden');
+            selectedProjectIndex = -1;
+        }
+    });
+}
+
+// Обновление выделения в списке проектов
+function updateProjectSelection() {
+    const suggestions = document.querySelectorAll('.project-suggestion-item');
+    suggestions.forEach((item, index) => {
+        if (index === selectedProjectIndex) {
+            item.classList.add('bg-blue-50');
+        } else {
+            item.classList.remove('bg-blue-50');
+        }
+    });
+}
+
+// Отображение проектов в списке
+function displayProjects(projects) {
+    const suggestionsDiv = document.getElementById('project-suggestions');
+    const loadingDiv = document.getElementById('project-loading');
+    const noResultsDiv = document.getElementById('project-no-results');
+    const suggestionsListDiv = document.getElementById('project-suggestions-list');
+    
+    // Показываем список
+    suggestionsDiv.classList.remove('hidden');
+    loadingDiv.classList.add('hidden');
+    selectedProjectIndex = -1;
+    
+    if (projects.length === 0) {
+        // Показываем сообщение "Нет результатов"
+        noResultsDiv.classList.remove('hidden');
+        suggestionsListDiv.innerHTML = '';
+    } else {
+        // Скрываем сообщение "Нет результатов"
+        noResultsDiv.classList.add('hidden');
+        
+        // Отображаем список проектов
+        suggestionsListDiv.innerHTML = projects.map((project, index) => `
+            <div class="px-3 py-2 cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0 project-suggestion-item"
+                 data-project-id="${project.id}"
+                 data-project-title="${project.title}"
+                 data-index="${index}"
+                 onclick="selectProject(${project.id}, '${project.title.replace(/'/g, "\\'")}')">
+                <div class="font-medium">${project.title}</div>
+                <div class="text-sm text-gray-500">${project.location || ''}</div>
+                <div class="text-xs text-gray-400">${project.date}</div>
+            </div>
+        `).join('');
+    }
+}
+
+// Загрузка всех проектов (без поиска)
+async function loadAllProjects() {
+    const suggestionsDiv = document.getElementById('project-suggestions');
+    const loadingDiv = document.getElementById('project-loading');
+    const noResultsDiv = document.getElementById('project-no-results');
+    const suggestionsListDiv = document.getElementById('project-suggestions-list');
+    
+    // Показываем заглушку загрузки
+    suggestionsDiv.classList.remove('hidden');
+    loadingDiv.classList.remove('hidden');
+    noResultsDiv.classList.add('hidden');
+    suggestionsListDiv.innerHTML = '';
+    selectedProjectIndex = -1;
+    
+    try {
+        const response = await fetch('/managers/projects/autocomplete?q=', {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Все проекты загружены:', data);
+            
+            const suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+            console.log('Все проекты (массив):', suggestions);
+            
+            // Сохраняем все проекты в глобальную переменную
+            allProjects = suggestions;
+            
+            // Отображаем проекты
+            displayProjects(suggestions);
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки всех проектов:', error);
+        loadingDiv.classList.add('hidden');
+        noResultsDiv.classList.remove('hidden');
+    }
+}
+
+// Выбор проекта из списка
+function selectProject(projectId, projectTitle) {
+    document.getElementById('add-project-search').value = projectTitle;
+    document.getElementById('add-project-id').value = projectId;
+    document.getElementById('project-suggestions').classList.add('hidden');
+    selectedProjectIndex = -1;
+}
+
 </script>
 </body>
 </html>

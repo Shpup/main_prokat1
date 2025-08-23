@@ -268,4 +268,117 @@ class ManagerController extends Controller
         
         return response()->json($user->load('roles'));
     }
+
+    /**
+     * API для автодополнения проектов в модалке добавления сотрудника на проект.
+     */
+    public function autocompleteProjects(Request $request): JsonResponse
+    {
+        try {
+            $query = $request->query('q', '');
+            
+            // Если запрос пустой, возвращаем все проекты (без фильтрации)
+            if (empty($query) || mb_strlen($query) < 1) {
+                $user = auth()->user();
+                
+                $projects = \App\Models\Project::query()
+                    ->where('admin_id', $user->id)
+                    ->whereIn('status', ['new', 'active'])
+                    ->orderBy('name', 'asc')
+                    ->select(['id', 'name', 'description', 'status', 'start_date', 'end_date'])
+                    ->take(10)
+                    ->get()
+                    ->map(function($project) {
+                        return [
+                            'id' => $project->id,
+                            'title' => $project->name,
+                            'location' => $project->description ?? '',
+                            'date' => $project->start_date ? \Carbon\Carbon::parse($project->start_date)->format('d.m.Y') : 'Дата не установлена',
+                            'status' => $project->status
+                        ];
+                    })
+                    ->values();
+                
+                return response()->json(['suggestions' => $projects]);
+            }
+
+            $user = auth()->user();
+            
+            // Получаем только проекты текущего админа со статусами new и active
+            $projectsQuery = \App\Models\Project::query()
+                ->where('admin_id', $user->id)
+                ->whereIn('status', ['new', 'active'])
+                ->orderBy('name', 'asc');
+
+            $search = mb_strtolower(trim($query));
+            
+            $projects = $projectsQuery->select(['id', 'name', 'description', 'status', 'start_date', 'end_date'])->get();
+            
+            // Отладочная информация
+            \Illuminate\Support\Facades\Log::info('ManagerController: autocompleteProjects debug', [
+                'user_id' => $user->id,
+                'query' => $query,
+                'search' => $search,
+                'projects_count' => $projects->count(),
+                'projects' => $projects->toArray()
+            ]);
+
+            $suggestions = $projects
+                ->filter(function($project) use ($search) {
+                    $title = mb_strtolower($project->name ?? '');
+                    $description = mb_strtolower($project->description ?? '');
+                    
+                    // Поиск по первым буквам названия
+                    if ($search !== '' && mb_strpos($title, $search) === 0) {
+                        return true;
+                    }
+                    
+                    // Поиск по первым буквам описания
+                    if ($search !== '' && mb_strpos($description, $search) === 0) {
+                        return true;
+                    }
+                    
+                    // Поиск по любой части названия
+                    if ($search !== '' && mb_strpos($title, $search) !== false) {
+                        return true;
+                    }
+                    
+                    // Поиск по любой части описания
+                    if ($search !== '' && mb_strpos($description, $search) !== false) {
+                        return true;
+                    }
+                    
+                    return false;
+                })
+                ->take(10)
+                ->map(function($project) {
+                    return [
+                        'id' => $project->id,
+                        'title' => $project->name,
+                        'location' => $project->description ?? '',
+                        'date' => $project->start_date ? \Carbon\Carbon::parse($project->start_date)->format('d.m.Y') : 'Дата не установлена',
+                        'status' => $project->status
+                    ];
+                })
+                ->values(); // Преобразуем в массив с числовыми индексами
+
+            $result = ['suggestions' => $suggestions];
+            
+            // Отладочная информация
+            \Illuminate\Support\Facades\Log::info('ManagerController: autocompleteProjects result', [
+                'suggestions_count' => count($suggestions),
+                'result' => $result
+            ]);
+            
+            return response()->json($result);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('ManagerController: autocompleteProjects error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json(['suggestions' => []], 500);
+        }
+    }
 }
