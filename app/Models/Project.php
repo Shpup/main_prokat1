@@ -14,6 +14,8 @@ class Project extends Model
         'end_date',
         'status',
         'admin_id',
+        'client_id',
+        'site_id',
     ];
 
     public function estimates()
@@ -51,5 +53,17 @@ class Project extends Model
     public function assignments()
     {
         return $this->hasMany(Assignment::class);
+    }
+    public function admin()
+    {
+        return $this->belongsTo(User::class, 'admin_id');
+    }
+    public function client()
+    {
+        return $this->belongsTo(Client::class, 'client_id');
+    }
+    public function site()
+    {
+        return $this->belongsTo(Site::class, 'site_id');
     }
 }

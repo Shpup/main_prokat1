@@ -34,6 +34,29 @@ class Equipment extends Model
     {
         return $this->belongsTo(Category::class);
     }
+    public function getCategoryPath()
+    {
+        $path = [];
+        $category = $this->category;
+
+        // Логируем информацию о category_id
+
+        while ($category) {
+            $path[] = $category->name;
+            // Предполагаем, что модель Category имеет связь parent
+            $category = $category->parent;
+            // Защита от бесконечного цикла
+            if (!$category || $category->id === $this->category_id) {
+                 break;
+            }
+        }
+
+        // Разворачиваем путь, чтобы корневая категория была первой
+        $path = array_reverse($path);
+
+        // Если путь пустой, возвращаем 'Без категории'
+        return empty($path) ? ['Без категории'] : $path;
+    }
 
     public function admin()
     {

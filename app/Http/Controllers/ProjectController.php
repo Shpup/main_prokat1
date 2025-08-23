@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Models\Estimate;
 use App\Models\Client;
+use App\Models\Site;
 use App\Models\Company;
 use App\Models\Equipment;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
@@ -18,36 +20,32 @@ use App\Models\WorkInterval;
 use PDF;
 use App\Exports\EstimateExport;
 use Maatwebsite\Excel\Facades\Excel;
+
 class ProjectController extends Controller
 {
-    /**
-     * Отображает список проектов и календарь.
-     */
-    public function index(Request $request): View|JsonResponse
+    public function index(): View
     {
         $user = auth()->user();
-        
-        // Логика загрузки проектов в зависимости от роли
+
         if ($user->hasRole('admin')) {
-            // Админ видит все проекты, которые он создал (admin_id), кроме отмененных
             $projects = Project::with('manager')->where('admin_id', $user->id)->where('status', '!=', 'cancelled')->get();
         } else {
-            // Менеджер и обычный пользователь видят проекты, на которые они назначены, кроме отмененных
             $projects = Project::with('manager')
                 ->where('status', '!=', 'cancelled')
                 ->where(function ($query) use ($user) {
-                    $query->where('manager_id', $user->id) // Проекты, где он менеджер
-                          ->orWhereHas('staff', function ($staffQuery) use ($user) {
-                              $staffQuery->where('user_id', $user->id); // Проекты, где он сотрудник
-                          });
+                    $query->where('manager_id', $user->id)
+                        ->orWhereHas('staff', function ($staffQuery) use ($user) {
+                            $staffQuery->where('user_id', $user->id);
+                        });
                 })
                 ->get();
         }
-        
+
+
         if ($request->ajax()) {
             return response()->json($projects);
         }
-        
+
         return view('projects.index', compact('projects'));
     }
     public function table(Request $request)
@@ -62,7 +60,7 @@ class ProjectController extends Controller
         $direction = in_array($direction, ['asc', 'desc']) ? $direction : 'asc';
 
         $user = auth()->user();
-        
+
         // Базовый запрос в зависимости от роли
         if ($user->hasRole('admin')) {
             // Админ видит все проекты, которые он создал (admin_id), кроме отмененных
@@ -78,9 +76,9 @@ class ProjectController extends Controller
                 ->where('projects.status', '!=', 'cancelled')
                 ->where(function ($subQuery) use ($user) {
                     $subQuery->where('projects.manager_id', $user->id)
-                             ->orWhereHas('staff', function ($staffQuery) use ($user) {
-                                 $staffQuery->where('user_id', $user->id);
-                             });
+                        ->orWhereHas('staff', function ($staffQuery) use ($user) {
+                            $staffQuery->where('user_id', $user->id);
+                        });
                 })
                 ->select('projects.*', 'users.name as manager_name');
         }
@@ -147,6 +145,7 @@ class ProjectController extends Controller
             $estimate = Estimate::create([
                 'project_id' => $project->id,
                 'name' => 'Смета 1',
+                'company_id' => Company::where('admin_id', auth()->id())->where('is_default', true)->first()?->id,
             ]);
             $estimates = collect([$estimate]);
         }
@@ -160,14 +159,20 @@ class ProjectController extends Controller
         $clients = Client::where('admin_id', auth()->id())->get();
         $companies = Company::where('admin_id', auth()->id())->get();
         $defaultCompany = $companies->where('is_default', true)->first();
+        $managers = User::where('admin_id', auth()->id())->get();
+        $sites = Site::where('admin_id', auth()->id())->get();
 
         // Определяем текущую смету для sub-tab
         $estId = request('est_id', $estimates->first()->id);
         $currentEstimate = $estimates->firstWhere('id', $estId) ?? $estimates->first();
 
-        // ... остальной код твоего show метода (календарь, оборудование и т.д.)
-
-        return view('projects.show', compact('project', 'estimates', 'currentEstimate', 'clients', 'companies', 'defaultCompany' /* другие vars */));
+        return view('projects.show', compact('project', 'estimates', 'currentEstimate', 'clients', 'companies', 'defaultCompany', 'managers', 'sites'));
+    }
+    public function getSites(Request $request): JsonResponse
+    {
+        $clientId = $request->query('client_id');
+        $sites = Site::where('admin_id', auth()->id())->get();
+        return response()->json($sites);
     }
 
     public function createEstimate(Request $request, Project $project): JsonResponse
@@ -223,7 +228,7 @@ class ProjectController extends Controller
     {
         $user = auth()->user();
         $adminId = $user->hasRole('admin') ? $user->id : $user->admin_id;
-        $categories = Category::where('admin_id', $adminId)->whereNull('parent_id')->with('children.equipment')->get(); // рекурсивно with('children.children...' но для простоты with('children')
+        $categories = Category::where('admin_id', $adminId)->whereNull('parent_id')->with('children.equipment')->get();
 
         $tree = $this->buildCatalogTree($categories);
         return response()->json($tree);
@@ -260,7 +265,9 @@ class ProjectController extends Controller
             $validated = $request->validate([
                 'equipment_id' => 'required|integer|exists:equipment,id',
                 'quantity' => 'required|integer|min:1',
-                'status' => 'required|in:on_stock,assigned,used'
+                'status' => 'required|in:on_stock,assigned,used',
+                'coefficient' => 'nullable|numeric|min:0.1',
+                'discount' => 'nullable|numeric|min:0|max:100'
             ]);
 
             // Получаем оборудование без глобального скоупа
@@ -277,7 +284,9 @@ class ProjectController extends Controller
             $estimate->attachEquipment(
                 $validated['equipment_id'],
                 $validated['quantity'],
-                $validated['status']
+                $validated['status'],
+                $validated['coefficient'] ?? 1.0,
+                $validated['discount'] ?? 0
             );
 
             // Пересчитываем смету
@@ -292,11 +301,13 @@ class ProjectController extends Controller
                 'name' => $equipment->name ?? 'Без названия',
                 'quantity' => $validated['quantity'],
                 'price' => (float) ($equipment->price ?? 0),
+                'coefficient' => (float) ($validated['coefficient'] ?? 1.0),
+                'discount' => (float) ($validated['discount'] ?? 0),
                 'status' => $validated['status'],
                 'category_path' => $categoryPath,
                 'is_consumable' => $equipment->is_consumable ?? false,
-                'sum' => (float) ($equipment->price ?? 0) * $validated['quantity'],
-                'after_discount' => (float) ($equipment->price ?? 0) * $validated['quantity'] * (1 - ($calculated[$equipment->is_consumable ? 'materials' : 'equipment']['discount'] ?? 0) / 100)
+                'sum' => (float) ($equipment->price ?? 0) * ($validated['coefficient'] ?? 1.0) * $validated['quantity'],
+                'after_discount' => (float) ($equipment->price ?? 0) * ($validated['coefficient'] ?? 1.0) * $validated['quantity'] * (1 - (($validated['discount'] ?? 0) / 100))
             ];
 
             return response()->json([
@@ -335,10 +346,6 @@ class ProjectController extends Controller
         }
     }
 
-    /**
-     * Удаляет оборудование из сметы
-     */
-
     public function removeFromEstimate(Request $request, Estimate $estimate): JsonResponse
     {
         $this->authorize('edit projects');
@@ -368,9 +375,71 @@ class ProjectController extends Controller
         }
     }
 
-    /**
-     * Получает путь категории
-     */
+    public function updateEquipmentPivot(Request $request, Estimate $estimate): JsonResponse
+    {
+        $this->authorize('edit projects');
+
+        if ($estimate->project->status === 'completed') {
+            return response()->json(['error' => 'Нельзя редактировать оборудование в смете завершённого проекта'], 403);
+        }
+
+        try {
+            $validated = $request->validate([
+                'equipment_id' => 'required|integer|exists:equipment,id',
+                'quantity' => 'nullable|integer|min:1',
+                'price' => 'nullable|numeric|min:0',
+                'coefficient' => 'nullable|numeric|min:0.1',
+                'discount' => 'nullable|numeric|min:0|max:100'
+            ]);
+
+            $equipment = Equipment::withoutGlobalScope('admin')->findOrFail($validated['equipment_id']);
+            $user = auth()->user();
+            $adminId = $user->hasRole('admin') ? $user->id : $user->admin_id;
+            if ($equipment->admin_id != $adminId) {
+                return response()->json(['error' => 'У вас нет доступа к этому оборудованию'], 403);
+            }
+
+            $pivotData = [];
+            if (isset($validated['quantity'])) {
+                $pivotData['quantity'] = $validated['quantity'];
+            }
+            if (isset($validated['coefficient'])) {
+                $pivotData['coefficient'] = $validated['coefficient'];
+            }
+            if (isset($validated['discount'])) {
+                $pivotData['discount'] = $validated['discount'];
+            }
+
+            if (!empty($pivotData)) {
+                $estimate->equipment()->updateExistingPivot($validated['equipment_id'], $pivotData);
+            }
+
+            if (isset($validated['price'])) {
+                $equipment->price = $validated['price'];
+                $equipment->save();
+            }
+
+            $calculated = $estimate->getEstimate();
+
+            return response()->json([
+                'success' => true,
+                'calculated' => $calculated,
+                'updated_equipment' => [
+                    'id' => $equipment->id,
+                    'quantity' => $pivotData['quantity'] ?? $estimate->equipment()->where('equipment_id', $equipment->id)->first()->pivot->quantity,
+                    'price' => (float) ($equipment->price ?? 0),
+                    'coefficient' => $pivotData['coefficient'] ?? $estimate->equipment()->where('equipment_id', $equipment->id)->first()->pivot->coefficient,
+                    'discount' => $pivotData['discount'] ?? $estimate->equipment()->where('equipment_id', $equipment->id)->first()->pivot->discount,
+                    'sum' => (float) ($equipment->price ?? 0) * ($pivotData['coefficient'] ?? $estimate->equipment()->where('equipment_id', $equipment->id)->first()->pivot->coefficient) * ($pivotData['quantity'] ?? $estimate->equipment()->where('equipment_id', $equipment->id)->first()->pivot->quantity),
+                    'after_discount' => (float) ($equipment->price ?? 0) * ($pivotData['coefficient'] ?? $estimate->equipment()->where('equipment_id', $equipment->id)->first()->pivot->coefficient) * ($pivotData['quantity'] ?? $estimate->equipment()->where('equipment_id', $equipment->id)->first()->pivot->quantity) * (1 - (($pivotData['discount'] ?? $estimate->equipment()->where('equipment_id', $equipment->id)->first()->pivot->discount) / 100))
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in updateEquipmentPivot', ['message' => $e->getMessage(), 'input' => $request->all()]);
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
     private function getCategoryPath($categoryId): array
     {
         if (!$categoryId) {
@@ -425,7 +494,7 @@ class ProjectController extends Controller
     public function attachStaff(Request $request, Project $project, User $user): JsonResponse
     {
         $this->authorize('edit projects');
-        
+
         $request->validate([
             'rate_type' => 'nullable|in:hour,project',
             'rate' => 'nullable|numeric|min:0',
@@ -468,18 +537,45 @@ class ProjectController extends Controller
     public function update(Request $request, Project $project): JsonResponse
     {
         $this->authorize('edit projects');
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
+        if ($project->status === 'completed') {
+            return response()->json(['error' => 'Проект завершён, редактирование невозможно'], 403);
+        }
+
+        Log::debug('Updating project ID: ' . $project->id . ', input data: ' . json_encode($request->all(), JSON_UNESCAPED_UNICODE));
+
+        $rules = [
+            'name' => 'string|max:255',
             'description' => 'nullable|string',
-            'manager_id' => 'required|exists:users,id',
-            'start_date' => 'required|date',
+            'manager_id' => 'exists:users,id',
+            'start_date' => 'date',
             'end_date' => 'nullable|date|after:start_date',
-            'status' => 'required|in:new,active,completed,cancelled'
+            'status' => 'in:new,active,completed,cancelled',
+            'client_id' => 'nullable|exists:clients,id',
+            'site_id' => 'nullable|exists:sites,id',
+        ];
+
+        $validated = $request->validate(array_filter($rules, function ($key) use ($request) {
+            return $request->has($key);
+        }, ARRAY_FILTER_USE_KEY));
+
+        Log::debug('Validated data: ' . json_encode($validated, JSON_UNESCAPED_UNICODE));
+
+        $updated = $project->update($validated);
+
+        if (!$updated) {
+            Log::error('Failed to update project ID: ' . $project->id . ', validated data: ' . json_encode($validated, JSON_UNESCAPED_UNICODE));
+            return response()->json(['error' => 'Не удалось обновить проект'], 500);
+        }
+
+        // Перезагружаем модель, чтобы получить актуальные данные
+        $project->refresh();
+
+        Log::debug('Project update result: success, updated data: ' . json_encode($project->toArray(), JSON_UNESCAPED_UNICODE));
+
+        return response()->json([
+            'success' => 'Проект обновлен.',
+            'project' => $project->toArray()
         ]);
-
-        $project->update($validated);
-
-        return response()->json(['success' => 'Проект обновлен.', 'project' => $project]);
     }
 
     public function destroy(Project $project): JsonResponse
