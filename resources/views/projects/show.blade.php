@@ -1333,9 +1333,14 @@
                 inlineMenu.id = 'schedInlineMenu';
                 inlineMenu.className = 'fixed bg-white border rounded shadow-lg text-sm hidden';
                 inlineMenu.style.zIndex = '1001';
+                inlineMenu.style.border = '2px solid #3b82f6';
+                inlineMenu.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.3)';
+                inlineMenu.style.width = '220px';
+                inlineMenu.style.maxWidth = '220px';
+                inlineMenu.style.minWidth = '220px';
                 inlineMenu.innerHTML = `<div class="py-1">
-                    <button id="schedAddWork" class="px-4 py-2 hover:bg-gray-100 w-full text-left">Добавить рабочее время</button>
-                    <button id="schedAddOff" class="px-4 py-2 hover:bg-gray-100 w-full text-left">Отметить нерабочее время</button>
+                    <button id="schedAddWork" class="px-4 py-2 hover:bg-gray-100 w-full text-left flex items-center"><span class="mr-2">✅</span>Добавить рабочее время</button>
+                    <button id="schedAddOff" class="px-4 py-2 hover:bg-gray-100 w-full text-left flex items-center"><span class="mr-2">🟥</span>Отметить нерабочее время</button>
                 </div>`;
                 document.body.appendChild(inlineMenu);
 
@@ -1551,12 +1556,17 @@
                     // Для зелёных ячеек показываем меню: «Посмотреть комментарии», «Удалить»
                     const rect = selected[selected.length-1].getBoundingClientRect();
                     inlineMenu.innerHTML = `<div class=\"py-1\">
-                        <button id=\"schedViewComments\" class=\"px-4 py-2 hover:bg-gray-100 w-full text-left\">Посмотреть комментарии</button>
+                        <button id=\"schedViewComments\" class=\"px-4 py-2 hover:bg-gray-100 w-full text-left flex items-center\"><span class=\"mr-2\">💬</span>Посмотреть комментарии</button>
                         <button id=\"schedDeleteInterval\" class=\"px-4 py-2 text-red-600 hover:bg-gray-100 w-full text-left\">Удалить</button>
                     </div>`;
                     inlineMenu.dataset.payload = JSON.stringify({ employee_id: empId, project_id: {{ $project->id }}, date, start_time: from, end_time: to });
                     inlineMenu.style.left = `${rect.right + 8}px`;
                     inlineMenu.style.top = `${Math.max(rect.top, 60)}px`;
+                    inlineMenu.style.border = '2px solid #3b82f6';
+                    inlineMenu.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.3)';
+                    inlineMenu.style.width = '220px';
+                    inlineMenu.style.maxWidth = '220px';
+                    inlineMenu.style.minWidth = '220px';
                     inlineMenu.classList.remove('hidden');
                     if (inlineDocHandler) { document.removeEventListener('click', inlineDocHandler, true); inlineDocHandler = null; }
                     inlineDocHandler = (ev)=>{ if(!inlineMenu.contains(ev.target)) { hideInline(); document.removeEventListener('click', inlineDocHandler, true); inlineDocHandler = null; } };
@@ -1570,16 +1580,26 @@
                     inlineMenu.dataset.payload = JSON.stringify({ employee_id: empId, project_id: {{ $project->id }}, date, start_time: from, end_time: to });
                     inlineMenu.style.left = `${rect.right + 8}px`;
                     inlineMenu.style.top = `${Math.max(rect.top, 60)}px`;
+                    inlineMenu.style.border = '2px solid #3b82f6';
+                    inlineMenu.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.3)';
+                    inlineMenu.style.width = '90px';
+                    inlineMenu.style.maxWidth = '90px';
+                    inlineMenu.style.minWidth = '90px';
                     inlineMenu.classList.remove('hidden');
                     if (inlineDocHandler) { document.removeEventListener('click', inlineDocHandler, true); inlineDocHandler = null; }
                     inlineDocHandler = (ev)=>{ if(!inlineMenu.contains(ev.target)) { hideInline(); document.removeEventListener('click', inlineDocHandler, true); inlineDocHandler = null; } };
                     setTimeout(()=>document.addEventListener('click', inlineDocHandler, true), 0);
                 } else {
                     // Пустые ячейки — показать инлайн меню (всегда только действия добавления)
-                    inlineMenu.innerHTML = `<div class=\"py-1\">\n                        <button id=\"schedAddWork\" class=\"px-4 py-2 hover:bg-gray-100 w-full text-left\">Добавить рабочее время</button>\n                        <button id=\"schedAddOff\" class=\"px-4 py-2 hover:bg-gray-100 w-full text-left\">Отметить нерабочее время</button>\n                    </div>`;
+                    inlineMenu.innerHTML = `<div class=\"py-1\">\n                        <button id=\"schedAddWork\" class=\"px-4 py-2 hover:bg-gray-100 w-full text-left flex items-center\"><span class=\"mr-2\">✅</span>Добавить рабочее время</button>\n                        <button id=\"schedAddOff\" class=\"px-4 py-2 hover:bg-gray-100 w-full text-left flex items-center\"><span class=\"mr-2\">🟥</span>Отметить нерабочее время</button>\n                    </div>`;
                     const rect = selected[selected.length-1].getBoundingClientRect();
                     inlineMenu.style.left = `${rect.right + 8}px`;
                     inlineMenu.style.top = `${Math.max(rect.top, 60)}px`;
+                    inlineMenu.style.border = '2px solid #3b82f6';
+                    inlineMenu.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.3)';
+                    inlineMenu.style.width = '220px';
+                    inlineMenu.style.maxWidth = '220px';
+                    inlineMenu.style.minWidth = '220px';
                     inlineMenu.classList.remove('hidden');
                     // Сохраняем payload для глобальных обработчиков
                     inlineMenu.dataset.payload = JSON.stringify({ employee_id: empId, project_id: {{ $project->id }}, date, start_time: from, end_time: to });

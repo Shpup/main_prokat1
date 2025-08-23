@@ -5,18 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class WorkInterval extends Model
+class EmployeeStatus extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'employee_id',
-        'project_id',
-        'date',
-        'start_time',
-        'end_time',
-        'type',
-        'hour_rate',
-        'project_rate',
+        'status',
+        'status_comment'
     ];
+
+    public function employee()
+    {
+        return $this->belongsTo(User::class, 'employee_id');
+    }
 }

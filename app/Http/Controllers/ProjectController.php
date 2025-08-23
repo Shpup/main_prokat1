@@ -41,28 +41,36 @@ class ProjectController extends Controller
                 ->get();
         }
 
+
+        if ($request->ajax()) {
+            return response()->json($projects);
+        }
+
         return view('projects.index', compact('projects'));
     }
-
     public function table(Request $request)
     {
         $search = $request->query('search', '');
         $sort = $request->query('sort', 'name');
         $direction = $request->query('direction', 'asc');
 
+        // Поля для сортировки
         $sortableColumns = ['name', 'description', 'start_date', 'end_date', 'status'];
         $sort = in_array($sort, $sortableColumns) ? $sort : 'name';
         $direction = in_array($direction, ['asc', 'desc']) ? $direction : 'asc';
 
         $user = auth()->user();
 
+        // Базовый запрос в зависимости от роли
         if ($user->hasRole('admin')) {
+            // Админ видит все проекты, которые он создал (admin_id), кроме отмененных
             $query = Project::query()
                 ->join('users', 'projects.manager_id', '=', 'users.id')
                 ->where('projects.admin_id', $user->id)
                 ->where('projects.status', '!=', 'cancelled')
                 ->select('projects.*', 'users.name as manager_name');
         } else {
+            // Менеджер и обычный пользователь видят проекты, на которые они назначены, кроме отмененных
             $query = Project::query()
                 ->join('users', 'projects.manager_id', '=', 'users.id')
                 ->where('projects.status', '!=', 'cancelled')
@@ -75,6 +83,7 @@ class ProjectController extends Controller
                 ->select('projects.*', 'users.name as manager_name');
         }
 
+        // Фильтрация по всем столбцам
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('projects.name', 'ilike', '%' . $search . '%')
@@ -86,14 +95,17 @@ class ProjectController extends Controller
             });
         }
 
+        // Сортировка
         if ($sort === 'manager') {
             $query->orderBy('users.name', $direction);
         } else {
             $query->orderBy('projects.' . $sort, $direction);
         }
 
+        // Пагинация
         $projects = $query->paginate(10);
 
+        // Для AJAX-запросов возвращаем данные и HTML таблицы
         if ($request->ajax()) {
             return response()->json([
                 'projects' => $projects->items(),
@@ -101,6 +113,7 @@ class ProjectController extends Controller
             ]);
         }
 
+        // Для обычного запроса возвращаем полную страницу
         return view('projects.table', compact('projects'));
     }
 
@@ -116,7 +129,6 @@ class ProjectController extends Controller
 
         return response()->json(['success' => true, 'status' => $validated['status']]);
     }
-
     public function exportExcel(Estimate $estimate)
     {
         return Excel::download(
@@ -124,11 +136,12 @@ class ProjectController extends Controller
             'estimate_' . $estimate->id . '.xlsx'
         );
     }
-
     public function show(Project $project): View
     {
+
         $estimates = $project->estimates;
         if ($estimates->isEmpty()) {
+            // Создаём первую смету автоматически
             $estimate = Estimate::create([
                 'project_id' => $project->id,
                 'name' => 'Смета 1',
@@ -137,6 +150,7 @@ class ProjectController extends Controller
             $estimates = collect([$estimate]);
         }
 
+        // Для каждой сметы рассчитываем
         $estimates = $estimates->map(function ($est) {
             $est->calculated = $est->getEstimate();
             return $est;
@@ -148,6 +162,7 @@ class ProjectController extends Controller
         $managers = User::where('admin_id', auth()->id())->get();
         $sites = Site::where('admin_id', auth()->id())->get();
 
+        // Определяем текущую смету для sub-tab
         $estId = request('est_id', $estimates->first()->id);
         $currentEstimate = $estimates->firstWhere('id', $estId) ?? $estimates->first();
 
@@ -246,6 +261,7 @@ class ProjectController extends Controller
         }
 
         try {
+            // Валидация входящих данных
             $validated = $request->validate([
                 'equipment_id' => 'required|integer|exists:equipment,id',
                 'quantity' => 'required|integer|min:1',
@@ -254,14 +270,17 @@ class ProjectController extends Controller
                 'discount' => 'nullable|numeric|min:0|max:100'
             ]);
 
+            // Получаем оборудование без глобального скоупа
             $equipment = Equipment::withoutGlobalScope('admin')->findOrFail($validated['equipment_id']);
 
+            // Проверяем права доступа к оборудованию
             $user = auth()->user();
             $adminId = $user->hasRole('admin') ? $user->id : $user->admin_id;
             if ($equipment->admin_id != $adminId) {
                 return response()->json(['error' => 'У вас нет доступа к этому оборудованию'], 403);
             }
 
+            // Добавляем оборудование
             $estimate->attachEquipment(
                 $validated['equipment_id'],
                 $validated['quantity'],
@@ -270,9 +289,13 @@ class ProjectController extends Controller
                 $validated['discount'] ?? 0
             );
 
+            // Пересчитываем смету
             $calculated = $estimate->getEstimate();
+
+            // Получаем путь категории
             $categoryPath = $this->getCategoryPath($equipment->category_id);
 
+            // Формируем данные для нового оборудования
             $newEquipment = [
                 'id' => $equipment->id,
                 'name' => $equipment->name ?? 'Без названия',
@@ -336,7 +359,10 @@ class ProjectController extends Controller
                 'equipment_id' => 'required|integer|exists:equipment,id',
             ]);
 
+            // Удаляем оборудование из сметы
             $estimate->detachEquipment($validated['equipment_id']);
+
+            // Пересчитываем смету
             $calculated = $estimate->getEstimate();
 
             return response()->json([
@@ -465,6 +491,38 @@ class ProjectController extends Controller
         return response()->json(['success'=>true]);
     }
 
+    public function attachStaff(Request $request, Project $project, User $user): JsonResponse
+    {
+        $this->authorize('edit projects');
+
+        $request->validate([
+            'rate_type' => 'nullable|in:hour,project',
+            'rate' => 'nullable|numeric|min:0',
+        ]);
+
+        // Привязываем сотрудника к проекту
+        $project->staff()->attach($user->id);
+
+        // Если указана ставка, создаем запись в work_intervals с null датами
+        if ($request->rate_type && $request->rate) {
+            WorkInterval::create([
+                'employee_id' => $user->id,
+                'project_id' => $project->id,
+                'date' => null, // Дата не указана - сотрудник просто привязан к проекту
+                'start_time' => null, // Время не указано
+                'end_time' => null, // Время не указано
+                'type' => 'busy',
+                'hour_rate' => $request->rate_type === 'hour' ? $request->rate : null,
+                'project_rate' => $request->rate_type === 'project' ? $request->rate : null,
+            ]);
+        }
+
+        return response()->json(['success' => 'Сотрудник добавлен на проект.']);
+    }
+
+    /**
+     * Добавляет оборудование в проект.
+     */
     public function addEquipment(Request $request, Project $project): RedirectResponse
     {
         $this->authorize('edit projects');
@@ -476,7 +534,6 @@ class ProjectController extends Controller
         $project->equipment()->attach($request->equipment_id, ['status' => $request->status]);
         return redirect()->route('projects.show', $project)->with('success', 'Оборудование добавлено в проект.');
     }
-
     public function update(Request $request, Project $project): JsonResponse
     {
         $this->authorize('edit projects');

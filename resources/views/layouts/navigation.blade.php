@@ -127,7 +127,7 @@
                 {{ __('Персонал') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('managers')" :active="request()->routeIs('managers')">
-                {{ __('Менеджеры') }}
+                {{ __('Сотрудники') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')">
                 {{ __('Разрешения') }}

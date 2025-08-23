@@ -80,77 +80,77 @@
          @endif
 
          <div class="space-y-3">
-                       <!-- Основной телефон -->
-                        <div class="contact-item border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[80px]" data-type="primary" data-contact-type="phone">
-              <div class="contact-view flex items-start justify-between gap-3">
-                <div class="flex items-center gap-3">
-                  <div class="text-xl">📱</div>
-                  <div>
-                    <div class="font-semibold text-gray-900">{{ $u->phone ?: 'Не указан' }}</div>
-                    @if($u->phone)
-                      <div class="text-sm text-gray-500">Основной телефон</div>
-                    @endif
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
+           <!-- Основной телефон -->
+                       <div class="contact-item border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[80px]" data-type="primary" data-contact-type="phone">
+             <div class="contact-view flex items-start justify-between gap-3">
+               <div class="flex items-center gap-3">
+                 <div class="text-xl">📱</div>
+                 <div>
+                   <div class="font-semibold text-gray-900">{{ $u->phone ?: 'Не указан' }}</div>
+                   @if($u->phone)
+                     <div class="text-sm text-gray-500">Основной телефон</div>
+                   @endif
+                 </div>
+               </div>
+               <div class="flex items-center gap-2">
                   @if(auth()->user()->hasRole('admin'))
-                    <button type="button" class="contact-edit-btn text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
+                 <button type="button" class="contact-edit-btn text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
                   @endif
-                </div>
-              </div>
+               </div>
+             </div>
              
              @if(auth()->user()->hasRole('admin'))
-               <div class="contact-edit hidden mt-3">
-                 <form class="contact-form" action="{{ route('profile.primary.updatePhone') }}" method="post" data-contact-type="phone">@csrf @method('PUT')
-                   <div class="space-y-3">
-                     <div>
-                       <label class="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
+             <div class="contact-edit hidden mt-3">
+               <form class="contact-form" action="{{ route('profile.primary.updatePhone') }}" method="post" data-contact-type="phone">@csrf @method('PUT')
+                 <div class="space-y-3">
+                   <div>
+                     <label class="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
                        <input type="tel" name="phone" value="{{ $u->phone }}" class="w-full border border-gray-300 rounded-md px-3 py-2 phone-mask" placeholder="Введите номер телефона">
-                     </div>
                    </div>
-                   <div class="mt-3 flex justify-end gap-2">
-                     <button type="button" class="contact-cancel-btn px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm">Отмена</button>
-                     <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">Сохранить</button>
-                   </div>
-                 </form>
-               </div>
+                 </div>
+                 <div class="mt-3 flex justify-end gap-2">
+                   <button type="button" class="contact-cancel-btn px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm">Отмена</button>
+                   <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">Сохранить</button>
+                 </div>
+               </form>
+             </div>
              @endif
            </div>
            
-                       <!-- Основной email -->
-                        <div class="contact-item border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[80px]" data-type="primary" data-contact-type="email">
-              <div class="contact-view flex items-start justify-between gap-3">
-                <div class="flex items-center gap-3">
-                  <div class="text-xl">✉️</div>
-                  <div>
-                    <div class="font-semibold text-gray-900">{{ $u->email ?: 'Не указан' }}</div>
-                    @if($u->email)
-                      <div class="text-sm text-gray-500">Основной email</div>
-                    @endif
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
+           <!-- Основной email -->
+                       <div class="contact-item border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[80px]" data-type="primary" data-contact-type="email">
+             <div class="contact-view flex items-start justify-between gap-3">
+               <div class="flex items-center gap-3">
+                 <div class="text-xl">✉️</div>
+                 <div>
+                   <div class="font-semibold text-gray-900">{{ $u->email ?: 'Не указан' }}</div>
+                   @if($u->email)
+                     <div class="text-sm text-gray-500">Основной email</div>
+                   @endif
+                 </div>
+               </div>
+               <div class="flex items-center gap-2">
                   @if(auth()->user()->hasRole('admin'))
-                    <button type="button" class="contact-edit-btn text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
+                 <button type="button" class="contact-edit-btn text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
                   @endif
-                </div>
-              </div>
+               </div>
+             </div>
              
              @if(auth()->user()->hasRole('admin'))
-               <div class="contact-edit hidden mt-3">
-                 <form class="contact-form" action="{{ route('profile.primary.updateEmail') }}" method="post" data-contact-type="email">@csrf @method('PUT')
-                   <div class="space-y-3">
-                     <div>
-                       <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                       <input type="email" name="email" value="{{ $u->email }}" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
-                     </div>
+             <div class="contact-edit hidden mt-3">
+               <form class="contact-form" action="{{ route('profile.primary.updateEmail') }}" method="post" data-contact-type="email">@csrf @method('PUT')
+                 <div class="space-y-3">
+                   <div>
+                     <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                       <input type="email" name="email" id="primaryEmailInput" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
                    </div>
-                   <div class="mt-3 flex justify-end gap-2">
-                     <button type="button" class="contact-cancel-btn px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm">Отмена</button>
-                     <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">Сохранить</button>
-                   </div>
-                 </form>
-               </div>
+                 </div>
+                 <div class="mt-3 flex justify-end gap-2">
+                   <button type="button" class="contact-cancel-btn px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm">Отмена</button>
+                   <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">Сохранить</button>
+                 </div>
+               </form>
+             </div>
              @endif
            </div>
          </div>
@@ -271,21 +271,21 @@
        <div id="loginDisplay" class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-md">
          <span class="text-gray-700">{{ $u->login ?? $u->email }}</span>
          @if(auth()->user()->hasRole('admin'))
-           <button type="button" id="editLoginBtn" class="text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
+         <button type="button" id="editLoginBtn" class="text-blue-600 hover:text-blue-700" title="Редактировать">✏️</button>
          @endif
        </div>
        
-       @if(auth()->user()->hasRole('admin'))
-         <div id="loginEdit" class="hidden">
-           <form id="loginForm" action="{{ route('profile.about.updateLogin') }}" method="post">@csrf @method('PUT')
-             <div class="flex items-center gap-3">
-               <input type="email" name="email" value="{{ $u->email }}" class="flex-1 border border-gray-300 rounded-md px-3 py-2" required>
-               <button type="submit" class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Сохранить</button>
-               <button type="button" id="cancelLoginBtn" class="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">Отменить</button>
-             </div>
-           </form>
-         </div>
-       @endif
+               @if(auth()->user()->hasRole('admin'))
+       <div id="loginEdit" class="hidden">
+         <form id="loginForm" action="{{ route('profile.about.updateLogin') }}" method="post">@csrf @method('PUT')
+           <div class="flex items-center gap-3">
+                <input type="email" name="email" id="loginEmailInput" class="flex-1 border border-gray-300 rounded-md px-3 py-2" required>
+             <button type="submit" class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Сохранить</button>
+             <button type="button" id="cancelLoginBtn" class="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">Отменить</button>
+           </div>
+         </form>
+       </div>
+        @endif
      </div>
      
      <!-- Пароль -->
@@ -293,7 +293,7 @@
        <label class="block text-sm text-gray-700 mb-2">Пароль:</label>
        <div id="passwordDisplay" class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-md">
          <div>
-           <span class="text-gray-700" id="passwordText">••••••••</span>
+         <span class="text-gray-700" id="passwordText">••••••••</span>
            <div class="text-xs text-gray-500 mt-1">Пароль установлен и защищён</div>
          </div>
          <div class="flex items-center gap-2">
@@ -304,25 +304,37 @@
        </div>
        
        @if(auth()->user()->hasRole('admin'))
-         <div id="passwordEdit" class="hidden">
-           <form id="passwordForm" action="{{ route('profile.about.updatePassword') }}" method="post">@csrf @method('PUT')
-             <div class="space-y-3">
-               <div>
-                 <label class="block text-sm text-gray-700 mb-1">Новый пароль</label>
-                 <input type="password" name="password" class="w-full border border-gray-300 rounded-md px-3 py-2" required placeholder="Введите новый пароль">
+       <div id="passwordEdit" class="hidden">
+         <form id="passwordForm" action="{{ route('profile.about.updatePassword') }}" method="post">@csrf @method('PUT')
+           <div class="space-y-3">
+             <div>
+               <label class="block text-sm text-gray-700 mb-1">Новый пароль</label>
+                 <div class="relative">
+                   <input type="password" name="password" id="passwordInput" class="w-full border border-gray-300 rounded-md px-3 py-2 pr-10" required placeholder="Введите новый пароль">
+                   <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center hover:opacity-70 cursor-pointer">
+                     <span id="passwordEye" class="text-lg">👁️</span>
+                     <span id="passwordEyeSlash" class="text-lg hidden">🙈</span>
+                   </button>
+                 </div>
                  <div class="text-xs text-gray-500 mt-1">Минимум 8 символов</div>
-               </div>
-               <div>
-                 <label class="block text-sm text-gray-700 mb-1">Подтверждение нового пароля</label>
-                 <input type="password" name="password_confirmation" class="w-full border border-gray-300 rounded-md px-3 py-2" required placeholder="Повторите новый пароль">
-               </div>
-               <div class="flex justify-end gap-2">
-                 <button type="submit" class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Сохранить новый пароль</button>
-                 <button type="button" id="cancelPasswordBtn" class="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">Отменить</button>
-               </div>
              </div>
-           </form>
-         </div>
+             <div>
+                 <label class="block text-sm text-gray-700 mb-1">Подтверждение нового пароля</label>
+                 <div class="relative">
+                   <input type="password" name="password_confirmation" id="passwordConfirmInput" class="w-full border border-gray-300 rounded-md px-3 py-2 pr-10" required placeholder="Повторите новый пароль">
+                   <button type="button" id="togglePasswordConfirm" class="absolute inset-y-0 right-0 pr-3 flex items-center hover:opacity-70 cursor-pointer">
+                     <span id="passwordConfirmEye" class="text-lg">👁️</span>
+                     <span id="passwordConfirmEyeSlash" class="text-lg hidden">🙈</span>
+                   </button>
+                 </div>
+             </div>
+             <div class="flex justify-end gap-2">
+                 <button type="submit" class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Сохранить новый пароль</button>
+               <button type="button" id="cancelPasswordBtn" class="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">Отменить</button>
+             </div>
+           </div>
+         </form>
+       </div>
        @endif
      </div>
    </section>
@@ -337,14 +349,13 @@
        <button type="button" id="addDocumentBtn" class="px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700">+ Добавить документ</button>
      </header>
 
+                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
      @if($u->documents->count() === 0)
-       <div class="text-center text-gray-600 py-10">
+          <div class="text-center text-gray-600 py-10 col-span-full">
          <div class="text-5xl mb-3">🗂️</div>
          <div>Пока ничего нет. Добавьте данные.</div>
        </div>
      @endif
-
-     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
        @foreach($u->documents as $d)
          <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
            <div class="flex items-start justify-between mb-3">
@@ -359,37 +370,16 @@
                <div>
                  <div class="font-semibold text-gray-900">{{ __('types.'.$d->type) }}</div>
                  <div class="text-sm text-gray-600">
-                   @if($d->series && $d->number)
-                     Серия {{ $d->series }} №{{ $d->number }}
-                   @elseif($d->number)
-                     №{{ $d->number }}
+                   @if($d->files && count($d->files) > 0)
+                     📷 {{ count($d->files) }} фото
                    @else
-                     —
+                     Нет фотографий
                    @endif
                  </div>
                </div>
              </div>
              <div class="text-green-600 text-lg">✔</div>
            </div>
-           
-           @if($d->issued_at)
-             <div class="text-sm text-gray-700 mb-1">
-               <span class="font-medium">Выдан:</span> {{ $d->issued_at->format('d.m.Y') }}
-               @if($d->issued_by) • {{ $d->issued_by }}@endif
-             </div>
-           @endif
-           
-                       @if($d->expires_at)
-              <div class="text-sm text-gray-700 mb-1">
-                <span class="font-medium">Действителен до:</span> {{ $d->expires_at->format('d.m.Y') }}
-              </div>
-            @endif
-            
-            @if($d->files && count($d->files) > 0)
-              <div class="text-sm text-gray-600 mb-3">
-                📎 {{ count($d->files) }} файл(ов)
-              </div>
-            @endif
            
            <div class="flex items-center gap-2">
              <button class="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 text-sm" data-view-doc="{{ $d->id }}" title="Просмотр">
@@ -405,10 +395,7 @@
            
            <template class="payload">
              {!! json_encode([
-               'id'=>$d->id,'type'=>$d->type,'series'=>$d->series,'number'=>$d->number,
-               'issued_at'=>optional($d->issued_at)->format('Y-m-d'),
-               'issued_by'=>$d->issued_by,'expires_at'=>optional($d->expires_at)->format('Y-m-d'),
-               'comment'=>$d->comment,'categories'=>$d->categories,'files'=>$d->files,
+               'id'=>$d->id,'type'=>$d->type,'files'=>$d->files
              ]) !!}
            </template>
          </div>
@@ -434,6 +421,25 @@
      </div>
    </div>
 
+       <!-- Модальное окно подтверждения удаления фотографии -->
+  <div id="photoDeleteModal" class="fixed inset-0 z-[60] hidden">
+    <div class="absolute inset-0 bg-black/40" data-close></div>
+    <div class="relative z-10 max-w-md mx-auto mt-24 bg-white rounded-xl shadow-lg p-6">
+      <div class="text-center">
+        <div class="text-4xl mb-4">🗑️</div>
+        <h3 class="text-lg font-semibold mb-2">Удалить фотографию?</h3>
+        <p class="text-gray-600 mb-2">Фотография "<span id="photoDeleteName" class="font-medium text-gray-900"></span>" будет удалена</p>
+        <p class="text-gray-500 mb-6 text-sm">Действие необратимо</p>
+        <div class="flex justify-center gap-3">
+          <button type="button" class="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50" data-close>Отмена</button>
+          <button type="button" id="confirmPhotoDeleteBtn" class="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700">Удалить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
      <!-- Модальное окно выбора типа документа -->
    <div id="docTypeModal" class="fixed inset-0 z-50 hidden">
      <div class="absolute inset-0 bg-black/40" data-close></div>
@@ -448,7 +454,7 @@
              <div class="text-2xl">📄</div>
              <div>
                <div class="font-semibold">Паспорт РФ</div>
-               <div class="text-sm text-gray-600">Внутренний паспорт гражданина РФ</div>
+               <div class="text-sm text-gray-600">Фотографии паспорта РФ</div>
              </div>
            </div>
          </button>
@@ -457,7 +463,7 @@
              <div class="text-2xl">🛂</div>
              <div>
                <div class="font-semibold">Загранпаспорт</div>
-               <div class="text-sm text-gray-600">Заграничный паспорт</div>
+               <div class="text-sm text-gray-600">Фотографии загранпаспорта</div>
              </div>
            </div>
          </button>
@@ -466,7 +472,7 @@
              <div class="text-2xl">🚗</div>
              <div>
                <div class="font-semibold">Водительские права</div>
-               <div class="text-sm text-gray-600">Водительское удостоверение</div>
+               <div class="text-sm text-gray-600">Фотографии водительских прав</div>
              </div>
            </div>
          </button>
@@ -494,68 +500,15 @@
          <input type="hidden" name="_method" value="POST">
          <input type="hidden" name="type" id="docType">
          
-         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-           <!-- Серия -->
-           <div id="seriesField" class="hidden">
-             <label class="block text-sm font-medium text-gray-700 mb-1">Серия</label>
-             <input type="text" name="series" id="docSeries" class="w-full border border-gray-300 rounded-md px-3 py-2" maxlength="4" placeholder="0000">
-             <div class="text-xs text-gray-500 mt-1">4 цифры</div>
-           </div>
-           
-           <!-- Номер -->
-           <div>
-             <label class="block text-sm font-medium text-gray-700 mb-1">Номер <span class="text-red-500">*</span></label>
-             <input type="text" name="number" id="docNumber" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
-             <div class="text-xs text-gray-500 mt-1" id="numberHint"></div>
-           </div>
-           
-           <!-- Дата выдачи -->
-           <div>
-             <label class="block text-sm font-medium text-gray-700 mb-1">Дата выдачи <span class="text-red-500">*</span></label>
-             <input type="date" name="issued_at" id="docIssuedAt" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
-           </div>
-           
-           <!-- Кем выдан -->
-           <div id="issuedByField" class="hidden">
-             <label class="block text-sm font-medium text-gray-700 mb-1">Кем выдан</label>
-             <input type="text" name="issued_by" id="docIssuedBy" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="УФМС России">
-           </div>
-           
-           <!-- Дата окончания -->
-           <div id="expiresField" class="hidden">
-             <label class="block text-sm font-medium text-gray-700 mb-1">Дата окончания <span class="text-red-500">*</span></label>
-             <input type="date" name="expires_at" id="docExpiresAt" class="w-full border border-gray-300 rounded-md px-3 py-2">
-           </div>
-           
-           <!-- Категории (для водительских прав) -->
-           <div id="categoriesField" class="hidden md:col-span-2">
-             <label class="block text-sm font-medium text-gray-700 mb-1">Категории <span class="text-red-500">*</span></label>
-             <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-               @foreach(['A', 'B', 'C', 'D', 'E', 'M'] as $category)
-                 <label class="flex items-center gap-2 p-2 border border-gray-200 rounded hover:bg-gray-50">
-                   <input type="checkbox" name="categories[]" value="{{ $category }}" class="rounded">
-                   <span class="text-sm">{{ $category }}</span>
-                 </label>
-               @endforeach
-             </div>
-           </div>
-         </div>
-         
-         <!-- Комментарий -->
-         <div class="mt-4">
-           <label class="block text-sm font-medium text-gray-700 mb-1">Комментарий</label>
-           <textarea name="comment" id="docComment" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Дополнительная информация"></textarea>
-         </div>
-         
          <!-- Загрузка файлов -->
          <div class="mt-4">
-           <label class="block text-sm font-medium text-gray-700 mb-1">Приложить фото</label>
+           <label class="block text-sm font-medium text-gray-700 mb-1">Приложить фотографии</label>
            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-             <input type="file" name="files[]" id="docFiles" multiple accept=".jpg,.jpeg,.png,.pdf" class="hidden">
+             <input type="file" name="files[]" id="docFiles" multiple accept=".jpg,.jpeg,.png" class="hidden">
              <label for="docFiles" class="cursor-pointer">
-               <div class="text-4xl mb-2">📎</div>
-               <div class="text-sm text-gray-600">Нажмите для выбора файлов</div>
-               <div class="text-xs text-gray-500 mt-1">JPG, PNG, PDF до 10 МБ каждый</div>
+               <div class="text-4xl mb-2">📷</div>
+               <div class="text-sm text-gray-600">Нажмите для выбора фотографий</div>
+               <div class="text-xs text-gray-500 mt-1">JPG, PNG до 10 МБ каждая</div>
              </label>
            </div>
            <div id="filePreview" class="mt-3 space-y-2"></div>
@@ -575,25 +528,15 @@
      <div class="relative z-10 max-w-4xl mx-auto mt-12 bg-white rounded-xl shadow-lg p-6 max-h-[90vh] overflow-y-auto">
        <div class="flex items-start justify-between mb-4">
          <div class="text-lg font-semibold">
-           <span id="docViewTitle">Просмотр документа</span>
+           <span id="docViewTitle">Просмотр фотографий</span>
          </div>
          <button class="text-gray-500" data-close>✕</button>
        </div>
        
-       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         <!-- Информация о документе -->
+       <!-- Галерея фотографий -->
          <div>
-           <div id="docViewInfo" class="space-y-3">
+         <div id="docViewGallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
              <!-- Заполняется JavaScript -->
-           </div>
-         </div>
-         
-         <!-- Галерея файлов -->
-         <div>
-           <h3 class="font-medium text-gray-900 mb-3">Прикрепленные файлы</h3>
-           <div id="docViewGallery" class="space-y-2">
-             <!-- Заполняется JavaScript -->
-           </div>
          </div>
        </div>
        
@@ -667,10 +610,10 @@
            }, 300);
          }, 5000);
        }
-             const bindModal = (openBtn, modalId) => {
-         const modal = document.getElementById(modalId);
-         if (!modal) return;
-         if (openBtn) openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+      const bindModal = (openBtn, modalId) => {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+        if (openBtn) openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
          modal.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', () => {
            // Проверяем, существует ли модальное окно перед закрытием
            if (modal && modal.parentNode) {
@@ -682,7 +625,7 @@
              modal.classList.add('hidden'); 
            }
          });
-       };
+      };
       bindModal(document.getElementById('addPhoneBtn'), 'modalAddPhone');
       bindModal(document.getElementById('addEmailBtn'), 'modalAddEmail');
 
@@ -695,10 +638,26 @@
        const docForm = document.getElementById('docForm');
        const docFiles = document.getElementById('docFiles');
        const filePreview = document.getElementById('filePreview');
+       const docViewGallery = document.getElementById('docViewGallery');
 
        // Открытие модального окна выбора типа
        if (addDocumentBtn) {
          addDocumentBtn.addEventListener('click', () => {
+             // Проверяем, не заблокирована ли кнопка
+             if (addDocumentBtn.disabled) {
+               return;
+             }
+             
+             // Обновляем состояние кнопки перед открытием модального окна
+             updateAddDocumentButton();
+             
+             // Проверяем еще раз после обновления
+             if (addDocumentBtn.disabled) {
+               return;
+             }
+             
+
+             
            docTypeModal.classList.remove('hidden');
          });
        }
@@ -713,13 +672,101 @@
              'driver_license': 'Водительские права'
            };
            
-           // Настройка полей в зависимости от типа
-           setupDocumentFields(type);
+           // Проверяем, существует ли уже документ такого типа
+           const existingDocuments = document.querySelectorAll('[data-view-doc]');
+           let existingDocument = null;
+           let existingDocumentId = null;
            
-           // Заполнение формы
+           existingDocuments.forEach(docBtn => {
+             const documentElement = docBtn.closest('.border');
+             const payload = documentElement.querySelector('template.payload');
+             if (payload) {
+               try {
+                 const data = JSON.parse(payload.innerHTML.trim());
+                 if (data.type === type) {
+                   existingDocument = documentElement;
+                   existingDocumentId = data.id;
+                 }
+               } catch (e) {
+                 console.error('Error parsing document data:', e);
+               }
+             }
+           });
+           
+           // Если документ такого типа уже существует, открываем форму редактирования
+           if (existingDocument && existingDocumentId) {
+             // Находим данные существующего документа
+             const payload = existingDocument.querySelector('template.payload');
+             const data = JSON.parse(payload.innerHTML.trim());
+             
+             // Заполняем форму для редактирования
+             document.getElementById('docType').value = type;
+             document.getElementById('docFormTitle').textContent = 'Добавить фотографии к документу';
+             document.getElementById('docFormSubtitle').textContent = typeNames[type];
+             
+             // Устанавливаем правильный action и метод для обновления
+             docForm.setAttribute('action', `/profile/documents/${existingDocumentId}`);
+             docForm.setAttribute('method', 'POST');
+             
+             // Добавляем скрытое поле _method для PUT запроса
+             let methodField = docForm.querySelector('input[name="_method"]');
+             if (!methodField) {
+               methodField = document.createElement('input');
+               methodField.type = 'hidden';
+               methodField.name = '_method';
+               docForm.appendChild(methodField);
+             }
+             methodField.value = 'PUT';
+             
+             // Очищаем форму и превью для добавления новых фотографий
+             docForm.reset();
+             docFiles.value = '';
+             filePreview.innerHTML = '';
+             
+             // Восстанавливаем поле _method после сброса формы
+             if (methodField) {
+               // Проверяем, не было ли поле удалено при сбросе
+               const existingMethodField = docForm.querySelector('input[name="_method"]');
+               if (!existingMethodField) {
+                 docForm.appendChild(methodField);
+               } else {
+                 // Если поле существует, обновляем его значение
+                 existingMethodField.value = 'PUT';
+               }
+             }
+             
+             // Показываем существующие фотографии
+             displayExistingPhotos(data.files || [], existingDocumentId);
+             
+             // Переключение модальных окон
+             docTypeModal.classList.add('hidden');
+             docFormModal.classList.remove('hidden');
+             return;
+           }
+           
+           // Если документ не существует, создаем новый
+           
+           // Заполнение формы для нового документа
            document.getElementById('docType').value = type;
            document.getElementById('docFormTitle').textContent = 'Добавить документ';
            document.getElementById('docFormSubtitle').textContent = typeNames[type];
+           
+           // Устанавливаем правильный action и метод для создания
+           docForm.setAttribute('action', '{{ route("profile.documents.store") }}');
+           docForm.setAttribute('method', 'POST');
+           
+           // Удаляем скрытое поле _method если оно есть
+           const methodField = docForm.querySelector('input[name="_method"]');
+           if (methodField) {
+             methodField.remove();
+           }
+           
+
+           
+           // Очищаем форму и превью для нового документа
+           docForm.reset();
+           docFiles.value = '';
+           filePreview.innerHTML = '';
            
            // Переключение модальных окон
            docTypeModal.classList.add('hidden');
@@ -727,62 +774,453 @@
          });
        });
 
-       // Настройка полей в зависимости от типа документа
-       function setupDocumentFields(type) {
-         const seriesField = document.getElementById('seriesField');
-         const issuedByField = document.getElementById('issuedByField');
-         const expiresField = document.getElementById('expiresField');
-         const categoriesField = document.getElementById('categoriesField');
-         const numberHint = document.getElementById('numberHint');
-         const docNumber = document.getElementById('docNumber');
-         const docExpiresAt = document.getElementById('docExpiresAt');
+               // Функция для отображения существующих фотографий при редактировании
+        function displayExistingPhotos(files, documentId) {
+          if (!filePreview) {
+            return;
+          }
+          
+          filePreview.innerHTML = '';
+          
+          if (!files || files.length === 0) {
+            filePreview.innerHTML = '<div class="text-gray-500 text-center p-4">Нет загруженных фотографий</div>';
+            return;
+          }
+          
+          files.forEach((file, index) => {
+            // Проверяем, является ли file объектом или строкой
+            const filePath = typeof file === 'object' ? file.path : file;
+            const fileName = typeof file === 'object' ? file.name : `Фото ${index + 1}`;
+            
+            const photoDiv = document.createElement('div');
+            photoDiv.className = 'relative bg-gray-50 rounded border p-2';
+            photoDiv.setAttribute('data-photo-index', index);
+            photoDiv.setAttribute('data-document-id', documentId);
+            photoDiv.innerHTML = `
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-700">${fileName}</span>
+                <button type="button" class="text-red-600 hover:text-red-800 text-sm font-medium delete-photo-btn">
+                  🗑️ Удалить
+                </button>
+              </div>
+              <div class="aspect-square bg-gray-100 rounded overflow-hidden">
+                <img src="/storage/${filePath}" alt="${fileName}" class="w-full h-full object-cover">
+              </div>
+            `;
+            
+            // Добавляем обработчик удаления для существующих фотографий
+            const deleteBtn = photoDiv.querySelector('.delete-photo-btn');
+            deleteBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              showDeletePhotoConfirmation(documentId, index, fileName);
+            });
+            
+            filePreview.appendChild(photoDiv);
+          });
+        }
+        
+        // Функция для показа модального окна подтверждения удаления фотографии
+        function showDeletePhotoConfirmation(documentId, photoIndex, photoName) {
+          const photoDeleteModal = document.getElementById('photoDeleteModal');
+          const photoDeleteName = document.getElementById('photoDeleteName');
+          const confirmPhotoDeleteBtn = document.getElementById('confirmPhotoDeleteBtn');
+          
+          if (photoDeleteName) {
+            photoDeleteName.textContent = photoName;
+          }
+          
+          photoDeleteModal.classList.remove('hidden');
+          
+          // Обработчик подтверждения удаления
+          const handleConfirm = () => {
+            const photoElement = document.querySelector(`[data-photo-index="${photoIndex}"][data-document-id="${documentId}"]`);
+            if (photoElement) {
+              deleteExistingPhoto(documentId, photoIndex, photoElement);
+            }
+            photoDeleteModal.classList.add('hidden');
+            confirmPhotoDeleteBtn.removeEventListener('click', handleConfirm);
+          };
+          
+          confirmPhotoDeleteBtn.addEventListener('click', handleConfirm);
+        }
 
-         // Скрываем все поля
-         seriesField.classList.add('hidden');
-         issuedByField.classList.add('hidden');
-         expiresField.classList.add('hidden');
-         categoriesField.classList.add('hidden');
+        // Функция для удаления существующей фотографии
+        function deleteExistingPhoto(documentId, photoIndex, photoElement) {
+          
+          fetch(`/profile/documents/${documentId}/photo/${photoIndex}`, {
+            method: 'DELETE',
+            headers: {
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (data.success) {
+              // Удаляем элемент из DOM
+              photoElement.remove();
+              
+              // Обновляем данные документа в payload
+              const documentElement = document.querySelector(`[data-edit-doc="${documentId}"]`)?.closest('.border.border-gray-200.rounded-lg');
+              if (documentElement && data.document) {
+                const payloadTemplate = documentElement.querySelector('template.payload');
+                if (payloadTemplate) {
+                  payloadTemplate.innerHTML = JSON.stringify(data.document);
+                }
+                
+                // Обновляем отображение количества фотографий в карточке документа
+                const photoCountElement = documentElement.querySelector('.text-sm.text-gray-600');
+                if (photoCountElement && data.document.files) {
+                  photoCountElement.textContent = data.document.files.length > 0 ? `📷 ${data.document.files.length} фото` : 'Нет фотографий';
+                }
+              }
+              
+              showNotification('Фотография удалена', 'success');
+            } else {
+              throw new Error(data.message || 'Ошибка удаления');
+            }
+          })
+          .catch(error => {
+            console.error('Ошибка при удалении фотографии:', error);
+            showNotification('Ошибка при удалении фотографии: ' + error.message, 'error');
+          });
+        }
 
-         // Настройка по типу
-         switch(type) {
-           case 'passport':
-             seriesField.classList.remove('hidden');
-             issuedByField.classList.remove('hidden');
-             numberHint.textContent = '6 цифр';
-             docNumber.maxLength = 6;
-             docNumber.placeholder = '000000';
-             break;
-           case 'foreign_passport':
-             expiresField.classList.remove('hidden');
-             numberHint.textContent = 'Любое количество символов';
-             docNumber.maxLength = '';
-             docNumber.placeholder = 'Номер загранпаспорта';
-             docExpiresAt.required = true;
-             break;
-           case 'driver_license':
-             expiresField.classList.remove('hidden');
-             categoriesField.classList.remove('hidden');
-             numberHint.textContent = '10 цифр';
-             docNumber.maxLength = 10;
-             docNumber.placeholder = '0000000000';
-             docExpiresAt.required = true;
-             break;
+        // Функция для добавления документа в список
+        function addDocumentToList(documentData) {
+          // Проверяем, что documentData существует и содержит необходимые данные
+          if (!documentData || !documentData.type) {
+            console.error('Invalid document data:', documentData);
+            return;
+          }
+          
+          const documentsContainer = document.querySelector('.grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-3.gap-4');
+          if (!documentsContainer) {
+            console.error('Documents container not found');
+            return;
+          }
+          
+          const emptyState = documentsContainer.querySelector('.text-center.text-gray-600.col-span-full');
+          
+          // Удаляем пустое состояние, если есть
+          if (emptyState) {
+            emptyState.remove();
+          }
+          
+          const typeNames = {
+            'passport': 'Паспорт РФ',
+            'foreign_passport': 'Загранпаспорт',
+            'driver_license': 'Водительские права'
+          };
+          
+          const typeIcons = {
+            'passport': '📄',
+            'foreign_passport': '🛂',
+            'driver_license': '🚗'
+          };
+          
+          const documentHtml = `
+            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <div class="text-2xl">${typeIcons[documentData.type] || '📄'}</div>
+                  <div>
+                    <div class="font-semibold text-gray-900">${typeNames[documentData.type] || 'Документ'}</div>
+                    <div class="text-sm text-gray-600">
+                      ${documentData.files && documentData.files.length > 0 ? `📷 ${documentData.files.length} фото` : 'Нет фотографий'}
+                    </div>
+                  </div>
+                </div>
+                <div class="text-green-600 text-lg">✔</div>
+              </div>
+              
+              <div class="flex items-center gap-2">
+                <button class="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 text-sm" data-view-doc="${documentData.id}" title="Просмотр">
+                  👁️ Просмотр
+                </button>
+                <button class="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 text-sm" data-edit-doc="${documentData.id}" title="Редактировать">
+                  ✏️ Изменить
+                </button>
+                <button class="px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 text-sm" data-delete-doc="${documentData.id}" title="Удалить">
+                  🗑️ Удалить
+                </button>
+              </div>
+              
+              <template class="payload">
+                ${JSON.stringify(documentData)}
+              </template>
+            </div>
+          `;
+          
+          documentsContainer.insertAdjacentHTML('beforeend', documentHtml);
+          
+          // Настраиваем обработчики для нового документа
+          const newDocument = documentsContainer.lastElementChild;
+          setupDocumentHandlers(newDocument);
+        }
+        
+        // Функция для настройки обработчиков документа
+        function setupDocumentHandlers(documentElement) {
+          if (!documentElement) {
+            return;
+          }
+          
+          // Просмотр
+          const viewBtn = documentElement.querySelector('[data-view-doc]');
+          if (viewBtn) {
+            // Удаляем существующие обработчики, чтобы избежать дублирования
+            const newViewBtn = viewBtn.cloneNode(true);
+            viewBtn.parentNode.replaceChild(newViewBtn, viewBtn);
+            
+            newViewBtn.addEventListener('click', () => {
+              const id = newViewBtn.getAttribute('data-view-doc');
+              const payload = documentElement.querySelector('template.payload');
+              if (!payload) return;
+              
+              const data = JSON.parse(payload.innerHTML.trim());
+              
+              // Заполняем галерею фотографий
+              if (!docViewGallery) {
+                return;
+              }
+              
+              if (data.files && data.files.length > 0) {
+                docViewGallery.innerHTML = data.files.map(file => {
+                  // Проверяем, является ли file объектом или строкой
+                  const filePath = typeof file === 'object' ? file.path : file;
+                  const fileName = typeof file === 'object' ? file.name : 'Фото документа';
+                  
+                  return `
+                    <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
+                      <div class="aspect-square bg-gray-100 flex items-center justify-center">
+                        <img src="/storage/${filePath}" alt="${fileName}" class="w-full h-full object-cover">
+                      </div>
+                      <div class="p-3">
+                        <div class="text-sm font-medium text-gray-900 truncate">${fileName}</div>
+                        <div class="text-xs text-gray-500">Изображение</div>
+                      </div>
+                    </div>
+                  `;
+                }).join('');
+                           } else {
+               docViewGallery.innerHTML = '<p class="text-gray-500 text-center col-span-full">Фотографии не загружены</p>';
+              }
+              
+              if (docViewModal) {
+                docViewModal.classList.remove('hidden');
+              }
+            });
+          }
+          
+          // Редактирование
+          const editBtn = documentElement.querySelector('[data-edit-doc]');
+          if (editBtn) {
+            // Удаляем существующие обработчики, чтобы избежать дублирования
+            const newEditBtn = editBtn.cloneNode(true);
+            if (editBtn.parentNode) {
+              editBtn.parentNode.replaceChild(newEditBtn, editBtn);
+            } else {
+              return;
+            }
+            
+            newEditBtn.addEventListener('click', () => {
+              const id = newEditBtn.getAttribute('data-edit-doc');
+              const payload = documentElement.querySelector('template.payload');
+              if (!payload) {
+                return;
+              }
+              
+              try {
+                const data = JSON.parse(payload.innerHTML.trim());
+                
+                const typeNames = {
+                  'passport': 'Паспорт РФ',
+                  'foreign_passport': 'Загранпаспорт',
+                  'driver_license': 'Водительские права'
+                };
+                
+                // Заполнение формы
+                const docTypeField = document.getElementById('docType');
+                const docFormTitle = document.getElementById('docFormTitle');
+                const docFormSubtitle = document.getElementById('docFormSubtitle');
+                const docFormElement = document.getElementById('docForm');
+                
+                if (!docFormElement) {
+                  return;
+                }
+                
+                let methodField = docFormElement.querySelector('input[name="_method"]');
+                
+                if (!methodField) {
+                  methodField = document.createElement('input');
+                  methodField.type = 'hidden';
+                  methodField.name = '_method';
+                  methodField.value = 'POST';
+                  docFormElement.appendChild(methodField);
+                }
+                
+                if (!docTypeField || !docFormTitle || !docFormSubtitle) {
+                  console.error('Some form elements not found:', {
+                    docTypeField: !!docTypeField,
+                    docFormTitle: !!docFormTitle,
+                    docFormSubtitle: !!docFormSubtitle
+                  });
+                  return;
+                }
+                
+                docTypeField.value = data.type;
+                docFormTitle.textContent = 'Редактировать фотографии';
+                docFormSubtitle.textContent = typeNames[data.type];
+                methodField.value = 'PUT';
+                docFormElement.setAttribute('action', `/profile/documents/${id}`);
+                
+
+                
+                // Очищаем поле выбора новых файлов
+                if (docFiles) {
+                  docFiles.value = '';
+                }
+                
+                // Отображаем существующие фотографии
+                displayExistingPhotos(data.files || [], id);
+                
+                if (docFormModal) {
+                  docFormModal.classList.remove('hidden');
+                } else {
+                  console.error('docFormModal not found');
+                }
+              } catch (error) {
+                console.error('Error parsing document data:', error);
+              }
+            });
+          }
+          
+                     // Удаление
+           const deleteBtn = documentElement.querySelector('[data-delete-doc]');
+           if (deleteBtn) {
+             // Удаляем существующие обработчики, чтобы избежать дублирования
+             const newDeleteBtn = deleteBtn.cloneNode(true);
+             deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
+             
+                          newDeleteBtn.addEventListener('click', () => {
+               const id = newDeleteBtn.getAttribute('data-delete-doc');
+               
+               // Показываем модальное окно подтверждения
+               if (docDeleteModal) {
+                 docDeleteModal.classList.remove('hidden');
+               } else {
+                 return;
+               }
+               
+               // Удаляем старый обработчик и создаем новый
+               const confirmBtn = document.getElementById('confirmDeleteBtn');
+               const newConfirmBtn = confirmBtn.cloneNode(true);
+               confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+               
+               // Обработка подтверждения удаления
+               newConfirmBtn.addEventListener('click', () => {
+                 fetch(`/profile/documents/${id}`, {
+                   method: 'DELETE',
+                   headers: {
+                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                     'X-Requested-With': 'XMLHttpRequest'
+                   }
+                 })
+                 .then(response => {
+                   if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                   }
+                   return response.json();
+                 })
+                 .then(data => {
+                   if (data.success) {
+                     // Закрываем модальное окно
+                     if (docDeleteModal) {
+                       docDeleteModal.classList.add('hidden');
+                     }
+                     // Удаляем элемент из DOM
+                     documentElement.remove();
+                     
+                     // Показываем уведомление
+                     showNotification('Документ успешно удален', 'success');
+                     
+                     // Проверяем, нужно ли показать пустое состояние
+                     const documentsContainer = document.querySelector('.grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-3.gap-4');
+                     if (documentsContainer) {
+                       const remainingDocuments = documentsContainer.querySelectorAll('.border.border-gray-200.rounded-lg');
+                                            if (remainingDocuments.length === 0) {
+                         documentsContainer.innerHTML = `
+                           <div class="text-center text-gray-600 py-10 col-span-full">
+                             <div class="text-5xl mb-3">🗂️</div>
+                             <div>Пока ничего нет. Добавьте данные.</div>
+                           </div>
+                         `;
+                       }
+                     } else {
+                       console.error('documentsContainer not found');
+                     }
+                     
+                     // Обновляем состояние кнопки "Добавить документ"
+                     if (typeof updateAddDocumentButton === 'function') {
+                       updateAddDocumentButton();
+                     } else {
+                       console.error('updateAddDocumentButton function not found');
+                     }
+                   } else {
+                     throw new Error(data.message || 'Ошибка удаления');
+                   }
+                 })
+                 .catch(error => {
+                   console.error('Ошибка при удалении:', error);
+                   showNotification('Ошибка при удалении документа: ' + error.message, 'error');
+                 });
+               });
+             });
+          }
+        }
+        
+                 // Функция для обновления состояния кнопки "Добавить документ"
+         function updateAddDocumentButton() {
+           const addDocumentBtn = document.getElementById('addDocumentBtn');
+           if (!addDocumentBtn) return;
+           
+           // Проверяем количество существующих документов
+           const existingDocuments = document.querySelectorAll('[data-view-doc]');
+           const existingTypes = new Set();
+           
+           existingDocuments.forEach(btn => {
+             const documentElement = btn.closest('.border');
+             const payload = documentElement.querySelector('template.payload');
+             if (payload) {
+               try {
+                 const data = JSON.parse(payload.innerHTML.trim());
+                 existingTypes.add(data.type);
+               } catch (e) {
+                 console.error('Error parsing document data:', e);
+               }
+             }
+           });
+           
+           // Если есть все 3 типа документов, блокируем кнопку
+           if (existingTypes.size >= 3) {
+             addDocumentBtn.disabled = true;
+             addDocumentBtn.textContent = 'Все документы добавлены';
+             addDocumentBtn.classList.add('opacity-50', 'cursor-not-allowed');
+             addDocumentBtn.classList.remove('hover:bg-blue-700');
+           } else {
+             addDocumentBtn.disabled = false;
+             addDocumentBtn.textContent = '+ Добавить документ';
+             addDocumentBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+             addDocumentBtn.classList.add('hover:bg-blue-700');
+           }
          }
-       }
+        
 
-       // Маски для полей
-       document.getElementById('docSeries').addEventListener('input', function(e) {
-         this.value = this.value.replace(/\D/g, '').slice(0, 4);
-       });
-
-       document.getElementById('docNumber').addEventListener('input', function(e) {
-         const type = document.getElementById('docType').value;
-         if (type === 'passport') {
-           this.value = this.value.replace(/\D/g, '').slice(0, 6);
-         } else if (type === 'driver_license') {
-           this.value = this.value.replace(/\D/g, '').slice(0, 10);
-         }
-       });
 
        // Обработка загрузки файлов
        if (docFiles) {
@@ -833,207 +1271,166 @@
          });
        }
 
-       // Обработка формы документа
-       if (docForm) {
-         docForm.addEventListener('submit', function(e) {
+             // Обработка формы документа
+      if (docForm) {
+        // Удаляем старый обработчик если есть
+        const oldHandler = docForm._submitHandler;
+        if (oldHandler) {
+          docForm.removeEventListener('submit', oldHandler);
+        }
+         
+         // Создаем новый обработчик
+         docForm._submitHandler = function(e) {
            e.preventDefault();
            
            const formData = new FormData(this);
            const submitBtn = this.querySelector('button[type="submit"]');
            const originalText = submitBtn.textContent;
            
+           // Проверяем наличие поля _method в DOM
+           const methodFieldInDOM = this.querySelector('input[name="_method"]');
+           
            submitBtn.textContent = 'Сохранение...';
            submitBtn.disabled = true;
-           
            fetch(this.action, {
              method: 'POST',
-             body: formData
+             body: formData,
+             headers: {
+               'X-Requested-With': 'XMLHttpRequest'
+             }
            })
-           .then(response => response.json())
+           .then(response => {
+             if (!response.ok) {
+               // Пытаемся получить JSON с ошибкой
+               return response.json().then(errorData => {
+                 throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+               }).catch(() => {
+                 throw new Error(`HTTP error! status: ${response.status}`);
+               });
+             }
+             return response.json();
+           })
            .then(data => {
              if (data.success) {
                // Закрываем модальное окно
-               docFormModal.classList.add('hidden');
+               if (docFormModal) {
+                 docFormModal.classList.add('hidden');
+               }
                
-               // Перезагружаем страницу для отображения нового документа
-               location.reload();
+                // Очищаем форму
+                if (docForm) {
+                  docForm.reset();
+                }
+                if (docFiles) {
+                  docFiles.value = '';
+                }
+                if (filePreview) {
+                  filePreview.innerHTML = '';
+                }
+                
+                // Определяем, это создание нового документа или обновление существующего
+                const methodField = docForm ? docForm.querySelector('input[name="_method"]') : null;
+                const isUpdate = methodField?.value === 'PUT';
+                
+                if (data.document) {
+                  const documentId = data.document.id;
+                  const existingDocument = document.querySelector(`[data-edit-doc="${documentId}"]`)?.closest('.border.border-gray-200.rounded-lg');
+                  
+                  if (existingDocument) {
+                    // Обновляем существующий документ (через кнопку "Изменить" или добавление к существующему)
+                    const payloadTemplate = existingDocument.querySelector('template.payload');
+                    if (payloadTemplate) {
+                      payloadTemplate.innerHTML = JSON.stringify(data.document);
+                    }
+                    
+                    // Обновляем отображение количества фотографий
+                    const photoCountElement = existingDocument.querySelector('.text-sm.text-gray-600');
+                    if (photoCountElement && data.document.files) {
+                      photoCountElement.textContent = data.document.files.length > 0 ? `📷 ${data.document.files.length} фото` : 'Нет фотографий';
+                    }
+                    
+                    const message = isUpdate ? 'Документ успешно обновлен' : 'Фотографии добавлены к существующему документу';
+                    showNotification(message, 'success');
+                  } else {
+                    // Добавляем новый документ
+                    addDocumentToList(data.document);
+                    showNotification('Документ успешно добавлен', 'success');
+                  }
+                }
+                
+                // Сбрасываем состояние кнопки
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                
+                // Обновляем состояние кнопки "Добавить документ"
+                if (typeof updateAddDocumentButton === 'function') {
+                  updateAddDocumentButton();
+                } else {
+                  console.error('updateAddDocumentButton function not found');
+                }
              } else {
                throw new Error(data.message || 'Ошибка сохранения');
              }
            })
            .catch(error => {
-             console.error('Ошибка:', error);
-             submitBtn.textContent = 'Ошибка!';
-             setTimeout(() => {
-               submitBtn.textContent = originalText;
-               submitBtn.disabled = false;
-             }, 2000);
+             console.error('Form submission error:', error);
+             console.error('Error message:', error.message);
+             console.error('Error stack:', error.stack);
+             
+             // Показываем ошибку пользователю
+             let errorMessage = 'Произошла ошибка при сохранении документа';
+             if (error.message) {
+               errorMessage = error.message;
+             }
+             
+             // Если есть ошибки валидации, показываем их
+             if (error.errors) {
+               const validationErrors = Object.values(error.errors).flat();
+               errorMessage = validationErrors.join(', ');
+             }
+             
+             // Если документ уже существует, предлагаем использовать кнопку "Изменить"
+             if (errorMessage.includes('уже существует')) {
+               errorMessage += '. Используйте кнопку "Изменить" для добавления фотографий.';
+             }
+             
+             showNotification(errorMessage, 'error');
+             
+             submitBtn.textContent = originalText;
+             submitBtn.disabled = false;
            });
-         });
+         };
+         
+         // Добавляем обработчик
+         docForm.addEventListener('submit', docForm._submitHandler);
        }
 
-       // Просмотр документа
-       document.querySelectorAll('[data-view-doc]').forEach(btn => {
-         btn.addEventListener('click', () => {
-           const id = btn.getAttribute('data-view-doc');
-           const host = btn.closest('.border');
-           const payload = host && host.querySelector('template.payload');
-           if (!payload) return;
-           
-           const data = JSON.parse(payload.innerHTML.trim());
-           const typeNames = {
-             'passport': 'Паспорт РФ',
-             'foreign_passport': 'Загранпаспорт',
-             'driver_license': 'Водительские права'
-           };
-           
-           // Заполняем информацию о документе
-           const docViewInfo = document.getElementById('docViewInfo');
-           docViewInfo.innerHTML = `
-             <div class="flex items-center gap-3 mb-4">
-               <div class="text-3xl">
-                 ${data.type === 'passport' ? '📄' : data.type === 'foreign_passport' ? '🛂' : '🚗'}
-               </div>
-               <div>
-                 <h3 class="text-lg font-semibold">${typeNames[data.type]}</h3>
-                 <p class="text-gray-600">
-                   ${data.series && data.number ? `Серия ${data.series} №${data.number}` : 
-                     data.number ? `№${data.number}` : 'Номер не указан'}
-                 </p>
-               </div>
-             </div>
-             ${data.issued_at ? `<div><strong>Дата выдачи:</strong> ${new Date(data.issued_at).toLocaleDateString('ru-RU')}</div>` : ''}
-             ${data.issued_by ? `<div><strong>Кем выдан:</strong> ${data.issued_by}</div>` : ''}
-             ${data.expires_at ? `<div><strong>Действителен до:</strong> ${new Date(data.expires_at).toLocaleDateString('ru-RU')}</div>` : ''}
-             ${data.categories && data.categories.length > 0 ? `<div><strong>Категории:</strong> ${data.categories.join(', ')}</div>` : ''}
-             ${data.comment ? `<div><strong>Комментарий:</strong> ${data.comment}</div>` : ''}
-           `;
-           
-                       // Заполняем галерею файлов
-            const docViewGallery = document.getElementById('docViewGallery');
-            if (data.files && data.files.length > 0) {
-              docViewGallery.innerHTML = data.files.map(file => `
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded border">
-                  <div class="flex items-center gap-3">
-                    <div class="text-2xl">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
-                    <div>
-                      <div class="font-medium">${file.name}</div>
-                      <div class="text-sm text-gray-500">${(file.size / 1024 / 1024).toFixed(1)} МБ</div>
-                    </div>
-                  </div>
-                  <a href="/storage/${file.path}" target="_blank" class="text-blue-600 hover:text-blue-700 text-sm">
-                    👁️ Просмотр
-                  </a>
-                </div>
-              `).join('');
-            } else {
-              docViewGallery.innerHTML = '<p class="text-gray-500">Файлы не загружены</p>';
-            }
-           
-           docViewModal.classList.remove('hidden');
-         });
-       });
 
-       // Редактирование документа
-       document.querySelectorAll('[data-edit-doc]').forEach(btn => {
-         btn.addEventListener('click', () => {
-           const id = btn.getAttribute('data-edit-doc');
-           const host = btn.closest('.border');
-           const payload = host && host.querySelector('template.payload');
-           if (!payload) return;
-           
-           const data = JSON.parse(payload.innerHTML.trim());
-           const typeNames = {
-             'passport': 'Паспорт РФ',
-             'foreign_passport': 'Загранпаспорт',
-             'driver_license': 'Водительские права'
-           };
-           
-           // Настройка полей
-           setupDocumentFields(data.type);
-           
-           // Заполнение формы
-           document.getElementById('docType').value = data.type;
-           document.getElementById('docFormTitle').textContent = 'Редактировать документ';
-           document.getElementById('docFormSubtitle').textContent = typeNames[data.type];
-           document.querySelector('#docForm input[name=_method]').value = 'PUT';
-           document.getElementById('docForm').setAttribute('action', '{{ route("profile.documents.update", "__ID__") }}'.replace('__ID__', id));
-           
-                       document.getElementById('docSeries').value = data.series || '';
-            document.getElementById('docNumber').value = data.number || '';
-            document.getElementById('docIssuedAt').value = data.issued_at || '';
-            document.getElementById('docIssuedBy').value = data.issued_by || '';
-            document.getElementById('docExpiresAt').value = data.expires_at || '';
-            document.getElementById('docComment').value = data.comment || '';
-            
-            // Обработка категорий
-            if (data.categories && Array.isArray(data.categories)) {
-              document.querySelectorAll('input[name="categories[]"]').forEach(checkbox => {
-                checkbox.checked = data.categories.includes(checkbox.value);
-              });
-            }
-           
-           // Очищаем файлы
-           docFiles.value = '';
-           filePreview.innerHTML = '';
-           
-           docFormModal.classList.remove('hidden');
-         });
-       });
 
-       // Удаление документа
-       document.querySelectorAll('[data-delete-doc]').forEach(btn => {
-         btn.addEventListener('click', () => {
-           const id = btn.getAttribute('data-delete-doc');
-           
-           // Показываем модальное окно подтверждения
-           docDeleteModal.classList.remove('hidden');
-           
-           // Обработка подтверждения удаления
-           document.getElementById('confirmDeleteBtn').onclick = () => {
-             fetch(`{{ route('profile.documents.destroy', '__ID__') }}`.replace('__ID__', id), {
-               method: 'DELETE',
-               headers: {
-                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-               }
-             })
-             .then(response => response.json())
-             .then(data => {
-               if (data.success) {
-                 // Закрываем модальное окно
-                 docDeleteModal.classList.add('hidden');
-                 // Перезагружаем страницу
-                 location.reload();
-               } else {
-                 throw new Error(data.message || 'Ошибка удаления');
-               }
-             })
-             .catch(error => {
-               console.error('Ошибка:', error);
-               alert('Ошибка при удалении документа');
-             });
-           };
-         });
-       });
 
-                          // Закрытие модальных окон
+
+
+
+                // Закрытие модальных окон
           [docTypeModal, docFormModal, docViewModal, docDeleteModal].forEach(modal => {
-            if (modal) {
-              modal.querySelectorAll('[data-close]').forEach(el => {
+           if (modal) {
+             modal.querySelectorAll('[data-close]').forEach(el => {
                 el.addEventListener('click', () => {
                   // Проверяем, существует ли модальное окно перед закрытием
                   if (modal && modal.parentNode) {
                     modal.classList.add('hidden');
                   }
                 });
-              });
-              modal.addEventListener('click', (e) => {
+             });
+             modal.addEventListener('click', (e) => {
                 if (e.target === modal && modal && modal.parentNode) {
                   modal.classList.add('hidden');
                 }
-              });
-            }
-          });
+             });
+           }
+         });
+
+
           
           // Отдельная обработка для модального окна удаления контакта
           if (contactDeleteModal) {
@@ -1048,6 +1445,44 @@
               closeBtn.addEventListener('click', () => {
                 if (contactDeleteModal && contactDeleteModal.parentNode) {
                   contactDeleteModal.classList.add('hidden');
+                }
+              });
+            });
+          }
+
+          // Обработка для модального окна удаления фотографии
+          const photoDeleteModal = document.getElementById('photoDeleteModal');
+          if (photoDeleteModal) {
+            photoDeleteModal.addEventListener('click', (e) => {
+              if (e.target === photoDeleteModal && photoDeleteModal && photoDeleteModal.parentNode) {
+                photoDeleteModal.classList.add('hidden');
+              }
+            });
+            
+            // Обработка кнопок закрытия в модальном окне удаления фотографии
+            photoDeleteModal.querySelectorAll('[data-close]').forEach(closeBtn => {
+              closeBtn.addEventListener('click', () => {
+                if (photoDeleteModal && photoDeleteModal.parentNode) {
+                  photoDeleteModal.classList.add('hidden');
+                }
+              });
+            });
+          }
+
+          // Обработка для модального окна "Документ уже существует"
+          const documentExistsModal = document.getElementById('documentExistsModal');
+          if (documentExistsModal) {
+            documentExistsModal.addEventListener('click', (e) => {
+              if (e.target === documentExistsModal && documentExistsModal && documentExistsModal.parentNode) {
+                documentExistsModal.classList.add('hidden');
+              }
+            });
+            
+            // Обработка кнопок закрытия в модальном окне "Документ уже существует"
+            documentExistsModal.querySelectorAll('[data-close]').forEach(closeBtn => {
+              closeBtn.addEventListener('click', () => {
+                if (documentExistsModal && documentExistsModal.parentNode) {
+                  documentExistsModal.classList.add('hidden');
                 }
               });
             });
@@ -1084,6 +1519,18 @@
              // Закрываем все другие редакторы
              closeAllContactEditors();
              
+             // Заполняем поле актуальным значением для основного email
+             const contactType = contactItem.getAttribute('data-contact-type');
+             const isPrimary = contactItem.getAttribute('data-type') === 'primary';
+             
+             if (isPrimary && contactType === 'email') {
+               const currentEmailDisplay = contactItem.querySelector('.font-semibold');
+               const primaryEmailInput = document.getElementById('primaryEmailInput');
+               if (currentEmailDisplay && primaryEmailInput) {
+                 primaryEmailInput.value = currentEmailDisplay.textContent;
+               }
+             }
+             
              // Открываем текущий редактор
              edit.classList.remove('hidden');
              
@@ -1105,7 +1552,7 @@
            });
          });
 
-         // Обработка форм контактов
+                   // Обработка форм контактов (включая основные)
          document.querySelectorAll('.contact-form').forEach(form => {
            form.addEventListener('submit', function(e) {
              e.preventDefault();
@@ -1130,8 +1577,7 @@
                }
              })
              .then(response => {
-               console.log('Response status:', response.status);
-               console.log('Response headers:', response.headers);
+
                
                if (!response.ok) {
                  throw new Error(`HTTP error! status: ${response.status}`);
@@ -1151,9 +1597,18 @@
                  const commentDiv = view.querySelector('.text-sm.text-gray-500');
                  
                  if (contactType === 'phone') {
-                   valueDiv.textContent = data.value || data.phone || 'Не указан';
+                    valueDiv.textContent = data.value || data.phone || 'Не указан';
                  } else {
                    valueDiv.textContent = data.value || data.email;
+                    
+                    // Синхронизация: если это основной email, обновляем логин
+                    const contactItem = this.closest('.contact-item');
+                    if (contactItem && contactItem.getAttribute('data-type') === 'primary') {
+                      const loginSpan = document.querySelector('#loginDisplay span');
+                      if (loginSpan) {
+                        loginSpan.textContent = data.value || data.email;
+                      }
+                    }
                  }
                  
                  if (data.comment) {
@@ -1215,39 +1670,32 @@
              // Показываем модальное окно подтверждения
              contactDeleteModal.classList.remove('hidden');
              
-                           // Обработка подтверждения удаления
-              document.getElementById('confirmContactDeleteBtn').onclick = () => {
-                console.log('Deleting contact:', contactType, contactId); // Отладочная информация
-                console.log('Contact item:', contactItem); // Отладочная информация
-                console.log('Contact item data-id:', contactItem.getAttribute('data-id')); // Отладочная информация
-                console.log('Contact item data-contact-type:', contactItem.getAttribute('data-contact-type')); // Отладочная информация
-                
-                const deleteUrl = contactType === 'phone' 
-                  ? `/profile/phones/${contactId}`
-                  : `/profile/emails/${contactId}`;
-                
-                console.log('Delete URL:', deleteUrl); // Отладочная информация
-                
-                fetch(deleteUrl, {
-                  method: 'DELETE',
-                  headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                  }
-                })
-                .then(response => response.json())
-                                  .then(data => {
-                     if (data.success) {
-                       // Удаляем элемент из DOM
-                       contactItem.remove();
-                       
-                       // Закрываем модальное окно
-                       contactDeleteModal.classList.add('hidden');
-                       
-                       // Показываем уведомление об успешном удалении
-                       showNotification('Контакт успешно удален', 'success');
-                       
+             // Обработка подтверждения удаления
+             document.getElementById('confirmContactDeleteBtn').onclick = () => {
+               const deleteUrl = contactType === 'phone' 
+                 ? `/profile/phones/${contactId}`
+                 : `/profile/emails/${contactId}`;
+               
+               fetch(deleteUrl, {
+                 method: 'DELETE',
+                 headers: {
+                   'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                   'X-Requested-With': 'XMLHttpRequest',
+                   'Accept': 'application/json'
+                 }
+               })
+               .then(response => response.json())
+               .then(data => {
+                                     if (data.success) {
+                      // Удаляем элемент из DOM
+                      contactItem.remove();
+                      
+                      // Закрываем модальное окно
+                      contactDeleteModal.classList.add('hidden');
+                      
+                      // Показываем уведомление об успешном удалении
+                      showNotification('Контакт успешно удален', 'success');
+                      
                        // Проверяем, нужно ли показать пустое состояние
                        const remainingContacts = additionalContacts.querySelectorAll('.contact-item[data-id]');
                        if (remainingContacts.length === 0) {
@@ -1258,16 +1706,16 @@
                            </div>
                          `;
                        }
-                     } else {
-                       throw new Error(data.message || 'Ошибка удаления');
-                     }
-                   })
-                   .catch(error => {
-                     console.error('Ошибка:', error);
-                     showNotification('Ошибка при удалении контакта', 'error');
-                     contactDeleteModal.classList.add('hidden');
-                   });
-              };
+                    } else {
+                      throw new Error(data.message || 'Ошибка удаления');
+                    }
+                  })
+                  .catch(error => {
+                    console.error('Ошибка:', error);
+                    showNotification('Ошибка при удалении контакта', 'error');
+                    contactDeleteModal.classList.add('hidden');
+                  });
+             };
               
               // Обработка отмены удаления - используем уже установленные обработчики
               // Дополнительные обработчики не нужны, так как они уже установлены выше
@@ -1356,16 +1804,16 @@
              cancelBtn.addEventListener('click', () => {
                // Проверяем, существует ли элемент перед удалением
                if (newContact && newContact.parentNode) {
-                 newContact.remove();
-                 // Проверяем, нужно ли показать пустое состояние
+               newContact.remove();
+               // Проверяем, нужно ли показать пустое состояние
                  const existingContacts = additionalContacts.querySelectorAll('.contact-item[data-id]');
                  if (existingContacts.length === 0) {
-                   additionalContacts.innerHTML = `
-                     <div class="text-center text-gray-600 py-8">
-                       <div class="text-4xl mb-2">📭</div>
-                       <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
-                     </div>
-                   `;
+                 additionalContacts.innerHTML = `
+                   <div class="text-center text-gray-600 py-8">
+                     <div class="text-4xl mb-2">📭</div>
+                     <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
+                   </div>
+                 `;
                  }
                }
              });
@@ -1501,16 +1949,16 @@
              cancelBtn.addEventListener('click', () => {
                // Проверяем, существует ли элемент перед удалением
                if (newContact && newContact.parentNode) {
-                 newContact.remove();
-                 // Проверяем, нужно ли показать пустое состояние
+               newContact.remove();
+               // Проверяем, нужно ли показать пустое состояние
                  const existingContacts = additionalContacts.querySelectorAll('.contact-item[data-id]');
                  if (existingContacts.length === 0) {
-                   additionalContacts.innerHTML = `
-                     <div class="text-center text-gray-600 py-8">
-                       <div class="text-4xl mb-2">📭</div>
-                       <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
-                     </div>
-                   `;
+                 additionalContacts.innerHTML = `
+                   <div class="text-center text-gray-600 py-8">
+                     <div class="text-4xl mb-2">📭</div>
+                     <div class="text-sm">Пока ничего нет. Добавьте данные.</div>
+                   </div>
+                 `;
                  }
                }
              });
@@ -1656,35 +2104,28 @@
                
                contactDeleteModal.classList.remove('hidden');
                
-                               document.getElementById('confirmContactDeleteBtn').onclick = () => {
-                  console.log('Deleting contact (setupContactHandlers):', contactType, contactId); // Отладочная информация
-                  console.log('Contact item (setupContactHandlers):', contactItem); // Отладочная информация
-                  console.log('Contact item data-id (setupContactHandlers):', contactItem.getAttribute('data-id')); // Отладочная информация
-                  console.log('Contact item data-contact-type (setupContactHandlers):', contactItem.getAttribute('data-contact-type')); // Отладочная информация
-                  
-                  const deleteUrl = contactType === 'phone' 
-                    ? `/profile/phones/${contactId}`
-                    : `/profile/emails/${contactId}`;
-                  
-                  console.log('Delete URL (setupContactHandlers):', deleteUrl); // Отладочная информация
-                  
-                  fetch(deleteUrl, {
-                    method: 'DELETE',
-                    headers: {
-                      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                      'X-Requested-With': 'XMLHttpRequest',
-                      'Accept': 'application/json'
-                    }
-                  })
-                  .then(response => response.json())
-                                    .then(data => {
-                     if (data.success) {
-                       contactItem.remove();
-                       contactDeleteModal.classList.add('hidden');
-                       
-                       // Показываем уведомление об успешном удалении
-                       showNotification('Контакт успешно удален', 'success');
-                       
+               document.getElementById('confirmContactDeleteBtn').onclick = () => {
+                 const deleteUrl = contactType === 'phone' 
+                   ? `/profile/phones/${contactId}`
+                   : `/profile/emails/${contactId}`;
+                 
+                 fetch(deleteUrl, {
+                   method: 'DELETE',
+                   headers: {
+                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                     'X-Requested-With': 'XMLHttpRequest',
+                     'Accept': 'application/json'
+                   }
+                 })
+                 .then(response => response.json())
+                 .then(data => {
+                                       if (data.success) {
+                      contactItem.remove();
+                      contactDeleteModal.classList.add('hidden');
+                      
+                      // Показываем уведомление об успешном удалении
+                      showNotification('Контакт успешно удален', 'success');
+                      
                        // Проверяем, нужно ли показать пустое состояние
                        const remainingContacts = additionalContacts.querySelectorAll('.contact-item[data-id]');
                        if (remainingContacts.length === 0) {
@@ -1695,16 +2136,16 @@
                            </div>
                          `;
                        }
-                     } else {
-                       throw new Error(data.message || 'Ошибка удаления');
-                     }
-                   })
-                   .catch(error => {
-                     console.error('Ошибка:', error);
-                     showNotification('Ошибка при удалении контакта', 'error');
-                     contactDeleteModal.classList.add('hidden');
-                   });
-                };
+                    } else {
+                      throw new Error(data.message || 'Ошибка удаления');
+                    }
+                  })
+                  .catch(error => {
+                    console.error('Ошибка:', error);
+                    showNotification('Ошибка при удалении контакта', 'error');
+                    contactDeleteModal.classList.add('hidden');
+                  });
+               };
                 
                 // Обработка отмены удаления - используем уже установленные обработчики
                 // Дополнительные обработчики не нужны, так как они уже установлены выше
@@ -1789,8 +2230,26 @@
            }
          }
 
-                   // Функция для сортировки контактов (телефон сверху, email снизу)
-          function sortContacts() {
+                           // Функция для синхронизации основного email и логина
+        function syncEmailAndLogin(newEmail, source) {
+          // Если изменился основной email, обновляем логин
+          if (source === 'primary-email') {
+            const loginSpan = document.querySelector('#loginDisplay span');
+            if (loginSpan) {
+              loginSpan.textContent = newEmail;
+            }
+          }
+          // Если изменился логин, обновляем основной email
+          else if (source === 'login') {
+            const primaryEmailDiv = document.querySelector('[data-type="primary"][data-contact-type="email"] .font-semibold');
+            if (primaryEmailDiv) {
+              primaryEmailDiv.textContent = newEmail;
+            }
+          }
+        }
+
+        // Функция для сортировки контактов (телефон сверху, email снизу)
+        function sortContacts() {
             const contacts = additionalContacts.querySelectorAll('.contact-item[data-id]');
             const phones = [];
             const emails = [];
@@ -1811,9 +2270,9 @@
           
           // Сортируем контакты при загрузке страницы
           sortContacts();
-          
-          // Горячие клавиши
-          document.addEventListener('keydown', (e) => {
+
+         // Горячие клавиши
+         document.addEventListener('keydown', (e) => {
            const activeContactEdit = document.querySelector('.contact-edit:not(.hidden)');
            if (activeContactEdit) {
              if (e.key === 'Enter' && e.ctrlKey) {
@@ -1903,6 +2362,15 @@
 
         if (editLoginBtn) {
           editLoginBtn.addEventListener('click', () => {
+             // Получаем текущее значение логина из отображения
+             const currentLogin = loginDisplay.querySelector('span').textContent;
+             
+             // Заполняем поле ввода текущим значением
+             const loginEmailInput = document.getElementById('loginEmailInput');
+             if (loginEmailInput) {
+               loginEmailInput.value = currentLogin;
+             }
+             
             loginDisplay.classList.add('hidden');
             loginEdit.classList.remove('hidden');
           });
@@ -1940,6 +2408,12 @@
                 // Обновляем отображаемый email
                 const emailSpan = loginDisplay.querySelector('span');
                 emailSpan.textContent = data.email;
+                 
+                 // Синхронизация: обновляем основной email
+                 const primaryEmailDiv = document.querySelector('[data-type="primary"][data-contact-type="email"] .font-semibold');
+                 if (primaryEmailDiv) {
+                   primaryEmailDiv.textContent = data.email;
+                 }
                 
                 // Скрываем форму редактирования
                 loginDisplay.classList.remove('hidden');
@@ -2116,6 +2590,55 @@
           });
         }
 
+                 // Инициализация при загрузке страницы
+         updateAddDocumentButton();
+         
+                 // Настраиваем обработчики для существующих документов
+        // Инициализируем обработчики для существующих документов
+        const documentsContainer = document.querySelector('.grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-3.gap-4');
+        if (documentsContainer) {
+          const documentElements = documentsContainer.querySelectorAll('.border.border-gray-200.rounded-lg');
+          documentElements.forEach((element, index) => {
+            setupDocumentHandlers(element);
+          });
+        }
+
+         // Обработчики для показа/скрытия пароля
+         const togglePassword = document.getElementById('togglePassword');
+        const togglePasswordConfirm = document.getElementById('togglePasswordConfirm');
+        const passwordInput = document.getElementById('passwordInput');
+        const passwordConfirmInput = document.getElementById('passwordConfirmInput');
+        const passwordEye = document.getElementById('passwordEye');
+        const passwordEyeSlash = document.getElementById('passwordEyeSlash');
+        const passwordConfirmEye = document.getElementById('passwordConfirmEye');
+        const passwordConfirmEyeSlash = document.getElementById('passwordConfirmEyeSlash');
+
+        // Функция для переключения видимости пароля
+        function togglePasswordVisibility(input, eyeIcon, eyeSlashIcon) {
+          if (input.type === 'password') {
+            input.type = 'text';
+            eyeIcon.classList.add('hidden');
+            eyeSlashIcon.classList.remove('hidden');
+          } else {
+            input.type = 'password';
+            eyeIcon.classList.remove('hidden');
+            eyeSlashIcon.classList.add('hidden');
+          }
+        }
+
+        // Обработчик для основного поля пароля
+        if (togglePassword && passwordInput && passwordEye && passwordEyeSlash) {
+          togglePassword.addEventListener('click', () => {
+            togglePasswordVisibility(passwordInput, passwordEye, passwordEyeSlash);
+          });
+        }
+
+        // Обработчик для поля подтверждения пароля
+        if (togglePasswordConfirm && passwordConfirmInput && passwordConfirmEye && passwordConfirmEyeSlash) {
+          togglePasswordConfirm.addEventListener('click', () => {
+            togglePasswordVisibility(passwordConfirmInput, passwordConfirmEye, passwordConfirmEyeSlash);
+          });
+        }
 
      });
    </script>

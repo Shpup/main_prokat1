@@ -32,7 +32,7 @@ class ProfileController extends Controller
             }
 
             // Обычный запрос - показываем основную страницу профиля
-            $user = auth()->user();
+        $user = auth()->user();
             
             // Получаем проекты для отображения
             $projects = $this->getUserProjects($user);
@@ -161,10 +161,10 @@ class ProfileController extends Controller
     {
         // Логика загрузки проектов в зависимости от роли
         if ($user->hasRole('admin')) {
-            $projectsQuery = Project::query()
+        $projectsQuery = Project::query()
                 ->where('admin_id', $user->id)
                 ->where('status', '!=', 'cancelled')
-                ->with(['manager', 'staff']);
+            ->with(['manager', 'staff']);
         } else {
             $projectsQuery = Project::query()
                 ->where('status', '!=', 'cancelled')
@@ -247,12 +247,12 @@ class ProfileController extends Controller
                 'url' => $id ? url("/projects/{$id}") : ($p['url'] ?? '#'),
             ];
         })->merge(collect($tasks)->map(function ($t) {
-            $deadline = $t['deadline'] ?? ($t['date'] ?? null);
-            $id = $t['id'] ?? null;
-            return [
-                'type' => 'task',
-                'id' => $id,
-                'title' => $t['title'] ?? 'Задача',
+                $deadline = $t['deadline'] ?? ($t['date'] ?? null);
+                $id = $t['id'] ?? null;
+                return [
+                    'type' => 'task',
+                    'id' => $id,
+                    'title' => $t['title'] ?? 'Задача',
                 'deadline' => $deadline ? (function() use ($deadline) {
                     try {
                         return Carbon::parse($deadline);
@@ -260,11 +260,11 @@ class ProfileController extends Controller
                         return null;
                     }
                 })() : null,
-                'description' => $t['body'] ?? $t['description'] ?? '',
-                'status' => $t['status'] ?? null,
-                'priority' => $t['priority'] ?? 'medium',
-                'url' => $t['url'] ?? '#',
-            ];
+                    'description' => $t['body'] ?? $t['description'] ?? '',
+                    'status' => $t['status'] ?? null,
+                    'priority' => $t['priority'] ?? 'medium',
+                    'url' => $t['url'] ?? '#',
+                ];
         }));
 
         // Применяем фильтры
@@ -274,6 +274,13 @@ class ProfileController extends Controller
         $range = (int) $request->query('u_range', 7);
 
         $filtered = $feed
+            // Исключаем завершённые проекты из "Ближайших проектов и задач"
+            ->filter(function($i) {
+                if ($i['type'] === 'project') {
+                    return ($i['status'] ?? null) !== 'completed';
+                }
+                return true; // Задачи не фильтруем по статусу
+            })
             ->when($q !== '', fn($c) => $c->filter(fn($i) => mb_stripos($i['title'], $q) !== false || mb_stripos($i['description'], $q) !== false))
             ->when(in_array($type, ['project','task'], true), fn($c) => $c->where('type', $type))
             ->when($status !== '', function ($c) use ($status) {
@@ -383,7 +390,7 @@ class ProfileController extends Controller
         $groupedProjects = $projectsFiltered->groupBy(function($i) {
             if (empty($i['date'])) return 'no_date';
             try {
-                return Carbon::parse($i['date'])->translatedFormat('j F Y');
+            return Carbon::parse($i['date'])->translatedFormat('j F Y');
             } catch (\Exception $e) {
                 return 'no_date';
             }
@@ -404,6 +411,8 @@ class ProfileController extends Controller
     {
         try {
             $query = $request->query('q', '');
+            $section = $request->query('section', 'projects'); // projects или upcoming
+            
             if (empty($query) || mb_strlen($query) < 1) {
                 return response()->json(['suggestions' => []]);
             }
@@ -431,7 +440,24 @@ class ProfileController extends Controller
             $projects = $projectsQuery->select(['id','name','description','status','start_date'])->get();
 
             $suggestions = $projects
-                ->filter(function($project) use ($search) {
+                ->filter(function($project) use ($search, $section) {
+                    // Исключаем завершённые проекты для раздела "upcoming"
+                    if ($section === 'upcoming' && ($project->status ?? null) === 'completed') {
+                        return false;
+                    }
+                    
+                    // Фильтруем по дате только для раздела "upcoming" (Ближайшие проекты и задачи)
+                    if ($section === 'upcoming' && !empty($project->start_date)) {
+                        try {
+                            $startDate = Carbon::parse($project->start_date);
+                            if ($startDate->isPast() && !$startDate->isToday()) {
+                                return false; // Исключаем прошлые проекты только для upcoming
+                            }
+                        } catch (\Exception $e) {
+                            return false; // Если не удалось распарсить дату, исключаем проект
+                        }
+                    }
+                    
                     $title = mb_strtolower($project->name ?? '');
                     $location = mb_strtolower($project->description ?? '');
                     
@@ -496,11 +522,6 @@ class ProfileController extends Controller
     public function aboutUpdateInfo(Request $request)
     {
         try {
-            \Log::info('ProfileController: aboutUpdateInfo called', [
-                'request_data' => $request->all(),
-                'user_id' => auth()->id()
-            ]);
-            
             $data = $request->validate([
                 'last_name' => 'nullable|string|max:100',
                 'first_name' => 'nullable|string|max:100',
@@ -514,16 +535,12 @@ class ProfileController extends Controller
                 return ($value === '' || $value === null) ? null : $value;
             }, $data);
             
-            \Log::info('ProfileController: Validation passed', ['validated_data' => $data]);
-            
             $user = auth()->user();
             
             // Обновляем или создаем профиль
             if ($user->profile) {
-                \Log::info('ProfileController: Updating existing profile', ['profile_id' => $user->profile->id]);
                 $user->profile->update($data);
             } else {
-                \Log::info('ProfileController: Creating new profile');
                 $profileData = array_merge($data, ['user_id' => $user->id]);
                 // Убеждаемся, что все поля имеют значения (хотя бы null)
                 $profileData = array_merge([
@@ -538,10 +555,6 @@ class ProfileController extends Controller
             
             // Перезагружаем профиль для получения актуальных данных
             $user->load('profile');
-            
-            \Log::info('ProfileController: Profile updated successfully', [
-                'profile_data' => $user->profile ? $user->profile->toArray() : null
-            ]);
             
             if ($request->wantsJson()) {
                 return response()->json([
@@ -590,21 +603,21 @@ class ProfileController extends Controller
 
         try {
             // Для администратора не требуем текущий пароль — он может сбросить пароль пользователю
-            $request->validate([
-                'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        $request->validate([
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
             ], [
                 'password.required' => 'Необходимо указать новый пароль',
                 'password.confirmed' => 'Пароли не совпадают',
                 'password.min' => 'Пароль должен содержать минимум 8 символов',
-            ]);
+        ]);
             
-            $user = auth()->user();
-            $user->password = Hash::make($request->password);
-            $user->save();
-            
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
+        $user = auth()->user();
+        $user->password = Hash::make($request->password);
+        $user->save();
+        
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
                     'message' => 'Пароль успешно обновлён'
                 ]);
             }
@@ -726,40 +739,21 @@ class ProfileController extends Controller
     public function storePhone(Request $request)
     {
         try {
-            \Log::info('ProfileController: storePhone called', [
-                'request_data' => $request->all(),
-                'user_id' => auth()->id()
-            ]);
-            
             $data = $request->validate([
                 'value' => 'required|string|regex:/^[\d+\-()\s]+$/|max:191',
                 'comment' => 'nullable|string|max:255',
             ]);
             
-            \Log::info('ProfileController: Validation passed', [
-                'validated_data' => $data
-            ]);
-            
             $user = auth()->user();
             
-            // Создаем новую запись
-            $created = $user->contacts()->create([
-                'type' => 'phone',
-                'value' => $data['value'],
-                'comment' => $data['comment'] ?? null,
-            ]);
-            
-            \Log::info('ProfileController: Phone created successfully', [
-                'phone_data' => $created->toArray()
-            ]);
-            
-            \Log::info('ProfileController: About to return response', [
-                'wantsJson' => $request->wantsJson(),
-                'headers' => $request->headers->all()
-            ]);
+                // Создаем новую запись
+                $created = $user->contacts()->create([
+                    'type' => 'phone',
+                    'value' => $data['value'],
+                    'comment' => $data['comment'] ?? null,
+                ]);
             
             if ($request->wantsJson()) {
-                \Log::info('ProfileController: Returning JSON response');
                 return response()->json([
                     'success' => true,
                     'message' => 'Телефон добавлен',
@@ -769,7 +763,6 @@ class ProfileController extends Controller
                 ])->header('Content-Type', 'application/json');
             }
             
-            \Log::info('ProfileController: Returning redirect response');
             return Redirect::back()->with('ok', 'Телефон добавлен');
             
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -847,13 +840,13 @@ class ProfileController extends Controller
             
             $user = auth()->user();
             
-            // Создаем новую запись
-            $email = $user->contacts()->create([
-                'type' => 'email',
-                'value' => $data['value'],
-                'comment' => $data['comment'] ?? null,
-                'is_primary' => (bool)($data['is_primary'] ?? false),
-            ]);
+                // Создаем новую запись
+                $email = $user->contacts()->create([
+                    'type' => 'email',
+                    'value' => $data['value'],
+                    'comment' => $data['comment'] ?? null,
+                    'is_primary' => (bool)($data['is_primary'] ?? false),
+                ]);
             
             if ($email->is_primary) {
                 $this->demoteOtherEmails($email);
@@ -950,37 +943,126 @@ class ProfileController extends Controller
     // -------- Документы --------
     public function storeDocument(Request $request)
     {
-        $data = $this->validateDoc($request);
-        
-        // Обработка файлов
-        $files = [];
-        if ($request->hasFile('files')) {
-            foreach ($request->file('files') as $file) {
-                if ($file->isValid()) {
-                    $path = $file->store('documents', 'public');
-                    $files[] = [
-                        'name' => $file->getClientOriginalName(),
-                        'path' => $path,
-                        'size' => $file->getSize(),
-                        'type' => $file->getMimeType()
-                    ];
+        try {
+            $data = $this->validateDoc($request);
+            
+            // Проверяем, существует ли уже документ такого типа у пользователя
+            $existingDocument = auth()->user()->documents()
+                ->where('type', $data['type'])
+                ->first();
+            
+            // Если документ существует, добавляем фотки к существующему документу
+            if ($existingDocument) {
+                
+                // Обработка файлов - добавляем к существующим
+                $files = $existingDocument->files ?? [];
+                if ($request->hasFile('files')) {
+                    foreach ($request->file('files') as $file) {
+                        if ($file->isValid()) {
+                            $path = $file->store('documents', 'public');
+                            $files[] = [
+                                'name' => $file->getClientOriginalName(),
+                                'path' => $path,
+                                'size' => $file->getSize(),
+                                'type' => $file->getMimeType()
+                            ];
+                        }
+                    }
+                }
+                
+                // Обновляем существующий документ
+                $existingDocument->update(['files' => $files]);
+                $existingDocument->refresh();
+                
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => true, 
+                        'message' => 'Фотографии добавлены к существующему документу',
+                        'document' => [
+                            'id' => $existingDocument->id,
+                            'type' => $existingDocument->type,
+                            'files' => $existingDocument->files
+                        ]
+                    ]);
+                }
+                return Redirect::back()->with('ok', 'Фотографии добавлены к существующему документу');
+            }
+            
+            // Если документа нет, создаем новый
+            // Обработка файлов
+            $files = [];
+            if ($request->hasFile('files')) {
+                foreach ($request->file('files') as $file) {
+                    if ($file->isValid()) {
+                        $path = $file->store('documents', 'public');
+                        $files[] = [
+                            'name' => $file->getClientOriginalName(),
+                            'path' => $path,
+                            'size' => $file->getSize(),
+                            'type' => $file->getMimeType()
+                        ];
+                    }
                 }
             }
+                
+            // Создаем документ только с нужными полями
+            $documentData = [
+                'user_id' => auth()->id(),
+                'type' => $data['type'],
+                'files' => $files
+            ];
+            
+            $document = auth()->user()->documents()->create($documentData);
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true, 
+                    'message' => 'Документ добавлен',
+                    'document' => [
+                        'id' => $document->id,
+                        'type' => $document->type,
+                        'files' => $document->files
+                    ]
+                ]);
+            }
+            return Redirect::back()->with('ok', 'Документ добавлен');
+                
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('ProfileController: Validation error in storeDocument', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Ошибка валидации',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('ProfileController: Error in storeDocument', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Ошибка при сохранении документа: ' . $e->getMessage()
+                ], 500);
+            }
+            return Redirect::back()->withErrors(['error' => 'Ошибка при сохранении документа: ' . $e->getMessage()]);
         }
-        $data['files'] = $files;
-        
-        auth()->user()->documents()->create($data);
-        
-        if ($request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => 'Документ добавлен']);
-        }
-        return Redirect::back()->with('ok', 'Документ добавлен');
     }
 
     public function updateDocument(Request $request, UserDocument $document)
     {
-        abort_if($document->user_id !== auth()->id(), 403);
-        $data = $this->validateDoc($request);
+        try {
+            abort_if($document->user_id !== auth()->id(), 403);
+            $data = $this->validateDoc($request);
         
         // Обработка файлов
         $files = $document->files ?? [];
@@ -997,24 +1079,77 @@ class ProfileController extends Controller
                 }
             }
         }
-        $data['files'] = $files;
-        
-        $document->update($data);
-        
-        if ($request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => 'Документ обновлен']);
+            
+            // Обновляем документ только с нужными полями
+            $documentData = [
+                'type' => $data['type'],
+                'files' => $files
+            ];
+            
+            $document->update($documentData);
+            
+            // Обновляем документ из базы данных, чтобы получить актуальные данные
+            $document->refresh();
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true, 
+                    'message' => 'Документ обновлен',
+                    'document' => [
+                        'id' => $document->id,
+                        'type' => $document->type,
+                        'files' => $document->files
+                    ]
+                ]);
         }
         return Redirect::back()->with('ok', 'Документ обновлен');
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('ProfileController: Validation error in updateDocument', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all(),
+                'document_id' => $document->id
+            ]);
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Ошибка валидации',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('ProfileController: Error in updateDocument', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all(),
+                'document_id' => $document->id
+            ]);
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Ошибка при обновлении документа: ' . $e->getMessage()
+                ], 500);
+            }
+            return Redirect::back()->withErrors(['error' => 'Ошибка при обновлении документа: ' . $e->getMessage()]);
+        }
     }
 
     public function destroyDocument(UserDocument $document)
     {
+        try {
         abort_if($document->user_id !== auth()->id(), 403);
         
         // Удаляем файлы
         if ($document->files) {
             foreach ($document->files as $file) {
-                if (isset($file['path'])) {
+                    if (is_string($file)) {
+                        // Если файл сохранен как строка
+                        \Storage::disk('public')->delete($file);
+                    } elseif (isset($file['path'])) {
+                        // Если файл сохранен как объект
                     \Storage::disk('public')->delete($file['path']);
                 }
             }
@@ -1022,47 +1157,84 @@ class ProfileController extends Controller
         
         $document->delete();
         
-        if (request()->wantsJson()) {
+            if (request()->ajax() || request()->wantsJson()) {
             return response()->json(['success' => true, 'message' => 'Документ удален']);
         }
+            
         return Redirect::back()->with('ok', 'Документ удален');
+        } catch (\Exception $e) {
+            \Log::error('Error deleting document: ' . $e->getMessage());
+            
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Ошибка при удалении: ' . $e->getMessage()], 500);
+            }
+            
+            return Redirect::back()->with('error', 'Ошибка при удалении документа');
+        }
+    }
+
+    public function destroyDocumentPhoto(UserDocument $document, $photoIndex)
+    {
+        try {
+            abort_if($document->user_id !== auth()->id(), 403);
+            
+            $files = $document->files ?? [];
+            
+            if (!isset($files[$photoIndex])) {
+                if (request()->ajax() || request()->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Фотография не найдена'], 404);
+                }
+                return Redirect::back()->with('error', 'Фотография не найдена');
+            }
+            
+            $fileToDelete = $files[$photoIndex];
+            
+            // Удаляем файл из хранилища
+            if (is_string($fileToDelete)) {
+                \Storage::disk('public')->delete($fileToDelete);
+            } elseif (isset($fileToDelete['path'])) {
+                \Storage::disk('public')->delete($fileToDelete['path']);
+            }
+            
+            // Удаляем элемент из массива
+            unset($files[$photoIndex]);
+            // Переиндексируем массив
+            $files = array_values($files);
+            
+            // Обновляем документ
+            $document->update(['files' => $files]);
+            $document->refresh();
+            
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true, 
+                    'message' => 'Фотография удалена',
+                    'document' => [
+                        'id' => $document->id,
+                        'type' => $document->type,
+                        'files' => $document->files
+                    ]
+                ]);
+            }
+            
+            return Redirect::back()->with('ok', 'Фотография удалена');
+        } catch (\Exception $e) {
+            \Log::error('Error deleting document photo: ' . $e->getMessage());
+            
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Ошибка при удалении фотографии: ' . $e->getMessage()], 500);
+            }
+            
+            return Redirect::back()->with('error', 'Ошибка при удалении фотографии');
+        }
     }
 
     private function validateDoc(Request $request): array
     {
         $rules = [
             'type' => ['required', 'in:passport,foreign_passport,driver_license'],
-            'series' => 'nullable|string|max:32',
-            'number' => 'nullable|string|max:64',
-            'issued_at' => 'nullable|date',
-            'issued_by' => 'nullable|string|max:255',
-            'expires_at' => 'nullable|date',
-            'comment' => 'nullable|string|max:255',
-            'categories' => 'nullable|array',
-            'categories.*' => 'string|in:A,B,C,D,E,M',
-            'files.*' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB
+            'files.*' => 'required|file|mimes:jpg,jpeg,png|max:10240', // 10MB, только изображения
         ];
-
-        // Дополнительная валидация в зависимости от типа
-        $type = $request->input('type');
-        switch ($type) {
-            case 'passport':
-                $rules['series'] = 'required|string|size:4|regex:/^\d{4}$/';
-                $rules['number'] = 'required|string|size:6|regex:/^\d{6}$/';
-                $rules['issued_at'] = 'required|date';
-                break;
-            case 'foreign_passport':
-                $rules['number'] = 'required|string|max:64';
-                $rules['issued_at'] = 'required|date';
-                $rules['expires_at'] = 'required|date|after:issued_at';
-                break;
-            case 'driver_license':
-                $rules['number'] = 'required|string|size:10|regex:/^\d{10}$/';
-                $rules['issued_at'] = 'required|date';
-                $rules['expires_at'] = 'required|date|after:issued_at';
-                $rules['categories'] = 'required|array|min:1';
-                break;
-        }
 
         return $request->validate($rules);
     }

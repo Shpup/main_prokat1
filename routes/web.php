@@ -55,6 +55,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::post('/profile/documents', [ProfileController::class, 'storeDocument'])->name('profile.documents.store');
     Route::put('/profile/documents/{document}', [ProfileController::class, 'updateDocument'])->name('profile.documents.update');
     Route::delete('/profile/documents/{document}', [ProfileController::class, 'destroyDocument'])->name('profile.documents.destroy');
+    Route::delete('/profile/documents/{document}/photo/{photoIndex}', [ProfileController::class, 'destroyDocumentPhoto'])->name('profile.documents.photo.destroy');
 
     // Дашборд
     Route::get('/dashboard', [ProjectController::class, 'index'])->name('dashboard');
@@ -120,11 +121,18 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::get('/equipment/{equipment}/edit', [EquipmentController::class, 'edit'])->name('equipment.edit');
     Route::put('/equipment/{equipment}', [EquipmentController::class, 'update'])->name('equipment.update');
     Route::delete('/equipment/{equipment}', [EquipmentController::class, 'destroy'])->name('equipment.destroy');
-    Route::get('/equipment/create', [EquipmentController::class, 'create'])->name('equipment.create');
+
     // Менеджеры
     Route::get('/managers', [ManagerController::class, 'index'])->name('managers');
     Route::get('/managers/create', [ManagerController::class, 'create'])->name('managers.create');
     Route::post('/managers', [ManagerController::class, 'store'])->name('managers.store');
+    Route::get('/managers/{user}', [ManagerController::class, 'show'])->name('managers.show');
+    Route::patch('/managers/{user}', [ManagerController::class, 'update'])->name('managers.update');
+    Route::delete('/managers/{user}', [ManagerController::class, 'destroy'])->name('managers.destroy');
+    Route::patch('/managers/{user}/status', [ManagerController::class, 'updateStatus'])->name('managers.status.update');
+    Route::post('/managers/{user}/status-comment', [ManagerController::class, 'updateStatusComment'])->name('managers.status-comment.update');
+    Route::get('/managers/{user}/assignments', [ManagerController::class, 'getAssignments'])->name('managers.assignments');
+    Route::post('/assignments', [ManagerController::class, 'createAssignment'])->name('assignments.store');
 
     // Категории
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories');
