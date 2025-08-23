@@ -9,10 +9,11 @@ use Illuminate\Support\Facades\Auth;
 
 class EquipmentController extends Controller
 {
-    public function updateStatus(Request $request, $id)
+    public function updateStatus(Request $request)
     {
         // Валидация входных данных
         $request->validate([
+            'id' => 'required|integer|exists:equipments,id',
             'action' => 'required|in:send,accept',
         ]);
 
@@ -25,7 +26,7 @@ class EquipmentController extends Controller
         }
 
         // Поиск оборудования
-        $equipment = Equipment::find($id);
+        $equipment = Equipment::find($request->id);
         if (!$equipment) {
             return response()->json([
                 'status' => 'error',

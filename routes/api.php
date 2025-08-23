@@ -19,4 +19,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 Route::post('/login', [AuthController::class, 'login']);
-Route::middleware('auth:sanctum')->post('/equipment/{id}/status', [EquipmentController::class, 'updateStatus']);
+Route::middleware('auth:sanctum')->post('/equipment/status', [EquipmentController::class, 'updateStatus']);
