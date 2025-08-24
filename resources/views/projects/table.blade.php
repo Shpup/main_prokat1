@@ -298,7 +298,8 @@
                 events: [
                         @foreach ($projects as $project)
                     {
-                        title: "{{ $project->id }}: {{ $project->name }} \n {{ $project->admin ? $project->admin->name : 'Не указан' }}",
+                        title: "{{ $project->id }}: {{ $project->name }}",
+                        adminName: "{{ $project->admin ? $project->admin->name : 'Не указан' }}",
                         start: "{{ $project->start_date }}",
                         end: "{{ $project->end_date ? \Carbon\Carbon::parse($project->end_date)->addDay()->toDateString() : null }}",
                         url: "{{ route('projects.show', $project->id) }}",
@@ -319,6 +320,11 @@
                         detail: { date: info.dateStr }
                     }));
                     @endcan
+                },
+                eventContent: function(arg) {
+                    return {
+                        html: arg.event.title + '<br>' + (arg.event.extendedProps.adminName || '')
+                    };
                 }
             });
 
