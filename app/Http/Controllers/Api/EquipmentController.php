@@ -28,7 +28,7 @@ class EquipmentController extends Controller
         // Поиск оборудования
         $equipment = Equipment::find($request->id);
         if (!$equipment) {
-            return response()->json([
+            return response()->json_encode([
                 'status' => 'error',
                 'message' => 'Оборудование не найдено',
             ], 404);
