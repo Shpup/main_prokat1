@@ -369,8 +369,49 @@
                 document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
                 document.getElementById(tab === 'table' ? 'projectsTab' : 'calendarTab').classList.add('active');
                 if (tab === 'calendar' && window.calendar) {
-                    this.refreshCalendar();
-                    window.calendar.render();
+                    var calendarEl = document.getElementById('calendar');
+                    if (calendarEl) {
+                        calendar = new FullCalendar.Calendar(calendarEl, {
+                            initialView: 'dayGridMonth',
+                            eventTimeFormat: false,
+                            events: [
+                                    @foreach ($projects as $project)
+                                {
+                                    title: "{{ $project->id }}: {{ $project->name }}",
+                                    adminName: "{{ $project->admin ? $project->admin->name : 'Не указан' }}",
+                                    start: "{{ $project->start_date }}",
+                                    end: "{{ $project->end_date ? \Carbon\Carbon::parse($project->end_date)->addDay()->toDateString() : null }}",
+                                    url: "{{ route('projects.show', $project->id) }}",
+                                    allDay: true,
+                                    color: "{{ match ($project->status) {
+                            'active'    => 'rgba(34,197,94,0.71)',
+                            'new'       => 'rgba(248,233,95,0.72)',
+                            'completed' => 'rgba(105,159,255,0.74)',
+                            'cancelled' => 'rgba(255,87,87,0.76)',
+                            default     => '#9ca3af'
+                        } }}"
+                                },
+                                @endforeach
+                            ],
+                            dateClick: function(info) {
+                                @can('create projects')
+                                window.dispatchEvent(new CustomEvent('open-project-modal', {
+                                    detail: { date: info.dateStr }
+                                }));
+                                @endcan
+                            },
+                            eventContent: function(arg) {
+                                return {
+                                    html: arg.event.title + '<br>' + (arg.event.extendedProps.adminName || '')
+                                };
+                            }
+                        });
+
+                        calendar.render();
+                        console.log('Calendar initialized:', calendar);
+                    } else {
+                        console.error('Element #calendar not found');
+                    }
                 }
             },
             openProjectModal(project = null) {
@@ -542,51 +583,6 @@
                 });
 
                 this.filteredProjects = filtered;
-            },
-            async refreshCalendar() {
-                var calendarEl = document.getElementById('calendar');
-                if (calendarEl) {
-                    calendar = new FullCalendar.Calendar(calendarEl, {
-                        initialView: 'dayGridMonth',
-                        eventTimeFormat: false,
-                        events: [
-                                @foreach ($projects as $project)
-                            {
-                                title: "{{ $project->id }}: {{ $project->name }}",
-                                adminName: "{{ $project->admin ? $project->admin->name : 'Не указан' }}",
-                                start: "{{ $project->start_date }}",
-                                end: "{{ $project->end_date ? \Carbon\Carbon::parse($project->end_date)->addDay()->toDateString() : null }}",
-                                url: "{{ route('projects.show', $project->id) }}",
-                                allDay: true,
-                                color: "{{ match ($project->status) {
-                            'active'    => 'rgba(34,197,94,0.71)',
-                            'new'       => 'rgba(248,233,95,0.72)',
-                            'completed' => 'rgba(105,159,255,0.74)',
-                            'cancelled' => 'rgba(255,87,87,0.76)',
-                            default     => '#9ca3af'
-                        } }}"
-                            },
-                            @endforeach
-                        ],
-                        dateClick: function (info) {
-                            @can('create projects')
-                            window.dispatchEvent(new CustomEvent('open-project-modal', {
-                                detail: {date: info.dateStr}
-                            }));
-                            @endcan
-                        },
-                        eventContent: function (arg) {
-                            return {
-                                html: arg.event.title + '<br>' + (arg.event.extendedProps.adminName || '')
-                            };
-                        }
-                    });
-
-                    calendar.render();
-                    console.log('Calendar initialized:', calendar);
-                } else {
-                    console.error('Element #calendar not found');
-                }
             },
             sortBy(column) {
                 if (this.sort === column) {
