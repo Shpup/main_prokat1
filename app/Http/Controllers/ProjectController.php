@@ -17,6 +17,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use App\Models\User;
 use App\Models\WorkInterval;
+use App\Http\Controllers\ManagerController;
 use PDF;
 use App\Exports\EstimateExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -496,6 +497,11 @@ class ProjectController extends Controller
     public function detachStaff(Project $project, User $user): JsonResponse
     {
         $project->staff()->detach($user->id);
+
+        // Проверяем и обновляем статус сотрудника
+        $managerController = new ManagerController();
+        $managerController->checkAndUpdateStatus($user);
+
         return response()->json(['success'=>true]);
     }
 
@@ -524,6 +530,10 @@ class ProjectController extends Controller
                 'project_rate' => $request->rate_type === 'project' ? $request->rate : null,
             ]);
         }
+
+        // Проверяем и обновляем статус сотрудника
+        $managerController = new ManagerController();
+        $managerController->checkAndUpdateStatus($user);
 
         return response()->json(['success' => 'Сотрудник добавлен на проект.']);
     }
