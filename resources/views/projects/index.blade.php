@@ -77,12 +77,12 @@
                     url: "{{ route('projects.show', $project->id) }}",
                     allDay: true,
                     color: "{{ match ($project->status) {
-            'active'    => 'rgba(34,197,94,0.71)',
-            'new'       => 'rgba(248,233,95,0.72)',
-            'completed' => 'rgba(105,159,255,0.74)',
-            'cancelled' => 'rgba(255,87,87,0.76)',
-            default     => '#9ca3af'
-        } }}"
+                    'active'    => 'rgba(34,197,94,0.71)',
+                    'new'       => 'rgba(248,233,95,0.72)',
+                    'completed' => 'rgba(105,159,255,0.74)',
+                    'cancelled' => 'rgba(255,87,87,0.76)',
+                    default     => '#9ca3af'
+                } }}"
                 },
                 @endforeach
             ],
@@ -92,9 +92,9 @@
                     detail: { date: info.dateStr }
                 }));
                 @endcan
-            }
-        });
+            });
 
+        console.log('Calendar events:', window.calendar.getEvents()); // Отладка
         window.calendar.render();
     });
 
