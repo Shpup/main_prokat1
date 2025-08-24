@@ -93,7 +93,7 @@ class EquipmentController extends Controller
             // Собираем характеристики из отдельных полей
             $data['specifications'] = $this->buildSpecificationsFromForm($request);
             
-            $qrPath = 'qrcodes/' . uniqid() . '.svg';
+            $qrPath = 'qrcodes/' . $adminId . '/' . uniqid() . '.svg';
 
             // Генерируем QR-код с данными оборудования
             $qrData = [
@@ -107,6 +107,13 @@ class EquipmentController extends Controller
             Log::info('QR Content: ' . $qrContent);
             
             try {
+                // Создаем папку для админа, если её нет
+                $adminQrPath = 'qrcodes/' . $adminId;
+                if (!Storage::exists('public/' . $adminQrPath)) {
+                    Storage::makeDirectory('public/' . $adminQrPath);
+                    Log::info('Created directory: ' . $adminQrPath);
+                }
+                
                 $generator = new \Milon\Barcode\DNS2D();
                 Log::info('Generator created successfully');
                 
@@ -239,6 +246,13 @@ class EquipmentController extends Controller
         Log::info('Updating QR Code for equipment ' . $equipment->id . ' with content: ' . $qrContent);
         
         try {
+            // Создаем папку для админа, если её нет
+            $adminQrPath = 'qrcodes/' . $adminId;
+            if (!Storage::exists('public/' . $adminQrPath)) {
+                Storage::makeDirectory('public/' . $adminQrPath);
+                Log::info('Created directory: ' . $adminQrPath);
+            }
+            
             $generator = new \Milon\Barcode\DNS2D();
             $qrImage = $generator->getBarcodeSVG($qrContent, 'QRCODE');
             Storage::put('public/' . $equipment->qrcode, $qrImage);

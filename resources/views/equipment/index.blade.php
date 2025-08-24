@@ -244,27 +244,27 @@
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label for="length_cm" class="block text-xs font-medium text-gray-500">Длина (см)</label>
-                                        <input type="text" name="length_cm" id="length_cm" placeholder="например: 120" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                        <input type="text" name="length_cm" id="length_cm" class="mt-1 block w-full border-gray-300 rounded-md text-sm" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я]/g, '')">
                                     </div>
                                     <div>
                                         <label for="width_cm" class="block text-xs font-medium text-gray-500">Ширина (см)</label>
-                                        <input type="text" name="width_cm" id="width_cm" placeholder="например: 60" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                        <input type="text" name="width_cm" id="width_cm" class="mt-1 block w-full border-gray-300 rounded-md text-sm" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я]/g, '')">
                                     </div>
                                     <div>
                                         <label for="height_cm" class="block text-xs font-medium text-gray-500">Высота (см)</label>
-                                        <input type="text" name="height_cm" id="height_cm" placeholder="например: 80" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                        <input type="text" name="height_cm" id="height_cm" class="mt-1 block w-full border-gray-300 rounded-md text-sm" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я]/g, '')">
                                     </div>
                                     <div>
                                         <label for="weight_kg" class="block text-xs font-medium text-gray-500">Вес (кг)</label>
-                                        <input type="text" name="weight_kg" id="weight_kg" placeholder="например: 7.5" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                        <input type="text" name="weight_kg" id="weight_kg" class="mt-1 block w-full border-gray-300 rounded-md text-sm" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я]/g, '')">
                                     </div>
                                     <div>
                                         <label for="power_w" class="block text-xs font-medium text-gray-500">Мощность (Вт)</label>
-                                        <input type="text" name="power_w" id="power_w" placeholder="например: 350" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                        <input type="text" name="power_w" id="power_w" class="mt-1 block w-full border-gray-300 rounded-md text-sm" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я]/g, '')">
                                     </div>
                                     <div>
                                         <label for="current_a" class="block text-xs font-medium text-gray-500">Ток (А)</label>
-                                        <input type="text" name="current_a" id="current_a" placeholder="например: 1.2" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                        <input type="text" name="current_a" id="current_a" class="mt-1 block w-full border-gray-300 rounded-md text-sm" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я]/g, '')">
                                     </div>
                                 </div>
                             </div>
@@ -541,27 +541,27 @@
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label for="edit_length_cm" class="block text-xs font-medium text-gray-500">Длина (см)</label>
-                                        <input type="text" name="length_cm" id="edit_length_cm" value="${data.specifications?.length_cm || ''}" placeholder="например: 120" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                        <input type="text" name="length_cm" id="edit_length_cm" value="${data.specifications?.length_cm || ''}" class="mt-1 block w-full border-gray-300 rounded-md text-sm" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я]/g, '')">
                                     </div>
                                     <div>
                                         <label for="edit_width_cm" class="block text-xs font-medium text-gray-500">Ширина (см)</label>
-                                        <input type="text" name="width_cm" id="edit_width_cm" value="${data.specifications?.width_cm || ''}" placeholder="например: 60" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                        <input type="text" name="width_cm" id="edit_width_cm" value="${data.specifications?.width_cm || ''}" class="mt-1 block w-full border-gray-300 rounded-md text-sm" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я]/g, '')">
                                     </div>
                                     <div>
                                         <label for="edit_height_cm" class="block text-xs font-medium text-gray-500">Высота (см)</label>
-                                        <input type="text" name="height_cm" id="edit_height_cm" value="${data.specifications?.height_cm || ''}" placeholder="например: 80" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                        <input type="text" name="height_cm" id="edit_height_cm" value="${data.specifications?.height_cm || ''}" class="mt-1 block w-full border-gray-300 rounded-md text-sm" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я]/g, '')">
                                     </div>
                                     <div>
                                         <label for="edit_weight_kg" class="block text-xs font-medium text-gray-500">Вес (кг)</label>
-                                        <input type="text" name="weight_kg" id="edit_weight_kg" value="${data.specifications?.weight_kg || ''}" placeholder="например: 7.5" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                        <input type="text" name="weight_kg" id="edit_weight_kg" value="${data.specifications?.weight_kg || ''}" class="mt-1 block w-full border-gray-300 rounded-md text-sm" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я]/g, '')">
                                     </div>
                                     <div>
                                         <label for="edit_power_w" class="block text-xs font-medium text-gray-500">Мощность (Вт)</label>
-                                        <input type="text" name="power_w" id="edit_power_w" value="${data.specifications?.power_w || ''}" placeholder="например: 350" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                        <input type="text" name="power_w" id="edit_power_w" value="${data.specifications?.power_w || ''}" class="mt-1 block w-full border-gray-300 rounded-md text-sm" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я]/g, '')">
                                     </div>
                                     <div>
                                         <label for="edit_current_a" class="block text-xs font-medium text-gray-500">Ток (А)</label>
-                                        <input type="text" name="current_a" id="edit_current_a" value="${data.specifications?.current_a || ''}" placeholder="например: 1.2" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                                        <input type="text" name="current_a" id="edit_current_a" value="${data.specifications?.current_a || ''}" class="mt-1 block w-full border-gray-300 rounded-md text-sm" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я]/g, '')">
                                     </div>
                                 </div>
                             </div>
