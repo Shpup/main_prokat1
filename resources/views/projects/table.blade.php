@@ -58,12 +58,12 @@
             width: 100% !important;
             height: 100% !important;
         }
-        .fc-event-title {
-            white-space: normal !important;
-            word-wrap: break-word;
-            line-height: 1.2;
-            padding: 2px 0;
-        }
+        /*.fc-event-title {*/
+        /*    white-space: normal !important;*/
+        /*    word-wrap: break-word;*/
+        /*    line-height: 1.2;*/
+        /*    padding: 2px 0;*/
+        /*}*/
 
         .fc-scroller {
             overflow-y: auto !important;
