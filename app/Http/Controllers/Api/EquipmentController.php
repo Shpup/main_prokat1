@@ -80,7 +80,7 @@ class EquipmentController extends Controller
                 ], 200);
             } else {
                 $message = $currentStatus === 'on_warehouse' ? 'Уже на складе' : 'Уже на проекте';
-                return response()->json([
+                return response()->json_encode([
                     'status' => 'error',
                     'message' => $message,
                 ], 400);
