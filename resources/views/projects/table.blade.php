@@ -369,7 +369,6 @@
                 document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
                 document.getElementById(tab === 'table' ? 'projectsTab' : 'calendarTab').classList.add('active');
                 if (tab === 'calendar' && window.calendar) {
-                    this.refreshCalendar();
                     window.calendar.render();
                 }
             },
