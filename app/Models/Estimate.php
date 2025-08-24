@@ -120,9 +120,6 @@ class Estimate extends Model
         $equipments = $this->equipment()->withoutGlobalScope('admin')->get();
 
         foreach ($equipments as $eq) {
-            if ($eq->pivot->status !== 'assigned' && $eq->pivot->status !== 'used') {
-                continue;
-            }
 
             $path = $this->getCategoryPath($eq->category_id);
             if (empty($path)) {
