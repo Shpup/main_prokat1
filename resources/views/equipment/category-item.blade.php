@@ -2,7 +2,6 @@
     <div class="category-item">
         <div class="category-name">
             <a href="#" onclick="loadEquipment({{ $category->id }})" class="text-blue-600 hover:underline" style="margin-left: {{ $depth * 1 }}rem;">{{ $category->name }}</a>
-            <span class="text-sm text-gray-500 ml-2">(Владелец: {{ $category->admin->name ?? 'Неизвестно' }})</span>
         </div>
         @can('create projects')
             <button onclick="openCategoryModal({{ $category->id }})" class="add-button">+</button>

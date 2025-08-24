@@ -337,7 +337,6 @@
             <div class="category-item">
                 <div class="category-name">
                     <a href="#" onclick="loadEquipment(${category.id})" class="text-blue-600 hover:underline ml-4">${category.name}</a>
-                    <span class="text-sm text-gray-500 ml-2">(Владелец: ${category.admin?.name ?? 'Неизвестно'})</span>
                 </div>
                 @can('create projects')
         <button onclick="openCategoryModal(${category.id})" class="add-button">+</button>
@@ -488,7 +487,7 @@
 
     function editEquipment(id) {
         const token = document.querySelector('meta[name="csrf-token"]').content;
-        
+
         // Сначала загружаем категории, потом данные оборудования
         Promise.all([
             fetch('/equipment/create', {
@@ -597,10 +596,10 @@
                             if (data.success) {
                                 modal.remove();
                                 alert(data.success);
-                                
+
                                 // Обновляем QR код в таблице без перезагрузки страницы
                                 updateQRCodeInTable(id);
-                                
+
                                 // Также обновляем другие данные в строке (название, характеристики, цену)
                                 updateEquipmentRowData(id);
                             } else {
@@ -628,7 +627,7 @@
             location.reload();
             return;
         }
-        
+
         // Находим изображение QR кода в этой строке
         const qrImage = equipmentRow.querySelector('img[alt="QR-код"]');
         if (qrImage) {
@@ -636,7 +635,7 @@
             const currentSrc = qrImage.src;
             const separator = currentSrc.includes('?') ? '&' : '?';
             qrImage.src = currentSrc + separator + 't=' + Date.now();
-            
+
             console.log('QR код обновлен для оборудования ID:', equipmentId);
         } else {
             console.log('QR код не найден в строке, перезагружаем страницу');
@@ -660,31 +659,31 @@
                 console.log('Строка оборудования не найдена');
                 return;
             }
-            
+
             // Обновляем название
             const nameCell = equipmentRow.querySelector('td:first-child');
             if (nameCell) {
                 nameCell.textContent = data.name || '';
             }
-            
+
             // Обновляем цену (если есть)
             const priceCell = equipmentRow.querySelector('td:nth-child(3)');
             if (priceCell && data.price) {
                 priceCell.textContent = parseFloat(data.price).toFixed(2);
             }
-            
+
             // Обновляем характеристики
             const specsCell = equipmentRow.querySelector('td:nth-child(4)');
             if (specsCell && data.specifications) {
                 const specs = data.specifications;
                 let specsHtml = '';
-                
+
                 // Проверяем, есть ли заполненные характеристики
                 const filledSpecs = Object.entries(specs).filter(([key, value]) => value !== null && value !== '');
-                
+
                 if (filledSpecs.length > 0) {
                     specsHtml = '<div class="text-sm text-gray-600">';
-                    
+
                     // Маппинг ключей на отображаемые названия и единицы
                     const specLabels = {
                         'length_cm': { label: 'Длина', unit: 'см' },
@@ -694,21 +693,21 @@
                         'power_w': { label: 'Мощность', unit: 'Вт' },
                         'current_a': { label: 'Ток', unit: 'А' }
                     };
-                    
+
                     filledSpecs.forEach(([key, value]) => {
                         if (specLabels[key]) {
                             specsHtml += `<div class="whitespace-nowrap">${specLabels[key].label}: ${value} ${specLabels[key].unit}</div>`;
                         }
                     });
-                    
+
                     specsHtml += '</div>';
                 } else {
                     specsHtml = '<span class="text-sm text-gray-400">Не указаны</span>';
                 }
-                
+
                 specsCell.innerHTML = specsHtml;
             }
-            
+
             console.log('Данные оборудования обновлены для ID:', equipmentId);
         })
         .catch(error => {

@@ -101,7 +101,14 @@
 .fc-event, .fc-event-title, .fc-event-main {
     color: #000000 !important; /* Черный цвет текста для событий */
 }
-
+.fc-event-title {
+    white-space: normal !important;
+    word-wrap: break-word;
+    line-height: 1.2;
+    padding: 2px 0;
+    max-height: 3.6em; /* Ограничиваем высоту для 2 строк, можно настроить */
+    overflow: hidden; /* Скрываем лишний текст, если нужно */
+}
 /* All comments link visual */
 .comments-link{
   display:inline-flex;align-items:center;gap:.375rem;
