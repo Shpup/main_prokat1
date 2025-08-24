@@ -132,9 +132,22 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::delete('/managers/{user}', [ManagerController::class, 'destroy'])->name('managers.destroy');
     Route::patch('/managers/{user}/status', [ManagerController::class, 'updateStatus'])->name('managers.status.update');
     Route::post('/managers/{user}/status-comment', [ManagerController::class, 'updateStatusComment'])->name('managers.status-comment.update');
+    Route::delete('/managers/{user}/status-comment', [ManagerController::class, 'deleteStatusComment'])->name('managers.status-comment.delete');
     Route::get('/managers/{user}/assignments', [ManagerController::class, 'getAssignments'])->name('managers.assignments');
     Route::post('/assignments', [ManagerController::class, 'createAssignment'])->name('assignments.store');
     Route::get('/managers/projects/autocomplete', [ManagerController::class, 'autocompleteProjects'])->name('managers.projects.autocomplete');
+
+    // Профиль сотрудника
+    Route::get('/employees/{user}', [ManagerController::class, 'showProfile'])->name('employees.show');
+    Route::post('/employees/{user}/update-main', [ManagerController::class, 'updateMain'])->name('employees.update-main');
+    Route::post('/employees/{user}/update-contacts', [ManagerController::class, 'updateContacts'])->name('employees.update-contacts');
+    Route::post('/employees/{user}/update-contact', [ManagerController::class, 'updateContact'])->name('employees.update-contact');
+    Route::put('/employees/{user}/update-primary-email', [ManagerController::class, 'updatePrimaryEmail'])->name('employees.update-primary-email');
+    Route::put('/employees/{user}/update-primary-phone', [ManagerController::class, 'updatePrimaryPhone'])->name('employees.update-primary-phone');
+    Route::post('/employees/{user}/update-account', [ManagerController::class, 'updateAccount'])->name('employees.update-account');
+    Route::post('/employees/{user}/change-password', [ManagerController::class, 'changePassword'])->name('employees.change-password');
+    Route::post('/employees/{user}/avatar', [ManagerController::class, 'uploadAvatar'])->name('employees.avatar');
+    Route::post('/employees/{user}/delete-contact', [ManagerController::class, 'deleteContact'])->name('employees.delete-contact');
 
     // Категории
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories');

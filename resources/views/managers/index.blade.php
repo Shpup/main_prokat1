@@ -22,18 +22,20 @@
     @include('layouts.navigation')
     <div class="container mx-auto p-6">
         <!-- Кнопка добавления сотрудника -->
-        <button onclick="openCreateModal()" class="mb-6 inline-block bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
-            Добавить сотрудника
+        <div class="flex justify-end mb-6">
+            <button onclick="openCreateModal()" class="inline-block bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                Добавить сотрудника
         </button>
+        </div>
 
         <!-- Таблица сотрудников -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="min-w-full">
+        <div class="bg-white rounded-lg shadow overflow-hidden min-h-[600px] max-h-[800px]">
+            <div class="overflow-x-auto h-full">
+                <table class="min-w-full h-full">
                     <thead class="bg-gray-50">
                         <tr>
                             <!-- Имя -->
-                            <th class="px-6 py-3 text-left">
+                            <th class="px-6 py-3 text-left w-48">
                                 <div class="flex items-center space-x-2">
                                     <span class="text-sm font-medium text-gray-900">Имя</span>
                                     <button onclick="sortTable('name')" class="text-gray-400 hover:text-gray-600">
@@ -43,11 +45,11 @@
                                     </button>
                                 </div>
                                 <input type="text" id="search-name" placeholder="Поиск по имени..."
-                                       class="mt-2 w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                       class="mt-2 w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-normal">
                             </th>
 
                             <!-- Email -->
-                            <th class="px-6 py-3 text-left">
+                            <th class="px-6 py-3 text-left w-64">
                                 <div class="flex items-center space-x-2">
                                     <span class="text-sm font-medium text-gray-900">Email</span>
                                     <button onclick="sortTable('email')" class="text-gray-400 hover:text-gray-600">
@@ -57,11 +59,11 @@
                                     </button>
                                 </div>
                                 <input type="text" id="search-email" placeholder="Поиск по email..."
-                                       class="mt-2 w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                       class="mt-2 w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-normal">
                             </th>
 
                             <!-- Роль -->
-                            <th class="px-6 py-3 text-left">
+                            <th class="px-6 py-3 text-left w-32">
                                 <div class="flex items-center space-x-2">
                                     <span class="text-sm font-medium text-gray-900">Роль</span>
                                     <button onclick="sortTable('role')" class="text-gray-400 hover:text-gray-600">
@@ -70,7 +72,7 @@
                                         </svg>
                                     </button>
                                 </div>
-                                <select id="search-role" class="mt-2 w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <select id="search-role" class="mt-2 w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-normal">
                                     <option value="">Все роли</option>
                                     <option value="нет специальности">Пользователь</option>
                                     <option value="admin">Админ</option>
@@ -80,145 +82,186 @@
                             </th>
 
                             <!-- Телефон -->
-                            <th class="px-6 py-3 text-left">
+                            <th class="px-6 py-3 text-left w-32">
                                 <span class="text-sm font-medium text-gray-900">Телефон</span>
                             </th>
 
                             <!-- Статус -->
-                            <th class="px-6 py-3 text-left">
+                            <th class="px-6 py-3 text-left w-48">
                                 <span class="text-sm font-medium text-gray-900">Статус</span>
                             </th>
 
                             <!-- Действия -->
-                            <th class="px-6 py-3 text-left">
+                            <th class="px-6 py-3 text-left w-40">
                                 <span class="text-sm font-medium text-gray-900">Действия</span>
                             </th>
-                        </tr>
-                    </thead>
-                    <tbody id="employees-tbody">
+                </tr>
+                </thead>
+                    <tbody id="employees-tbody" class="min-h-[500px] max-h-[600px]">
                         @foreach ($employees as $employee)
-                            <tr class="border-t border-gray-200 hover:bg-gray-50">
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $employee->name }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $employee->email }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-900">
+                            <tr class="border-t border-gray-200 hover:bg-gray-50 group">
+                                <td class="px-6 py-4 text-sm text-gray-900 truncate">
+                                    <a href="/employees/{{ $employee->id }}" class="text-blue-800 hover:underline cursor-pointer" title="Перейти в профиль">
+                                        {{ $employee->name }}
+                                    </a>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-900 truncate">{{ $employee->email }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900 truncate">
                                     {{ $employee->roles->first() ? $employee->roles->first()->name : 'Не назначена' }}
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $employee->phone ?? '-' }}</td>
-                                <td class="px-6 py-4">
-                                    <select onchange="updateStatus({{ $employee->id }}, this.value)"
-                                            class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]">
-                                        <option value="free" {{ ($employee->employeeStatus?->status ?? 'free') === 'free' ? 'selected' : '' }}>Свободен</option>
-                                        <option value="unavailable" {{ ($employee->employeeStatus?->status ?? 'free') === 'unavailable' ? 'selected' : '' }}>Недоступен</option>
-                                        <option value="assigned" {{ ($employee->employeeStatus?->status ?? 'free') === 'assigned' ? 'selected' : '' }}>Назначен на проекты</option>
-                                    </select>
+                                <td class="px-6 py-4 text-sm text-gray-900 truncate">{{ $employee->phone ?? '-' }}</td>
+                                <td class="px-6 py-4 w-48">
+                                    @php
+                                        $status = $employee->employeeStatus?->status ?? 'free';
+                                        $statusConfig = [
+                                            'free' => ['text' => 'Свободен', 'class' => 'bg-green-100 text-green-800'],
+                                            'unavailable' => ['text' => 'Недоступен', 'class' => 'bg-red-100 text-red-800'],
+                                            'assigned' => ['text' => 'Назначен на проекты', 'class' => 'bg-blue-100 text-blue-800']
+                                        ];
+                                        $config = $statusConfig[$status] ?? $statusConfig['free'];
+                                    @endphp
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $config['class'] }}">
+                                        {{ $config['text'] }}
+                                    </span>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center space-x-2">
-                                        <!-- Комментарий к статусу (красный восклицательный знак) -->
-                                        @if(($employee->employeeStatus?->status ?? 'free') === 'unavailable')
+                                    <div class="flex items-center space-x-3">
+                                        <!-- Динамическая иконка в зависимости от статуса -->
+                                        @if(($employee->employeeStatus?->status ?? 'free') === 'free')
+                                            <!-- Свободен → синий "+" -->
+                                            <button onclick="openChangeStatusModal({{ $employee->id }})"
+                                                    class="text-blue-600 hover:text-blue-800 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                                                    title="Сменить статус / назначить">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                                </svg>
+                                            </button>
+                                        @elseif(($employee->employeeStatus?->status ?? 'free') === 'unavailable')
+                                            <!-- Недоступен → красный "!" -->
                                             <button onclick="openStatusCommentModal({{ $employee->id }})"
-                                                    class="text-red-600 hover:text-red-800" title="Комментарий к статусу">
-                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                                    class="text-red-600 hover:text-red-800 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                                                    title="Причина недоступности">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                                </svg>
+                                            </button>
+                                        @elseif(($employee->employeeStatus?->status ?? 'free') === 'assigned')
+                                            <!-- Назначен на проекты → синяя "i" -->
+                                            <button onclick="showAssignments({{ $employee->id }})"
+                                                    class="text-blue-600 hover:text-blue-800 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                                                    title="Назначен на проекты">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                 </svg>
                                             </button>
                                         @endif
 
-                                        <!-- Назначен на проекты (смайлик) -->
-                                        <button onclick="showAssignments({{ $employee->id }})"
-                                                class="text-blue-600 hover:text-blue-800" title="Назначен на проекты">
-                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                            </svg>
-                                        </button>
-
                                         <!-- Редактировать (карандаш) -->
                                         <button onclick="openEditModal({{ $employee->id }})"
-                                                class="text-gray-600 hover:text-gray-800" title="Редактировать">
+                                                class="text-gray-600 hover:text-gray-800 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                                                title="Редактировать">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                             </svg>
                                         </button>
 
-                                        <!-- Добавить в проект (плюс) -->
-                                        <button onclick="openAddToProjectModal({{ $employee->id }})"
-                                                class="text-green-600 hover:text-green-800" title="Добавить в проект">
+                                        <!-- Профиль -->
+                                        <a href="/employees/{{ $employee->id }}"
+                                           class="text-gray-600 hover:text-gray-800 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                                           title="Профиль">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                             </svg>
-                                        </button>
+                                        </a>
 
                                         <!-- Удалить (корзина) -->
                                         <button onclick="deleteEmployee({{ $employee->id }})"
-                                                class="text-red-600 hover:text-red-800" title="Удалить">
+                                                class="text-red-600 hover:text-red-800 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                                                title="Удалить сотрудника">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                             </svg>
                                         </button>
                                     </div>
                                 </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                    </tr>
+                @endforeach
+
+                        <!-- Пустое состояние внутри таблицы (всегда присутствует, но скрыто) -->
+                        <tr id="empty-state-row" class="hidden">
+                            <td colspan="6" class="px-6 py-12 text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                <h3 class="mt-2 text-sm font-medium text-gray-900">Нет сотрудников</h3>
+                                <p class="mt-1 text-sm text-gray-500">Начните с добавления первого сотрудника.</p>
+                            </td>
+                        </tr>
+                </tbody>
+            </table>
             </div>
         </div>
-
-        <!-- Пустое состояние -->
-        @if($employees->isEmpty())
-            <div class="text-center py-12">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">Нет сотрудников</h3>
-                <p class="mt-1 text-sm text-gray-500">Начните с добавления первого сотрудника.</p>
-            </div>
-        @endif
     </div>
-</div>
+        </div>
 
 <!-- Модальное окно создания сотрудника -->
 <div id="createEmployeeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <div class="bg-white rounded-lg p-6 w-full max-w-md">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">Добавить сотрудника</h2>
         <form id="createEmployeeForm">
-            @csrf
-            <div class="mb-4">
+                    @csrf
+                    <div class="mb-4">
                 <label for="create-name" class="block text-sm font-medium text-gray-600">Имя *</label>
-                <input type="text" name="name" id="create-name" class="mt-1 block w-full border-gray-300 rounded-md" required>
-            </div>
-            <div class="mb-4">
+                <input type="text" name="name" id="create-name" class="mt-1 block w-full border-gray-300 rounded-md font-normal" required>
+                    </div>
+                    <div class="mb-4">
                 <label for="create-phone" class="block text-sm font-medium text-gray-600">Телефон</label>
-                <input type="text" name="phone" id="create-phone" class="mt-1 block w-full border-gray-300 rounded-md">
-            </div>
-            <div class="mb-4">
+                <input type="text" name="phone" id="create-phone" class="mt-1 block w-full border-gray-300 rounded-md font-normal">
+                    </div>
+                    <div class="mb-4">
                 <label for="create-role" class="block text-sm font-medium text-gray-600">Роль *</label>
-                <select name="role" id="create-role" class="mt-1 block w-full border-gray-300 rounded-md" required>
+                <select name="role" id="create-role" class="mt-1 block w-full border-gray-300 rounded-md font-normal" required>
                     <option value="">Выберите роль</option>
                     <option value="нет специальности">Пользователь</option>
                     <option value="admin">Админ</option>
                     <option value="manager">Менеджер</option>
                     <option value="driver">Водитель</option>
                 </select>
-            </div>
-            <div class="mb-4">
+                    </div>
+                    <div class="mb-4">
                 <label for="create-email" class="block text-sm font-medium text-gray-600">Email *</label>
-                <input type="email" name="email" id="create-email" class="mt-1 block w-full border-gray-300 rounded-md" required>
-            </div>
-            <div class="mb-4">
+                <input type="email" name="email" id="create-email" class="mt-1 block w-full border-gray-300 rounded-md font-normal" required>
+                    </div>
+                    <div class="mb-4">
                 <label for="create-password" class="block text-sm font-medium text-gray-600">Пароль *</label>
-                <input type="password" name="password" id="create-password" class="mt-1 block w-full border-gray-300 rounded-md" required>
+                <div class="relative">
+                    <input type="password" name="password" id="create-password" class="mt-1 block w-full pr-10 border-gray-300 rounded-md font-normal" required>
+                    <button type="button" onclick="togglePasswordVisibility('create-password')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                        <svg id="create-password-eye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <div class="mb-6">
                 <label for="create-password-confirmation" class="block text-sm font-medium text-gray-600">Подтверждение пароля *</label>
-                <input type="password" name="password_confirmation" id="create-password-confirmation" class="mt-1 block w-full border-gray-300 rounded-md" required>
-            </div>
+                <div class="relative">
+                    <input type="password" name="password_confirmation" id="create-password-confirmation" class="mt-1 block w-full pr-10 border-gray-300 rounded-md font-normal" required>
+                    <button type="button" onclick="togglePasswordVisibility('create-password-confirmation')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                        <svg id="create-password-confirmation-eye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                    </button>
+                </div>
+                    </div>
             <div class="flex justify-end space-x-3">
                 <button type="button" onclick="closeModal('createEmployeeModal')" class="bg-gray-300 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-400">Отмена</button>
-                <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Создать</button>
+                        <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Создать</button>
+                    </div>
+                </form>
             </div>
-        </form>
-    </div>
 </div>
 
 <!-- Модальное окно редактирования сотрудника -->
@@ -230,15 +273,15 @@
             <input type="hidden" id="edit-employee-id">
             <div class="mb-4">
                 <label for="edit-name" class="block text-sm font-medium text-gray-600">Имя *</label>
-                <input type="text" name="name" id="edit-name" class="mt-1 block w-full border-gray-300 rounded-md" required>
+                <input type="text" name="name" id="edit-name" class="mt-1 block w-full border-gray-300 rounded-md font-normal" required>
             </div>
             <div class="mb-4">
                 <label for="edit-phone" class="block text-sm font-medium text-gray-600">Телефон</label>
-                <input type="text" name="phone" id="edit-phone" class="mt-1 block w-full border-gray-300 rounded-md">
+                <input type="text" name="phone" id="edit-phone" class="mt-1 block w-full border-gray-300 rounded-md font-normal">
             </div>
             <div class="mb-6">
                 <label for="edit-role" class="block text-sm font-medium text-gray-600">Роль *</label>
-                <select name="role" id="edit-role" class="mt-1 block w-full border-gray-300 rounded-md" required>
+                <select name="role" id="edit-role" class="mt-1 block w-full border-gray-300 rounded-md font-normal" required>
                     <option value="">Выберите роль</option>
                     <option value="нет специальности">Пользователь</option>
                     <option value="admin">Админ</option>
@@ -256,105 +299,238 @@
 
 <!-- Модальное окно добавления в проект -->
 <div id="addToProjectModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-lg shadow-lg border w-11/12 max-w-lg">
-        <div class="p-5">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Добавление персонала на мероприятие</h3>
-                <button onclick="closeModal('addToProjectModal')" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
+    <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
+        <!-- Крестик закрытия -->
+        <button onclick="closeModal('addToProjectModal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
 
-            <form id="addToProjectForm">
-                <input type="hidden" id="add-employee-id">
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Добавление персонала на мероприятие</h2>
+            <p class="text-sm text-gray-500">Выберите проект для назначения сотрудника</p>
+        </div>
 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Проект</label>
-                    <div class="relative">
-                        <input type="text" id="add-project-search"
-                               placeholder="Начните вводить название проекта..."
-                               class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 px-3 py-2"
-                               autocomplete="off">
-                        <input type="hidden" id="add-project-id" required>
+        <form id="addToProjectForm">
+            <input type="hidden" id="add-employee-id">
 
-                        <!-- Выпадающий список автодополнения -->
-                        <div id="project-suggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
-                            <!-- Заглушка "Загружаются проекты" -->
-                            <div id="project-loading" class="px-3 py-4 text-center text-gray-500 hidden">
-                                <div class="flex items-center justify-center">
-                                    <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Загружаются проекты...
-                                </div>
+            <div class="mb-8">
+                <label class="block text-sm font-medium text-gray-700 mb-3">Проект</label>
+                <div class="relative">
+                    <input type="text" id="add-project-search"
+                           placeholder="Начните вводить название проекта..."
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-normal transition-all duration-200"
+                           autocomplete="off">
+                    <input type="hidden" id="add-project-id" required>
+
+                    <!-- Выпадающий список автодополнения -->
+                    <div id="project-suggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-2 max-h-60 overflow-y-auto hidden">
+                        <!-- Заглушка "Загружаются проекты" -->
+                        <div id="project-loading" class="px-4 py-6 text-center text-gray-500 hidden">
+                            <div class="flex items-center justify-center">
+                                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Загружаются проекты...
                             </div>
-
-                            <!-- Сообщение "Нет подходящих проектов" -->
-                            <div id="project-no-results" class="px-4 py-6 text-center hidden">
-                                <div class="mb-3">
-                                    <svg class="mx-auto h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                </div>
-                                <div class="text-base font-medium text-gray-900 mb-1">Проекты не найдены</div>
-                                <div class="text-sm text-gray-500">Попробуйте изменить поисковый запрос</div>
-                            </div>
-
-                            <!-- Список проектов -->
-                            <div id="project-suggestions-list"></div>
                         </div>
+
+                        <!-- Сообщение "Нет подходящих проектов" -->
+                        <div id="project-no-results" class="px-6 py-8 text-center hidden">
+                            <div class="mb-4">
+                                <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <div class="text-base font-medium text-gray-900 mb-2">Проекты не найдены</div>
+                            <div class="text-sm text-gray-500">Попробуйте изменить поисковый запрос</div>
+                        </div>
+
+                        <!-- Список проектов -->
+                        <div id="project-suggestions-list"></div>
                     </div>
                 </div>
-
-                <div class="flex justify-end space-x-3 pt-3">
-                    <button type="button" onclick="closeModal('addToProjectModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200">
-                        Закрыть
-                    </button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-500 border border-transparent rounded-md hover:bg-blue-600">
-                        Добавить
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Модальное окно комментария к статусу -->
-<div id="statusCommentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">Комментарий к статусу</h2>
-        <form id="statusCommentForm">
-            @csrf
-            <input type="hidden" id="comment-employee-id">
-            <div class="mb-6">
-                <label for="status-comment" class="block text-sm font-medium text-gray-600">Комментарий (причина недоступности) *</label>
-                <textarea name="comment" id="status-comment" rows="4" class="mt-1 block w-full border-gray-300 rounded-md" required></textarea>
             </div>
-            <div class="flex justify-end space-x-3">
-                <button type="button" onclick="closeModal('statusCommentModal')" class="bg-gray-300 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-400">Отмена</button>
-                <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Сохранить</button>
+
+            <div class="flex justify-between">
+                <button
+                    type="button"
+                    onclick="closeModal('addToProjectModal')"
+                    class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 hover:shadow-md transition-all duration-200 text-sm font-medium"
+                >
+                    Закрыть
+                </button>
+                <button
+                    type="submit"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-md transition-all duration-200 font-medium flex items-center space-x-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    <span>Добавить</span>
+                </button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Модальное окно назначений -->
-<div id="assignmentsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] flex flex-col">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">Назначен на проекты</h2>
-        <div id="assignments-list" class="flex-1 overflow-y-auto mb-6">
-            <!-- Список назначений будет загружен динамически -->
+<!-- Модальное окно комментария к статусу -->
+<div id="statusCommentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
+        <!-- Крестик закрытия -->
+        <button onclick="closeModal('statusCommentModal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Комментарий к статусу</h2>
+            <p class="text-sm text-gray-500">Укажите причину недоступности сотрудника</p>
         </div>
-        <div class="flex justify-end border-t pt-4">
-            <button onclick="closeModal('assignmentsModal')" class="bg-gray-300 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-400">Закрыть</button>
+
+        <form id="statusCommentForm">
+            @csrf
+            <input type="hidden" id="comment-employee-id">
+
+            <div class="mb-8">
+                <label for="status-comment" class="block text-sm font-medium text-gray-700 mb-3">Комментарий (причина недоступности) *</label>
+                <textarea
+                    name="comment"
+                    id="status-comment"
+                    rows="4"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-normal resize-none transition-all duration-200"
+                    placeholder="Комментарий (причина недоступности)"
+                    required
+                ></textarea>
+            </div>
+
+            <div class="flex justify-between">
+                <button
+                    type="button"
+                    onclick="closeModal('statusCommentModal')"
+                    class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 hover:shadow-md transition-all duration-200 text-sm font-medium"
+                >
+                    Отмена
+                </button>
+                <div class="flex space-x-3">
+                    <button
+                        type="button"
+                        onclick="saveStatusComment()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-md transition-all duration-200 text-sm font-medium"
+                        title="Сохранить"
+                    >
+                        Сохранить
+                    </button>
+                    <button
+                        type="button"
+                        onclick="deleteStatusComment()"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 hover:shadow-md transition-all duration-200 text-sm font-medium"
+                        title="Удалить комментарий"
+                    >
+                        Удалить
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Модальное окно смены статуса -->
+<div id="changeStatusModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
+        <!-- Крестик закрытия -->
+        <button onclick="closeModal('changeStatusModal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Сменить статус</h2>
+            <p class="text-sm text-gray-400">Выберите действие для сотрудника</p>
+        </div>
+
+        <input type="hidden" id="change-status-employee-id">
+
+        <div class="space-y-3 mb-8 flex flex-col items-center">
+            <button
+                onclick="makeUnavailable()"
+                class="w-4/5 bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700 hover:shadow-lg hover:scale-105 transition-all duration-200 text-sm font-medium flex items-center justify-center cursor-pointer active:scale-95"
+            >
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+                Сделать недоступным
+            </button>
+
+            <button
+                onclick="assignToProject()"
+                class="w-4/5 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 hover:shadow-lg hover:scale-105 transition-all duration-200 text-sm font-medium flex items-center justify-center cursor-pointer active:scale-95"
+            >
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Назначить на проект
+            </button>
+        </div>
+
+        <div class="flex justify-start">
+            <button
+                onclick="closeModal('changeStatusModal')"
+                class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 hover:shadow-md transition-all duration-200 text-sm font-medium"
+            >
+                Отмена
+            </button>
         </div>
     </div>
 </div>
 
-<!-- Модальное окно для подтверждения удаления -->
+<!-- Модальное окно назначений -->
+<div id="assignmentsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md max-h-[80vh] flex flex-col">
+        <input type="hidden" id="assignments-employee-id">
+
+        <!-- Крестик закрытия -->
+        <button onclick="closeModal('assignmentsModal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Назначен на проекты</h2>
+        </div>
+
+        <div id="assignments-list" class="flex-1 overflow-y-auto mb-6">
+            <!-- Список назначений будет загружен динамически -->
+        </div>
+
+        <div class="border-t pt-4">
+            <div class="flex justify-between">
+                <button
+                    onclick="closeModal('assignmentsModal')"
+                    class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 hover:shadow-md transition-all duration-200 text-sm font-medium"
+                >
+                    Отмена
+                </button>
+                <button
+                    onclick="assignMoreFromAssignments()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-md transition-all duration-200 text-sm font-medium flex items-center"
+                >
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Назначить ещё
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для подтверждения удаления сотрудника -->
 <div id="deleteConfirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center h-full w-full hidden z-50">
     <div class="bg-white rounded-lg shadow-lg border max-w-md w-full mx-4">
         <div class="p-6">
@@ -384,6 +560,54 @@
     </div>
 </div>
 
+<!-- Модальное окно для подтверждения удаления назначения -->
+<div id="deleteAssignmentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center h-full w-full hidden z-50">
+    <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
+        <!-- Крестик закрытия -->
+        <button onclick="closeModal('deleteAssignmentModal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Удалить назначение</h2>
+            <p class="text-sm text-gray-500">Вы уверены, что хотите удалить это назначение?</p>
+        </div>
+
+        <div class="mb-8">
+            <div class="bg-gray-50 rounded-lg p-4">
+                <p class="text-gray-700">
+                    <span class="font-medium">Проект:</span>
+                    <span id="delete-assignment-project-name" class="text-gray-900"></span>
+                </p>
+                <p class="text-gray-700 mt-1">
+                    <span class="font-medium">Сотрудник:</span>
+                    <span id="delete-assignment-employee-name" class="text-gray-900"></span>
+                </p>
+            </div>
+        </div>
+
+        <div class="flex justify-between">
+            <button
+                onclick="closeModal('deleteAssignmentModal')"
+                class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 hover:shadow-md transition-all duration-200 text-sm font-medium"
+            >
+                Отмена
+            </button>
+            <button
+                onclick="confirmDeleteAssignment()"
+                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 hover:shadow-md transition-all duration-200 font-medium flex items-center space-x-2"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                <span>Удалить</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Toast уведомления -->
 <div id="toast" class="fixed top-4 right-0 bg-green-500 text-white px-6 py-3 rounded-l-md shadow-lg transform translate-x-full transition-transform duration-300 z-50">
     <span id="toast-message"></span>
@@ -392,12 +616,17 @@
 <script>
 // Глобальные переменные
 let currentSort = { field: 'name', order: 'asc' };
-let searchTimeout;
+let allEmployees = []; // Массив всех сотрудников для клиентской фильтрации
+let searchTimeout = null; // Таймаут для поиска
+let projectSearchTimeout = null;
+let selectedProjectIndex = -1;
+let allProjects = []; // Массив всех загруженных проектов
 
 // Инициализация
 document.addEventListener('DOMContentLoaded', function() {
     setupSearchDebounce();
     setupFormSubmissions();
+    loadEmployees(); // Загружаем всех сотрудников при инициализации
 });
 
 // Настройка debounce для поиска
@@ -410,7 +639,7 @@ function setupSearchDebounce() {
             input.addEventListener('input', function() {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {
-                    performSearch();
+                    filterEmployees();
                 }, 300);
             });
         }
@@ -420,7 +649,7 @@ function setupSearchDebounce() {
     const roleSelect = document.getElementById('search-role');
     if (roleSelect) {
         roleSelect.addEventListener('change', function() {
-            performSearch();
+            filterEmployees();
         });
     }
 }
@@ -490,6 +719,18 @@ function openAddToProjectModal(employeeId) {
 
 function openStatusCommentModal(employeeId) {
     document.getElementById('comment-employee-id').value = employeeId;
+
+    // Находим сотрудника в массиве allEmployees
+    const employee = allEmployees.find(emp => emp.id === employeeId);
+
+    // Если у сотрудника есть комментарий к статусу, показываем его, иначе очищаем поле
+    const commentField = document.getElementById('status-comment');
+    if (employee && employee.employee_status && employee.employee_status.status_comment) {
+        commentField.value = employee.employee_status.status_comment;
+    } else {
+        commentField.value = '';
+    }
+
     document.getElementById('statusCommentModal').classList.remove('hidden');
 }
 
@@ -497,8 +738,13 @@ function openModal(modalId) {
     document.getElementById(modalId).classList.remove('hidden');
 }
 
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+
+    // Очищаем поле комментария при закрытии модалки статуса
+    if (modalId === 'statusCommentModal') {
+        document.getElementById('status-comment').value = '';
+    }
 }
 
 // API функции
@@ -521,7 +767,7 @@ function createEmployee() {
     .then(data => {
         console.log('Данные ответа:', data);
         if (data.success) {
-            showToast(data.success);
+            showToast('Сохранено');
             closeModal('createEmployeeModal');
             document.getElementById('createEmployeeForm').reset();
             loadEmployees(); // Обновляем таблицу без перезагрузки
@@ -559,7 +805,7 @@ function updateEmployee() {
     .then(data => {
         console.log('Данные ответа:', data);
         if (data.success) {
-            showToast(data.success);
+            showToast('Сохранено');
             closeModal('editEmployeeModal');
             loadEmployees();
         } else {
@@ -598,7 +844,7 @@ function confirmDeleteEmployee() {
         .then(data => {
             console.log('Данные ответа:', data);
             if (data.success) {
-                showToast(data.success);
+                showToast('Удалено');
                 closeModal('deleteConfirmModal');
                 loadEmployees(); // Обновляем таблицу без перезагрузки
             } else {
@@ -616,29 +862,7 @@ function confirmDeleteEmployee() {
     }
 }
 
-function updateStatus(employeeId, status) {
-    fetch(`/managers/${employeeId}/status`, {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: JSON.stringify({ status: status })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast(data.success);
-            loadEmployees(); // Обновляем таблицу без перезагрузки
-        } else {
-            showToast('Ошибка при обновлении статуса: ' + (data.message || 'Неизвестная ошибка'));
-        }
-    })
-    .catch(error => {
-        console.error('Ошибка при обновлении статуса:', error);
-        showToast('Ошибка при обновлении статуса');
-    });
-}
+
 
 function addToProject() {
     const employeeId = document.getElementById('add-employee-id').value;
@@ -664,7 +888,7 @@ function addToProject() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast(data.success);
+            showToast('Назначен');
             closeModal('addToProjectModal');
             // Очищаем форму
             document.getElementById('addToProjectForm').reset();
@@ -694,11 +918,11 @@ function saveStatusComment() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast(data.success);
+            showToast('Сохранено');
             closeModal('statusCommentModal');
             loadEmployees(); // Обновляем таблицу без перезагрузки
         } else {
-            showToast('Ошибка при сохранении комментария: ' + (data.message || 'Неизвестная ошибка'));
+            showToast('Ошибка');
         }
     })
     .catch(error => {
@@ -708,36 +932,56 @@ function saveStatusComment() {
 }
 
 function showAssignments(employeeId) {
+    // Сохраняем ID сотрудника для кнопки "Назначить ещё"
+    document.getElementById('assignments-employee-id').value = employeeId;
+
+    // Находим сотрудника в массиве allEmployees для получения имени
+    const employee = allEmployees.find(emp => emp.id === employeeId);
+    const employeeName = employee ? employee.name : 'Сотрудник';
+
     fetch(`/managers/${employeeId}/assignments`)
         .then(response => response.json())
         .then(assignments => {
             const list = document.getElementById('assignments-list');
             if (assignments.length === 0) {
-                list.innerHTML = '<p class="text-gray-500 text-center py-8">Нет назначений</p>';
+                list.innerHTML = '<div class="text-center py-12"><p class="text-gray-500 text-lg">Нет назначений</p></div>';
+                // Если назначений нет, не открываем модалку
+                return;
             } else {
                 list.innerHTML = assignments.map((assignment, index) => {
                     const hasUrl = assignment.project_url && assignment.project_url !== '';
-                    const buttonClass = hasUrl
-                        ? 'bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600'
-                        : 'bg-gray-300 text-gray-500 px-3 py-1 rounded text-sm cursor-not-allowed';
+                    const employeeId = document.getElementById('assignments-employee-id').value;
 
                     return `
-                        <div class="border-b border-gray-200 pb-4 mb-4 last:border-b-0">
-                            <div class="flex items-start justify-between">
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200">
+                            <div class="flex items-center justify-between">
                                 <div class="flex-1 min-w-0">
                                     <h3 class="font-semibold text-gray-900 truncate" title="${assignment.project_name}">
                                         ${assignment.project_name}
                                     </h3>
-                                    <div class="mt-2 text-sm text-gray-600">
-                                        <div>Начало: ${assignment.start_date || 'не установлено'}</div>
-                                        <div>Конец: ${assignment.end_date || 'не установлен'}</div>
-                                    </div>
                                 </div>
-                                <div class="ml-4 flex-shrink-0">
+                                <div class="ml-4 flex-shrink-0 flex items-center space-x-2">
                                     ${hasUrl
-                                        ? `<a href="${assignment.project_url}" class="${buttonClass}">Перейти в проект</a>`
-                                        : `<button class="${buttonClass}" title="Ссылка недоступна" disabled>Перейти в проект</button>`
+                                        ? `<button onclick="window.location.href='${assignment.project_url}'" class="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200 cursor-pointer" title="Перейти в проект">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                            </svg>
+                                        </button>`
+                                        : `<div class="p-2 text-gray-400 cursor-not-allowed" title="Ссылка недоступна">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                            </svg>
+                                        </div>`
                                     }
+                                    <button
+                                        onclick="removeAssignment(${employeeId}, ${assignment.project_id}, '${assignment.project_name}', '${employeeName}', ${assignments.length})"
+                                        class="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 cursor-pointer"
+                                        title="Удалить назначение"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -749,27 +993,61 @@ function showAssignments(employeeId) {
 }
 
 // Функции поиска и сортировки
-function performSearch() {
-    const name = document.getElementById('search-name').value;
-    const email = document.getElementById('search-email').value;
+function filterEmployees() {
+    const name = document.getElementById('search-name').value.toLowerCase();
+    const email = document.getElementById('search-email').value.toLowerCase();
     const role = document.getElementById('search-role').value;
 
-    const params = new URLSearchParams();
-    if (name) params.append('query[name]', name);
-    if (email) params.append('query[email]', email);
-    if (role) params.append('query[role]', role);
-    if (currentSort.field) params.append('sort', currentSort.field);
-    if (currentSort.order) params.append('order', currentSort.order);
+    console.log('Фильтруем сотрудников:', { name, email, role });
 
-    fetch(`/managers?${params.toString()}`, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        updateTable(data);
+    // Фильтруем сотрудников на клиенте
+    let filteredEmployees = allEmployees.filter(employee => {
+        const employeeName = employee.name.toLowerCase();
+        const employeeEmail = employee.email.toLowerCase();
+        const employeeRole = employee.roles[0] ? employee.roles[0].name : '';
+
+        const nameMatch = !name || employeeName.includes(name);
+        const emailMatch = !email || employeeEmail.includes(email);
+        const roleMatch = !role || employeeRole === role;
+
+        return nameMatch && emailMatch && roleMatch;
     });
+
+    console.log('Отфильтрованные сотрудники:', filteredEmployees.length);
+
+    // Применяем сортировку
+    if (currentSort.field) {
+        filteredEmployees.sort((a, b) => {
+            let aValue, bValue;
+
+            switch (currentSort.field) {
+                case 'name':
+                    aValue = a.name.toLowerCase();
+                    bValue = b.name.toLowerCase();
+                    break;
+                case 'email':
+                    aValue = a.email.toLowerCase();
+                    bValue = b.email.toLowerCase();
+                    break;
+                case 'role':
+                    aValue = a.roles[0] ? a.roles[0].name.toLowerCase() : '';
+                    bValue = b.roles[0] ? b.roles[0].name.toLowerCase() : '';
+                    break;
+                default:
+                    aValue = a.name.toLowerCase();
+                    bValue = b.name.toLowerCase();
+            }
+
+            if (currentSort.order === 'asc') {
+                return aValue.localeCompare(bValue);
+            } else {
+                return bValue.localeCompare(aValue);
+            }
+        });
+    }
+
+    // Обновляем таблицу
+    updateTable(filteredEmployees);
 }
 
 function sortTable(field) {
@@ -780,81 +1058,76 @@ function sortTable(field) {
         currentSort.order = 'asc';
     }
 
-    performSearch();
+    filterEmployees();
 }
 
 function updateTable(employees) {
     const tbody = document.getElementById('employees-tbody');
-    tbody.innerHTML = employees.map(employee => `
-        <tr class="border-t border-gray-200 hover:bg-gray-50">
-            <td class="px-6 py-4 text-sm text-gray-900">${employee.name}</td>
-            <td class="px-6 py-4 text-sm text-gray-900">${employee.email}</td>
-            <td class="px-6 py-4 text-sm text-gray-900">${employee.roles[0] ? employee.roles[0].name : 'Не назначена'}</td>
-            <td class="px-6 py-4 text-sm text-gray-900">${employee.phone || '-'}</td>
-            <td class="px-6 py-4">
-                                    <select onchange="updateStatus(${employee.id}, this.value)"
-                            class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]">
-                        <option value="free" ${(employee.employee_status && employee.employee_status.status === 'free') ? 'selected' : ''}>Свободен</option>
-                        <option value="unavailable" ${(employee.employee_status && employee.employee_status.status === 'unavailable') ? 'selected' : ''}>Недоступен</option>
-                        <option value="assigned" ${(employee.employee_status && employee.employee_status.status === 'assigned') ? 'selected' : ''}>Назначен на проекты</option>
-                    </select>
-            </td>
-            <td class="px-6 py-4">
-                <div class="flex items-center space-x-2">
-                    ${(employee.employee_status && employee.employee_status.status === 'unavailable') ? `
-                        <button onclick="openStatusCommentModal(${employee.id})"
-                                class="text-red-600 hover:text-red-800" title="Комментарий к статусу">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+    const emptyStateRow = document.getElementById('empty-state-row');
+
+    // Очищаем tbody, но сохраняем пустое состояние
+    const existingRows = tbody.querySelectorAll('tr:not(#empty-state-row)');
+    existingRows.forEach(row => row.remove());
+
+    if (employees.length === 0) {
+        // Показываем пустое состояние
+        emptyStateRow.classList.remove('hidden');
+    } else {
+        // Скрываем пустое состояние и добавляем данные
+        emptyStateRow.classList.add('hidden');
+
+        employees.forEach(employee => {
+            const row = document.createElement('tr');
+            row.className = 'border-t border-gray-200 hover:bg-gray-50 group';
+            row.innerHTML = `
+                                                <td class="px-6 py-4 text-sm text-gray-900 truncate">
+                                                    <a href="/employees/${employee.id}" class="text-blue-800 hover:underline cursor-pointer" title="Перейти в профиль">
+                                                        ${employee.name}
+                                                    </a>
+                                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-900 truncate">${employee.email}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900 truncate">${employee.roles[0] ? employee.roles[0].name : 'Не назначена'}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900 truncate">${employee.phone || '-'}</td>
+                <td class="px-6 py-4 w-48">
+                    ${getStatusPill(employee)}
+                </td>
+                <td class="px-6 py-4 w-40">
+                    <div class="flex items-center space-x-3">
+                        ${getDynamicIcon(employee)}
+                        <button onclick="openEditModal(${employee.id})"
+                                class="text-gray-600 hover:text-gray-800 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                                title="Редактировать">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                             </svg>
                         </button>
-                    ` : ''}
-                    <button onclick="showAssignments(${employee.id})"
-                            class="text-blue-600 hover:text-blue-800" title="Назначен на проекты">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                        </svg>
-                    </button>
-                    <button onclick="openEditModal(${employee.id})"
-                            class="text-gray-600 hover:text-gray-800" title="Редактировать">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
-                    </button>
-                    <button onclick="openAddToProjectModal(${employee.id})"
-                            class="text-green-600 hover:text-green-800" title="Добавить в проект">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
-                    </button>
-                    <button onclick="deleteEmployee(${employee.id})"
-                            class="text-red-600 hover:text-red-800" title="Удалить">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
+                        <a href="/employees/${employee.id}"
+                           class="text-gray-600 hover:text-gray-800 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                           title="Профиль">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                        </a>
+                        <button onclick="deleteEmployee(${employee.id})"
+                                class="text-red-600 hover:text-red-800 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                                title="Удалить сотрудника">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
 }
 
-// Функция загрузки сотрудников без перезагрузки
+// Функция загрузки всех сотрудников (только при первой загрузке)
 function loadEmployees() {
-    const name = document.getElementById('search-name')?.value || '';
-    const email = document.getElementById('search-email')?.value || '';
-    const role = document.getElementById('search-role')?.value || '';
+    console.log('Загружаем всех сотрудников...');
 
-    const params = new URLSearchParams();
-    if (name) params.append('query[name]', name);
-    if (email) params.append('query[email]', email);
-    if (role) params.append('query[role]', role);
-    if (currentSort.field) params.append('sort', currentSort.field);
-    if (currentSort.order) params.append('order', currentSort.order);
-
-    console.log('Загружаем сотрудников с параметрами:', params.toString());
-
-    fetch(`/managers?${params.toString()}`, {
+    fetch('/managers?_=' + Date.now(), {
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
         }
@@ -868,12 +1141,210 @@ function loadEmployees() {
     })
     .then(data => {
         console.log('Полученные данные:', data);
-        updateTable(data);
+        // Сохраняем всех сотрудников в глобальную переменную
+        allEmployees = data;
+        // Применяем фильтрацию
+        filterEmployees();
     })
     .catch(error => {
         console.error('Ошибка при загрузке сотрудников:', error);
         showToast('Ошибка при загрузке данных');
     });
+}
+
+// Функция для получения пилюли статуса
+function getStatusPill(employee) {
+    const status = employee.employee_status && employee.employee_status.status ? employee.employee_status.status : 'free';
+
+    const statusConfig = {
+        'free': { text: 'Свободен', class: 'bg-green-100 text-green-800' },
+        'unavailable': { text: 'Недоступен', class: 'bg-red-100 text-red-800' },
+        'assigned': { text: 'Назначен на проекты', class: 'bg-blue-100 text-blue-800' }
+    };
+
+    const config = statusConfig[status] || statusConfig['free'];
+
+    return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.class}">
+        ${config.text}
+    </span>`;
+}
+
+// Функция для получения динамической иконки в зависимости от статуса
+function getDynamicIcon(employee) {
+    const status = employee.employee_status && employee.employee_status.status ? employee.employee_status.status : 'free';
+
+    if (status === 'free') {
+        // Свободен → синий "+"
+        return `<button onclick="openChangeStatusModal(${employee.id})"
+                class="text-blue-600 hover:text-blue-800 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                title="Сменить статус / назначить">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+        </button>`;
+    } else if (status === 'unavailable') {
+        // Недоступен → красный "!"
+        return `<button onclick="openStatusCommentModal(${employee.id})"
+                class="text-red-600 hover:text-red-800 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                title="Причина недоступности">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+        </button>`;
+    } else if (status === 'assigned') {
+        // Назначен на проекты → синяя "i"
+        return `<button onclick="showAssignments(${employee.id})"
+                class="text-blue-600 hover:text-blue-800 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                title="Назначен на проекты">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </button>`;
+    }
+
+    // По умолчанию возвращаем синий "+"
+    return `<button onclick="openChangeStatusModal(${employee.id})"
+            class="text-blue-600 hover:text-blue-800 transition-all duration-200 hover:scale-105 hover:shadow-md"
+            title="Сменить статус / назначить">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+        </svg>
+    </button>`;
+}
+
+// Функция открытия модалки смены статуса
+function openChangeStatusModal(employeeId) {
+    document.getElementById('change-status-employee-id').value = employeeId;
+    document.getElementById('changeStatusModal').classList.remove('hidden');
+}
+
+// Функция "Сделать недоступным"
+function makeUnavailable() {
+    const employeeId = document.getElementById('change-status-employee-id').value;
+    closeModal('changeStatusModal');
+    openStatusCommentModal(employeeId);
+}
+
+// Функция "Назначить на проект"
+function assignToProject() {
+    const employeeId = document.getElementById('change-status-employee-id').value;
+    closeModal('changeStatusModal');
+    openAddToProjectModal(employeeId);
+}
+
+// Функция удаления комментария к статусу
+function deleteStatusComment() {
+    const employeeId = document.getElementById('comment-employee-id').value;
+
+    fetch(`/managers/${employeeId}/status-comment`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Статус снят');
+            closeModal('statusCommentModal');
+            loadEmployees(); // Обновляем таблицу
+        } else {
+            showToast('Ошибка');
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка при удалении комментария:', error);
+        showToast('Ошибка при удалении комментария');
+    });
+}
+
+// Функция "Назначить ещё" из модалки назначений
+function assignMoreFromAssignments() {
+    const employeeId = document.getElementById('assignments-employee-id').value;
+    closeModal('assignmentsModal');
+    openAddToProjectModal(employeeId);
+}
+
+// Глобальные переменные для удаления назначения
+let deleteAssignmentData = {
+    employeeId: null,
+    projectId: null,
+    projectName: null,
+    employeeName: null
+};
+
+// Функция удаления назначения
+function removeAssignment(employeeId, projectId, projectName, employeeName, totalProjects) {
+    // Сохраняем данные для модалки
+    deleteAssignmentData = {
+        employeeId: employeeId,
+        projectId: projectId,
+        projectName: projectName,
+        employeeName: employeeName,
+        totalProjects: totalProjects
+    };
+
+    // Заполняем модалку данными
+    document.getElementById('delete-assignment-project-name').textContent = projectName;
+    document.getElementById('delete-assignment-employee-name').textContent = employeeName;
+
+    // Открываем модалку
+    openModal('deleteAssignmentModal');
+}
+
+// Функция подтверждения удаления назначения
+function confirmDeleteAssignment() {
+    const { employeeId, projectId, totalProjects } = deleteAssignmentData;
+
+    fetch(`/projects/${projectId}/staff/${employeeId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Назначение удалено');
+            closeModal('deleteAssignmentModal');
+
+            // Если это был последний проект, закрываем модалку "Назначен на проекты"
+            if (totalProjects === 1) {
+                closeModal('assignmentsModal');
+            } else {
+                // Обновляем список назначений
+                showAssignments(employeeId);
+            }
+
+            // Обновляем основную таблицу сотрудников
+            loadEmployees();
+        } else {
+            showToast('Ошибка');
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка при удалении назначения:', error);
+        showToast('Ошибка');
+    });
+}
+
+// Функция переключения видимости пароля
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const eyeIcon = document.getElementById(inputId + '-eye');
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        eyeIcon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+        `;
+    } else {
+        input.type = 'password';
+        eyeIcon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+        `;
+    }
 }
 
 // Утилиты
@@ -888,10 +1359,7 @@ function showToast(message) {
     }, 3000);
 }
 
-// Автодополнение проектов
-let projectSearchTimeout = null;
-let selectedProjectIndex = -1;
-let allProjects = []; // Массив всех загруженных проектов
+
 
 // Инициализация автодополнения при открытии модалки
 function initProjectAutocomplete() {
