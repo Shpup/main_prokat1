@@ -58,9 +58,13 @@
             width: 100% !important;
             height: 100% !important;
         }
-        .fc-event-title{
-            white-space: normal;
+        .fc-event-title {
+            white-space: normal !important;
+            word-wrap: break-word;
+            line-height: 1.2;
+            padding: 2px 0;
         }
+
         .fc-scroller {
             overflow-y: auto !important;
         }
@@ -292,7 +296,7 @@
                 events: [
                         @foreach ($projects as $project)
                     {
-                        title: "{{ $project->id }}: {{ $project->name }}<br>{{ $project->admin ? $project->admin->name : 'Не указан' }}",
+                        title: "{{ $project->id }}: {{ $project->name }}\n{{ $project->admin ? $project->admin->name : 'Не указан' }}",
                         start: "{{ $project->start_date }}",
                         end: "{{ $project->end_date ? \Carbon\Carbon::parse($project->end_date)->addDay()->toDateString() : null }}",
                         url: "{{ route('projects.show', $project->id) }}",
