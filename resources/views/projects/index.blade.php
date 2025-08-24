@@ -71,7 +71,7 @@
             events: [
                     @foreach ($projects as $project)
                 {
-                    title: "{{ $project->name }}",
+                    title: "{{ $project->id }} - {{ $project->name }} - {{ $project->admin ? $project->admin->name : 'Не указан' }}",
                     start: "{{ $project->start_date }}",
                     end: "{{ $project->end_date ? \Carbon\Carbon::parse($project->end_date)->addDay()->toDateString() : null }}",
                     url: "{{ route('projects.show', $project->id) }}",
@@ -92,9 +92,9 @@
                     detail: { date: info.dateStr }
                 }));
                 @endcan
-            }
-        });
+            },});
 
+        console.log('Calendar events:', window.calendar.getEvents()); // Отладка
         window.calendar.render();
     });
 
@@ -130,14 +130,14 @@
                     alert(data.success);
                     closeModal('createProjectModal');
                     if (calendar) {
-                        console.log('Adding event with title:', data.project.name);
+                        console.log('Adding event with title:', data.project.id + ' - ' + data.project.name + ' - ' + (data.project.admin_name || 'Не указан'));
                         console.log('Event data:', {
-                            title: data.project.name.trim(),
+                            title: data.project.id + ' - ' + data.project.name.trim() + ' - ' + (data.project.admin_name || 'Не указан'),
                             start: data.project.start_date,
                             end: data.project.end_date ? new Date(new Date(data.project.end_date).setDate(new Date(data.project.end_date).getDate() + 1)).toISOString().split('T')[0] : null
                         });
                         calendar.addEvent({
-                            title: data.project.name.trim(),
+                            title: data.project.id + ' - ' + data.project.name.trim() + ' - ' + (data.project.admin_name || 'Не указан'),
                             start: data.project.start_date,
                             end: data.project.end_date ? new Date(new Date(data.project.end_date).setDate(new Date(data.project.end_date).getDate() + 1)).toISOString().split('T')[0] : null,
                             url: "{{ route('projects.show', '') }}/" + data.project.id,

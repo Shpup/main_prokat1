@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EquipmentController;
+use App\Http\Controllers\Api\ProjectController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -14,7 +15,7 @@ use App\Http\Controllers\Api\EquipmentController;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-
+Route::middleware('auth:sanctum')->get('/projects', [ProjectController::class, 'getUserProjects']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });

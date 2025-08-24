@@ -28,9 +28,9 @@ class ProjectController extends Controller
         $user = auth()->user();
 
         if ($user->hasRole('admin')) {
-            $projects = Project::with('manager')->where('admin_id', $user->id)->where('status', '!=', 'cancelled')->get();
+            $projects = Project::with(['manager', 'admin'])->where('admin_id', $user->id)->where('status', '!=', 'cancelled')->get();
         } else {
-            $projects = Project::with('manager')
+            $projects = Project::with(['manager', 'admin'])
                 ->where('status', '!=', 'cancelled')
                 ->where(function ($query) use ($user) {
                     $query->where('manager_id', $user->id)
@@ -41,9 +41,17 @@ class ProjectController extends Controller
                 ->get();
         }
 
-
         if ($request->ajax()) {
-            return response()->json($projects);
+            return response()->json($projects->map(function ($project) {
+                return [
+                    'id' => $project->id,
+                    'name' => $project->name,
+                    'start_date' => $project->start_date,
+                    'end_date' => $project->end_date,
+                    'status' => $project->status,
+                    'admin_name' => $project->admin ? $project->admin->name : null,
+                ];
+            }));
         }
 
         return view('projects.index', compact('projects'));
