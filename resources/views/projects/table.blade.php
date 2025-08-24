@@ -281,41 +281,42 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const calendarEl = document.getElementById('calendar');
+        var calendarEl = document.getElementById('calendar');
         if (calendarEl) {
-            window.calendar = new FullCalendar.Calendar(calendarEl, {
+            calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 eventTimeFormat: false,
-                height: '100%',
-                contentHeight: 'auto',
-                aspectRatio: 1.8,
                 events: [
                         @foreach ($projects as $project)
                     {
-                        id: "{{ $project->id }}",
-                        title: "{{ $project->name }}",
+                        title: "{{ $project->id }} - {{ $project->name }} - {{ $project->admin ? $project->admin->name : 'Не указан' }}",
                         start: "{{ $project->start_date }}",
                         end: "{{ $project->end_date ? \Carbon\Carbon::parse($project->end_date)->addDay()->toDateString() : null }}",
                         url: "{{ route('projects.show', $project->id) }}",
                         allDay: true,
                         color: "{{ match ($project->status) {
-                                'active' => 'rgba(34,197,94,0.71)',
-                                'new' => 'rgba(248,233,95,0.72)',
-                                'completed' => 'rgba(105,159,255,0.74)',
-                                'cancelled' => 'rgba(255,87,87,0.76)',
-                                default => '#9ca3af'
-                            } }}"
+                            'active'    => 'rgba(34,197,94,0.71)',
+                            'new'       => 'rgba(248,233,95,0.72)',
+                            'completed' => 'rgba(105,159,255,0.74)',
+                            'cancelled' => 'rgba(255,87,87,0.76)',
+                            default     => '#9ca3af'
+                        } }}"
                     },
                     @endforeach
                 ],
                 dateClick: function(info) {
                     @can('create projects')
-                    console.log('dateClick triggered:', info.dateStr);
-                    window.dispatchEvent(new CustomEvent('open-project-modal', { detail: { date: info.dateStr } }));
+                    window.dispatchEvent(new CustomEvent('open-project-modal', {
+                        detail: { date: info.dateStr }
+                    }));
                     @endcan
                 }
             });
+
             calendar.render();
+            console.log('Calendar initialized:', calendar);
+        } else {
+            console.error('Element #calendar not found');
         }
     });
 
