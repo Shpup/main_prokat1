@@ -74,10 +74,10 @@
                                 </div>
                                 <select id="search-role" class="mt-2 w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-normal">
                                     <option value="">Все роли</option>
-                                    <option value="нет специальности">Пользователь</option>
-                                    <option value="admin">Админ</option>
-                                    <option value="manager">Менеджер</option>
-                                    <option value="driver">Водитель</option>
+                                    <option value="нет специальности">нет специальности</option>
+                                    <option value="admin">admin</option>
+                                    <option value="manager">manager</option>
+                                    <option value="driver">driver</option>
                                 </select>
                             </th>
 
@@ -222,10 +222,10 @@
                 <label for="create-role" class="block text-sm font-medium text-gray-600">Роль *</label>
                 <select name="role" id="create-role" class="mt-1 block w-full border-gray-300 rounded-md font-normal" required>
                     <option value="">Выберите роль</option>
-                    <option value="нет специальности">Пользователь</option>
-                    <option value="admin">Админ</option>
-                    <option value="manager">Менеджер</option>
-                    <option value="driver">Водитель</option>
+                    <option value="нет специальности">нет специальности</option>
+                    <option value="admin">admin</option>
+                    <option value="manager">manager</option>
+                    <option value="driver">driver</option>
                 </select>
                     </div>
                     <div class="mb-4">
@@ -283,10 +283,10 @@
                 <label for="edit-role" class="block text-sm font-medium text-gray-600">Роль *</label>
                 <select name="role" id="edit-role" class="mt-1 block w-full border-gray-300 rounded-md font-normal" required>
                     <option value="">Выберите роль</option>
-                    <option value="нет специальности">Пользователь</option>
-                    <option value="admin">Админ</option>
-                    <option value="manager">Менеджер</option>
-                    <option value="driver">Водитель</option>
+                    <option value="нет специальности">нет специальности</option>
+                    <option value="admin">admin</option>
+                    <option value="manager">manager</option>
+                    <option value="driver">driver</option>
                 </select>
             </div>
             <div class="flex justify-end space-x-3">

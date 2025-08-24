@@ -25,10 +25,10 @@
                 <label for="role" class="block text-sm font-medium text-gray-600">Роль *</label>
                 <select name="role" id="role" class="mt-1 block w-full border-gray-300 rounded-md" required>
                     <option value="">Выберите роль</option>
-                    <option value="нет специальности">Пользователь</option>
-                    <option value="admin">Админ</option>
-                    <option value="manager">Менеджер</option>
-                    <option value="driver">Водитель</option>
+                    <option value="нет специальности">нет специальности</option>
+                    <option value="admin">admin</option>
+                    <option value="manager">manager</option>
+                    <option value="driver">driver</option>
                 </select>
             </div>
             <div class="mb-4">
