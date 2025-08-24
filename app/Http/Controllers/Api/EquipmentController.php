@@ -96,10 +96,10 @@ class EquipmentController extends Controller
         if ($action === 'send') {
             if ($currentStatus === 'on_warehouse') {
                 $equipment->status = 'sent_to_project';
-                $newEstimateStatus = 'assigned';
+                $newEstimateStatus = 'sent_to_project';
             } elseif ($currentStatus === 'on_project') {
                 $equipment->status = 'sent_to_warehouse';
-                $newEstimateStatus = 'on_stock';
+                $newEstimateStatus = 'sent_to_warehouse';
             } else {
                 return response()->json([
                     'status' => 'error',
@@ -109,10 +109,10 @@ class EquipmentController extends Controller
         } elseif ($action === 'accept') {
             if ($currentStatus === 'sent_to_project') {
                 $equipment->status = 'on_project';
-                $newEstimateStatus = 'used';
+                $newEstimateStatus = 'on_project';
             } elseif ($currentStatus === 'sent_to_warehouse') {
                 $equipment->status = 'on_warehouse';
-                $newEstimateStatus = 'on_stock';
+                $newEstimateStatus = 'on_warehouse';
             } else {
                 $message = $currentStatus === 'on_warehouse' ? 'Уже на складе' : 'Уже на проекте';
                 return response()->json([
