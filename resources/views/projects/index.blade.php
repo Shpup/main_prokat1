@@ -92,7 +92,7 @@
                     detail: { date: info.dateStr }
                 }));
                 @endcan
-            });
+            },});
 
         console.log('Calendar events:', window.calendar.getEvents()); // Отладка
         window.calendar.render();
