@@ -120,7 +120,6 @@ class Estimate extends Model
         $equipments = $this->equipment()->withoutGlobalScope('admin')->get();
 
         foreach ($equipments as $eq) {
-
             $path = $this->getCategoryPath($eq->category_id);
             if (empty($path)) {
                 $path = ['Без категории'];
@@ -131,21 +130,20 @@ class Estimate extends Model
                 $tree = &$matTree;
             }
 
-            $currentLevel = &$tree;
-            foreach ($path as $catName) {
-                $catName = trim($catName);
-                if (!isset($currentLevel[$catName])) {
-                    $currentLevel[$catName] = ['sub' => [], 'equipment' => []];
-                }
-                $currentLevel = &$currentLevel[$catName]['sub'];
+            // Determine the target category: main category if equipment is directly in it, otherwise first subcategory
+            $targetCat = count($path) > 1 ? $path[1] : $path[0];
+            $mainCat = $path[0];
+
+            // Initialize main category if not exists
+            if (!isset($tree[$mainCat])) {
+                $tree[$mainCat] = ['sub' => [], 'equipment' => []];
             }
 
-            $parentLevel = &$tree;
-            foreach ($path as $index => $catName) {
-                $catName = trim($catName);
+            // If equipment is directly in main category, add to its equipment
+            if (count($path) === 1) {
                 $eqKey = $eq->id . '-' . $eq->name;
-                if (!isset($parentLevel[$catName]['equipment'][$eqKey])) {
-                    $parentLevel[$catName]['equipment'][$eqKey] = [
+                if (!isset($tree[$mainCat]['equipment'][$eqKey])) {
+                    $tree[$mainCat]['equipment'][$eqKey] = [
                         'id' => $eq->id,
                         'name' => $eq->name,
                         'price' => (float) ($eq->price ?? 0),
@@ -155,9 +153,27 @@ class Estimate extends Model
                         'is_consumable' => $eq->is_consumable
                     ];
                 } else {
-                    $parentLevel[$catName]['equipment'][$eqKey]['qty'] += $eq->pivot->quantity;
+                    $tree[$mainCat]['equipment'][$eqKey]['qty'] += $eq->pivot->quantity;
                 }
-                $parentLevel = &$parentLevel[$catName]['sub'];
+            } else {
+                // Add to first subcategory under main category
+                if (!isset($tree[$mainCat]['sub'][$targetCat])) {
+                    $tree[$mainCat]['sub'][$targetCat] = ['sub' => [], 'equipment' => []];
+                }
+                $eqKey = $eq->id . '-' . $eq->name;
+                if (!isset($tree[$mainCat]['sub'][$targetCat]['equipment'][$eqKey])) {
+                    $tree[$mainCat]['sub'][$targetCat]['equipment'][$eqKey] = [
+                        'id' => $eq->id,
+                        'name' => $eq->name,
+                        'price' => (float) ($eq->price ?? 0),
+                        'qty' => (float) ($eq->pivot->quantity ?? 1),
+                        'coefficient' => (float) ($eq->pivot->coefficient ?? 1.0),
+                        'discount' => (float) ($eq->pivot->discount ?? 0),
+                        'is_consumable' => $eq->is_consumable
+                    ];
+                } else {
+                    $tree[$mainCat]['sub'][$targetCat]['equipment'][$eqKey]['qty'] += $eq->pivot->quantity;
+                }
             }
 
             $itemCost = ($eq->price ?? 0) * ($eq->pivot->coefficient ?? 1.0) * $eq->pivot->quantity * (1 - (($eq->pivot->discount ?? 0) / 100));

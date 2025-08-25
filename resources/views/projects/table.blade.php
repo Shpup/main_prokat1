@@ -45,7 +45,7 @@
         .tab-content.active { display: block; }
         #calendarTab {
             width: 100%;
-            height: calc(100vh - 8rem);
+            height: calc(100vh - 9rem);
             overflow: hidden;
             box-sizing: border-box;
         }
