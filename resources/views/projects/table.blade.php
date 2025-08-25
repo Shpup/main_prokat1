@@ -280,6 +280,181 @@
             </div>
         </div>
     </div>
+    <div
+        x-show="isTaskModalOpen"
+        x-cloak
+        class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+        @click.self="closeTaskModal()"
+        @keydown.window.escape="closeTaskModal()"
+        x-transition.opacity
+    >
+        <div
+            class="bg-white rounded-lg shadow-lg border w-11/12 max-w-md max-h-[90vh] overflow-y-auto"
+            x-transition.scale.origin.top.duration.200ms
+            x-transition.opacity.duration.200ms
+        >
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Добавить задачу</h3>
+                </div>
+                <form
+                    action="{{ route('tasks.store') }}"
+                    @submit="submitTaskForm"
+                    method="POST"
+                >
+                    @csrf
+                    <div class="mb-4">
+                        <label for="task_name" class="block text-sm font-medium text-gray-600">Название</label>
+                        <input type="text" name="name" id="task_name" x-model="taskForm.name" class="mt-1 block w-full border-gray-300 rounded-md" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="task_comment" class="block text-sm font-medium text-gray-600">Комментарий</label>
+                        <textarea name="comment" id="task_comment" x-model="taskForm.comment" class="mt-1 block w-full border-gray-300 rounded-md" rows="5"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="task_start_date" class="block text-sm font-medium text-gray-600">Дата начала</label>
+                        <input type="date" name="start_date" id="task_start_date" x-model="taskForm.start_date" class="mt-1 block w-full border-gray-300 rounded-md" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="task_end_date" class="block text-sm font-medium text-gray-600">Дата окончания</label>
+                        <input type="date" name="task_end_date" id="task_end_date" x-model="taskForm.end_date" class="mt-1 block w-full border-gray-300 rounded-md">
+                    </div>
+                    <div class="mb-4">
+                        <label for="task_priority" class="block text-sm font-medium text-gray-600">Приоритет</label>
+                        <select name="priority" id="task_priority" x-model="taskForm.priority" class="mt-1 block w-full border-gray-300 rounded-md" required>
+                            <option value="low">Низкий</option>
+                            <option value="medium">Средний</option>
+                            <option value="high">Высокий</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-4">
+                        <button type="button" @click="closeTaskModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">
+                            Отмена
+                        </button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600">
+                            Создать
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div
+        x-show="isActionChoiceModalOpen"
+        x-cloak
+        class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+        @click.self="closeActionChoiceModal()"
+        @keydown.window.escape="closeActionChoiceModal()"
+        x-transition.opacity
+    >
+        <div
+            class="bg-white rounded-lg shadow-lg border w-11/12 max-w-md"
+            x-transition.scale.origin.top.duration.200ms
+            x-transition.opacity.duration.200ms
+        >
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Выберите действие</h3>
+                </div>
+                <div class="flex flex-col space-y-4">
+                    <button
+                        @click="openProjectModalFromChoice()"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600"
+                    >
+                        Создать проект
+                    </button>
+                    <button
+                        @click="openTaskModalFromChoice()"
+                        class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600"
+                    >
+                        Создать задачу
+                    </button>
+                    <button
+                        @click="closeActionChoiceModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                    >
+                        Отмена
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div
+        x-show="isTaskViewModalOpen"
+        x-cloak
+        class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+        @click.self="closeTaskViewModal()"
+        @keydown.window.escape="closeTaskViewModal()"
+        x-transition.opacity
+    >
+        <div
+            class="bg-white rounded-lg shadow-lg border w-11/12 max-w-md max-h-[90vh] overflow-y-auto"
+            x-transition.scale.origin.top.duration.200ms
+            x-transition.opacity.duration.200ms
+        >
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Редактировать задачу</h3>
+                </div>
+                <form @submit.prevent="updateTask">
+                    <div class="mb-4">
+                        <label for="task_view_name" class="block text-sm font-medium text-gray-600">Название</label>
+                        <input
+                            type="text"
+                            id="task_view_name"
+                            x-model="taskViewForm.name"
+                            class="mt-1 block w-full border-gray-300 rounded-md"
+                            required
+                        >
+                    </div>
+                    <div class="mb-4">
+                        <label for="task_view_comment" class="block text-sm font-medium text-gray-600">Комментарий</label>
+                        <textarea
+                            id="task_view_comment"
+                            x-model="taskViewForm.comment"
+                            class="mt-1 block w-full border-gray-300 rounded-md"
+                            rows="5"
+                        ></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="task_view_priority" class="block text-sm font-medium text-gray-600">Приоритет</label>
+                        <select
+                            id="task_view_priority"
+                            x-model="taskViewForm.priority"
+                            class="mt-1 block w-full border-gray-300 rounded-md"
+                            required
+                        >
+                            <option value="low">Низкий</option>
+                            <option value="medium">Средний</option>
+                            <option value="high">Высокий</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-4">
+                        <button
+                            type="button"
+                            @click="deleteTask(taskViewForm.id)"
+                            class="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600"
+                        >
+                            Удалить
+                        </button>
+                        <button
+                            type="submit"
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600"
+                        >
+                            Сохранить
+                        </button>
+                        <button
+                            type="button"
+                            @click="closeTaskViewModal()"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                        >
+                            Закрыть
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Тост для уведомлений -->
     <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-md transform translate-y-full transition-transform duration-300" x-cloak>
@@ -305,21 +480,64 @@
                         url: "{{ route('projects.show', $project->id) }}",
                         allDay: true,
                         color: "{{ match ($project->status) {
-                            'active'    => 'rgba(34,197,94,0.71)',
-                            'new'       => 'rgba(248,233,95,0.72)',
-                            'completed' => 'rgba(105,159,255,0.74)',
-                            'cancelled' => 'rgba(255,87,87,0.76)',
-                            default     => '#9ca3af'
-                        } }}"
+                        'active'    => 'rgba(34,197,94,0.71)',
+                        'new'       => 'rgba(248,233,95,0.72)',
+                        'completed' => 'rgba(105,159,255,0.74)',
+                        'cancelled' => 'rgba(255,87,87,0.76)',
+                        default     => '#9ca3af'
+                    } }}"
+                    },
+                        @endforeach
+                        @foreach (\App\Models\Task::where('admin_id', auth()->id())->get() as $task)
+                    {
+                        id: "task-{{ $task->id }}", // Убедимся, что id формируется корректно
+                        title: "Задача: {{ $task->id }}: {{ $task->name }}",
+                        adminName: "{{ $task->admin ? $task->admin->name : 'Не указан' }}",
+                        start: "{{ $task->start_date }}",
+                        end: "{{ $task->end_date ? \Carbon\Carbon::parse($task->end_date)->addDay()->toDateString() : null }}",
+                        allDay: true,
+                        extendedProps: {
+                            comment: "{{ $task->comment ?? '' }}",
+                            priority: "{{ $task->priority }}",
+                            taskId: {{ $task->id }} // Добавляем числовой taskId явно
+                        },
+                        color: "{{ match ($task->priority) {
+                        'low'    => 'rgba(107,114,128,0.5)',
+                        'medium' => 'rgba(255,147,0,0.5)',
+                        'high'   => 'rgba(255,87,87,0.5)',
+                        default  => '#9ca3af'
+                    } }}"
                     },
                     @endforeach
                 ],
                 dateClick: function(info) {
                     @can('create projects')
-                    window.dispatchEvent(new CustomEvent('open-project-modal', {
+                    window.dispatchEvent(new CustomEvent('open-action-choice-modal', {
                         detail: { date: info.dateStr }
                     }));
                     @endcan
+                },
+                eventClick: function(info) {
+                    if (info.event.id.startsWith('task-')) {
+                        @can('create projects')
+                        // Извлекаем числовой ID из extendedProps.taskId
+                        const taskId = parseInt(info.event.extendedProps.taskId, 10);
+                        if (isNaN(taskId)) {
+                            console.error('Invalid task ID:', info.event.id, info.event.extendedProps);
+                            return;
+                        }
+                        console.log('Task clicked, ID:', taskId);
+                        window.dispatchEvent(new CustomEvent('open-task-view-modal', {
+                            detail: {
+                                id: taskId,
+                                name: info.event.title.replace(/^Задача: \d+: /, ''),
+                                comment: info.event.extendedProps.comment || '',
+                                priority: info.event.extendedProps.priority || 'low'
+                            }
+                        }));
+                        info.jsEvent.preventDefault(); // Предотвращаем переход по url, если он есть
+                        @endcan
+                    }
                 },
                 eventContent: function(arg) {
                     return {
@@ -359,59 +577,218 @@
                 end_date: '',
                 status: ''
             },
-            init() {
-                console.log('projectManager initialized');
-                this.fetchData();
-                this.openTab('calendar');
-            },
             openTab(tab) {
                 this.activeTab = tab;
                 document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
                 document.getElementById(tab === 'table' ? 'projectsTab' : 'calendarTab').classList.add('active');
                 if (tab === 'calendar' && window.calendar) {
-                    var calendarEl = document.getElementById('calendar');
-                    if (calendarEl) {
-                        calendar = new FullCalendar.Calendar(calendarEl, {
-                            initialView: 'dayGridMonth',
-                            eventTimeFormat: false,
-                            events: [
-                                    @foreach ($projects as $project)
-                                {
-                                    title: "{{ $project->id }}: {{ $project->name }}",
-                                    adminName: "{{ $project->admin ? $project->admin->name : 'Не указан' }}",
-                                    start: "{{ $project->start_date }}",
-                                    end: "{{ $project->end_date ? \Carbon\Carbon::parse($project->end_date)->addDay()->toDateString() : null }}",
-                                    url: "{{ route('projects.show', $project->id) }}",
-                                    allDay: true,
-                                    color: "{{ match ($project->status) {
-                            'active'    => 'rgba(34,197,94,0.71)',
-                            'new'       => 'rgba(248,233,95,0.72)',
-                            'completed' => 'rgba(105,159,255,0.74)',
-                            'cancelled' => 'rgba(255,87,87,0.76)',
-                            default     => '#9ca3af'
-                        } }}"
-                                },
-                                @endforeach
-                            ],
-                            dateClick: function(info) {
-                                @can('create projects')
-                                window.dispatchEvent(new CustomEvent('open-project-modal', {
-                                    detail: { date: info.dateStr }
-                                }));
-                                @endcan
-                            },
-                            eventContent: function(arg) {
-                                return {
-                                    html: arg.event.title + '<br>' + (arg.event.extendedProps.adminName || '')
-                                };
-                            }
-                        });
-
-                        calendar.render();
-                        console.log('Calendar initialized:', calendar);
-                    } else {
-                        console.error('Element #calendar not found');
+                    this.refreshCalendar();
+                    window.calendar.render();
+                }
+            },
+            isTaskModalOpen: false,
+            isActionChoiceModalOpen: false,
+            isTaskViewModalOpen: false,
+            taskForm: {
+                name: '',
+                comment: '',
+                start_date: '',
+                end_date: '',
+                priority: 'low'
+            },
+            taskViewForm: {
+                id: null,
+                name: '',
+                comment: '',
+                priority: 'low'
+            },
+            selectedDate: '',
+            init() {
+                console.log('projectManager initialized');
+                this.fetchData();
+                this.openTab('calendar');
+                window.addEventListener('open-task-modal', (e) => {
+                    this.openTaskModal({ start_date: e.detail.date });
+                });
+                window.addEventListener('open-action-choice-modal', (e) => {
+                    this.openActionChoiceModal(e.detail.date);
+                });
+                window.addEventListener('open-task-view-modal', (e) => {
+                    this.openTaskViewModal(e.detail);
+                });
+            },
+            openActionChoiceModal(date) {
+                this.selectedDate = date;
+                this.isActionChoiceModalOpen = true;
+            },
+            closeActionChoiceModal() {
+                this.isActionChoiceModalOpen = false;
+            },
+            openProjectModalFromChoice() {
+                this.isActionChoiceModalOpen = false;
+                this.openProjectModal({ start_date: this.selectedDate });
+            },
+            openTaskModalFromChoice() {
+                this.isActionChoiceModalOpen = false;
+                this.openTaskModal({ start_date: this.selectedDate });
+            },
+            openTaskModal(task = null) {
+                console.log('openTaskModal called:', task);
+                this.taskForm = task ? { ...task, priority: 'low' } : {
+                    name: '',
+                    comment: '',
+                    start_date: task?.start_date || '',
+                    end_date: '',
+                    priority: 'low'
+                };
+                this.isTaskModalOpen = true;
+            },
+            closeTaskModal() {
+                this.isTaskModalOpen = false;
+            },
+            openTaskViewModal(task) {
+                console.log('openTaskViewModal called:', task);
+                const taskId = parseInt(task.id, 10);
+                if (isNaN(taskId)) {
+                    console.error('Invalid task ID in openTaskViewModal:', task.id);
+                    this.showToast('Ошибка: Неверный идентификатор задачи');
+                    return;
+                }
+                this.taskViewForm = {
+                    id: taskId,
+                    name: task.name,
+                    comment: task.comment || '',
+                    priority: task.priority
+                };
+                console.log('taskViewForm initialized:', this.taskViewForm);
+                this.isTaskViewModalOpen = true;
+            },
+            closeTaskViewModal() {
+                this.isTaskViewModalOpen = false;
+            },
+            async updateTask() {
+                console.log('updateTask called:', this.taskViewForm);
+                if (isNaN(this.taskViewForm.id)) {
+                    console.error('Invalid task ID for update:', this.taskViewForm.id);
+                    this.showToast('Ошибка: Неверный идентификатор задачи');
+                    return;
+                }
+                const response = await fetch(`/tasks/${this.taskViewForm.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: this.taskViewForm.name,
+                        comment: this.taskViewForm.comment,
+                        priority: this.taskViewForm.priority
+                    }),
+                });
+                if (response.ok) {
+                    this.showToast('Задача обновлена');
+                    this.closeTaskViewModal();
+                    if (window.calendar) {
+                        const event = window.calendar.getEventById(`task-${this.taskViewForm.id}`);
+                        if (event) {
+                            event.setProp('title', `Задача: ${this.taskViewForm.id}: ${this.taskViewForm.name.trim()}`);
+                            event.setProp('color', this.taskViewForm.priority === 'low' ? 'rgba(107,114,128,0.5)' :
+                                this.taskViewForm.priority === 'medium' ? 'rgba(255,147,0,0.5)' :
+                                    this.taskViewForm.priority === 'high' ? 'rgba(255,87,87,0.5)' : '#9ca3af');
+                            event.setExtendedProp('comment', this.taskViewForm.comment || '');
+                            event.setExtendedProp('priority', this.taskViewForm.priority);
+                        }
                     }
+                } else {
+                    const error = await response.json();
+                    console.log('Update task error:', error);
+                    this.showToast('Ошибка: ' + (error.message || Object.values(error.errors || {}).flat().join('\n')));
+                }
+            },
+            async deleteTask(taskId) {
+                if (!confirm('Удалить задачу?')) return;
+                console.log('deleteTask called:', taskId);
+                const parsedTaskId = parseInt(taskId, 10);
+                if (isNaN(parsedTaskId)) {
+                    console.error('Invalid task ID for delete:', taskId);
+                    this.showToast('Ошибка: Неверный идентификатор задачи');
+                    return;
+                }
+                const response = await fetch(`/tasks/${parsedTaskId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json',
+                    },
+                });
+                if (response.ok) {
+                    this.showToast('Задача удалена');
+                    this.closeTaskViewModal();
+                    if (window.calendar) {
+                        const event = window.calendar.getEventById(`task-${parsedTaskId}`);
+                        if (event) event.remove();
+                    }
+                } else {
+                    const error = await response.json();
+                    console.log('Delete task error:', error);
+                    this.showToast('Ошибка: ' + (error.message || Object.values(error.errors || {}).flat().join('\n')));
+                }
+            },
+            async submitTaskForm(event) {
+                event.preventDefault();
+                const form = event.target;
+                const formData = new FormData(form);
+
+                // Отладка: логируем данные формы
+                const formDataEntries = Object.fromEntries(formData);
+                console.log('Task form data before submission:', formDataEntries);
+
+                // Убедимся, что end_date передаётся, если taskForm.end_date заполнено
+                if (this.taskForm.end_date && !formData.has('end_date')) {
+                    formData.set('end_date', this.taskForm.end_date);
+                }
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json',
+                    },
+                    body: formData,
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Task creation response:', data);
+                    this.showToast(data.success || 'Задача добавлена');
+                    this.closeTaskModal();
+                    if (window.calendar && data.task) {
+                        const taskId = parseInt(data.task.id, 10);
+                        if (isNaN(taskId)) {
+                            console.error('Invalid task ID from server:', data.task.id);
+                            this.showToast('Ошибка: Неверный идентификатор задачи');
+                            return;
+                        }
+                        window.calendar.addEvent({
+                            id: `task-${taskId}`,
+                            title: `Задача: ${taskId}: ${data.task.name.trim()}`,
+                            start: data.task.start_date,
+                            end: data.task.end_date ? new Date(new Date(data.task.end_date).setDate(new Date(data.task.end_date).getDate() + 1)).toISOString().split('T')[0] : null,
+                            allDay: true,
+                            extendedProps: {
+                                comment: data.task.comment || '',
+                                priority: data.task.priority,
+                                taskId: taskId // Явно передаём числовой ID
+                            },
+                            color: data.task.priority === 'low' ? 'rgba(107,114,128,0.5)' :
+                                data.task.priority === 'medium' ? 'rgba(255,147,0,0.5)' :
+                                    data.task.priority === 'high' ? 'rgba(255,87,87,0.5)' : '#9ca3af'
+                        });
+                    }
+                } else {
+                    const error = await response.json();
+                    console.log('Task creation error:', error);
+                    this.showToast('Ошибка: ' + (error.message || Object.values(error.errors || {}).flat().join('\n')));
                 }
             },
             openProjectModal(project = null) {
@@ -583,6 +960,94 @@
                 });
 
                 this.filteredProjects = filtered;
+            },
+            async refreshCalendar() {
+                var calendarEl = document.getElementById('calendar');
+                if (calendarEl) {
+                    calendar = new FullCalendar.Calendar(calendarEl, {
+                        initialView: 'dayGridMonth',
+                        eventTimeFormat: false,
+                        events: [
+                                @foreach ($projects as $project)
+                            {
+                                title: "{{ $project->id }}: {{ $project->name }}",
+                                adminName: "{{ $project->admin ? $project->admin->name : 'Не указан' }}",
+                                start: "{{ $project->start_date }}",
+                                end: "{{ $project->end_date ? \Carbon\Carbon::parse($project->end_date)->addDay()->toDateString() : null }}",
+                                url: "{{ route('projects.show', $project->id) }}",
+                                allDay: true,
+                                color: "{{ match ($project->status) {
+                        'active'    => 'rgba(34,197,94,0.71)',
+                        'new'       => 'rgba(248,233,95,0.72)',
+                        'completed' => 'rgba(105,159,255,0.74)',
+                        'cancelled' => 'rgba(255,87,87,0.76)',
+                        default     => '#9ca3af'
+                    } }}"
+                            },
+                                @endforeach
+                                @foreach (\App\Models\Task::where('admin_id', auth()->id())->get() as $task)
+                            {
+                                id: "task-{{ $task->id }}", // Убедимся, что id формируется корректно
+                                title: "Задача: {{ $task->id }}: {{ $task->name }}",
+                                adminName: "{{ $task->admin ? $task->admin->name : 'Не указан' }}",
+                                start: "{{ $task->start_date }}",
+                                end: "{{ $task->end_date ? \Carbon\Carbon::parse($task->end_date)->addDay()->toDateString() : null }}",
+                                allDay: true,
+                                extendedProps: {
+                                    comment: "{{ $task->comment ?? '' }}",
+                                    priority: "{{ $task->priority }}",
+                                    taskId: {{ $task->id }} // Добавляем числовой taskId явно
+                                },
+                                color: "{{ match ($task->priority) {
+                        'low'    => 'rgba(107,114,128,0.5)',
+                        'medium' => 'rgba(255,147,0,0.5)',
+                        'high'   => 'rgba(255,87,87,0.5)',
+                        default  => '#9ca3af'
+                    } }}"
+                            },
+                            @endforeach
+                        ],
+                        dateClick: function(info) {
+                            @can('create projects')
+                            window.dispatchEvent(new CustomEvent('open-action-choice-modal', {
+                                detail: { date: info.dateStr }
+                            }));
+                            @endcan
+                        },
+                        eventClick: function(info) {
+                            if (info.event.id.startsWith('task-')) {
+                                @can('create projects')
+                                // Извлекаем числовой ID из extendedProps.taskId
+                                const taskId = parseInt(info.event.extendedProps.taskId, 10);
+                                if (isNaN(taskId)) {
+                                    console.error('Invalid task ID:', info.event.id, info.event.extendedProps);
+                                    return;
+                                }
+                                console.log('Task clicked, ID:', taskId);
+                                window.dispatchEvent(new CustomEvent('open-task-view-modal', {
+                                    detail: {
+                                        id: taskId,
+                                        name: info.event.title.replace(/^Задача: \d+: /, ''),
+                                        comment: info.event.extendedProps.comment || '',
+                                        priority: info.event.extendedProps.priority || 'low'
+                                    }
+                                }));
+                                info.jsEvent.preventDefault(); // Предотвращаем переход по url, если он есть
+                                @endcan
+                            }
+                        },
+                        eventContent: function(arg) {
+                            return {
+                                html: arg.event.title + '<br>' + (arg.event.extendedProps.adminName || '')
+                            };
+                        }
+                    });
+
+                    calendar.render();
+                    console.log('Calendar initialized:', calendar);
+                } else {
+                    console.error('Element #calendar not found');
+                }
             },
             sortBy(column) {
                 if (this.sort === column) {
