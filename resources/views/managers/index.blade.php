@@ -101,9 +101,7 @@
                         @foreach ($employees as $employee)
                             <tr class="border-t border-gray-200 hover:bg-gray-50 group">
                                 <td class="px-6 py-4 text-sm text-gray-900 truncate">
-                                    <a href="/employees/{{ $employee->id }}" class="text-blue-800 hover:underline cursor-pointer" title="Перейти в профиль">
-                                        {{ $employee->name }}
-                                    </a>
+                                    {{ $employee->name }}
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-900 truncate">{{ $employee->email }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900 truncate">
@@ -1081,9 +1079,7 @@ function updateTable(employees) {
             row.className = 'border-t border-gray-200 hover:bg-gray-50 group';
             row.innerHTML = `
                                                 <td class="px-6 py-4 text-sm text-gray-900 truncate">
-                                                    <a href="/employees/${employee.id}" class="text-blue-800 hover:underline cursor-pointer" title="Перейти в профиль">
-                                                        ${employee.name}
-                                                    </a>
+                                                    ${employee.name}
                                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-900 truncate">${employee.email}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900 truncate">${employee.roles[0] ? employee.roles[0].name : 'Не назначена'}</td>

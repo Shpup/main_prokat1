@@ -1,6 +1,6 @@
-@extends('layouts.app')
+@include('layouts.navigation')
+@vite(['resources/css/app.css', 'resources/css/lk-about.css', 'resources/js/app.js', 'resources/js/lk-about.js'])
 
-@section('content')
 <div class="max-w-[1800px] mx-auto px-8 py-6">
   @include('profile.partials._tabs')
 
@@ -290,52 +290,18 @@
      
      <!-- Пароль -->
      <div>
-       <label class="block text-sm text-gray-700 mb-2">Пароль:</label>
-       <div id="passwordDisplay" class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-md">
-         <div>
-         <span class="text-gray-700" id="passwordText">••••••••</span>
-           <div class="text-xs text-gray-500 mt-1">Пароль установлен и защищён</div>
-         </div>
-         <div class="flex items-center gap-2">
-           @if(auth()->user()->hasRole('admin'))
-             <button type="button" id="editPasswordBtn" class="text-blue-600 hover:text-blue-700" title="Изменить пароль">✏️</button>
-           @endif
-         </div>
-       </div>
-       
-       @if(auth()->user()->hasRole('admin'))
-       <div id="passwordEdit" class="hidden">
-         <form id="passwordForm" action="{{ route('profile.about.updatePassword') }}" method="post">@csrf @method('PUT')
-           <div class="space-y-3">
-             <div>
-               <label class="block text-sm text-gray-700 mb-1">Новый пароль</label>
-                 <div class="relative">
-                   <input type="password" name="password" id="passwordInput" class="w-full border border-gray-300 rounded-md px-3 py-2 pr-10" required placeholder="Введите новый пароль">
-                   <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center hover:opacity-70 cursor-pointer">
-                     <span id="passwordEye" class="text-lg">👁️</span>
-                     <span id="passwordEyeSlash" class="text-lg hidden">🙈</span>
-                   </button>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Пароль:</label>
+         <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm">
+             <div class="flex items-center justify-between">
+                 <div class="flex-1">
+                     <div class="text-sm text-gray-900">••••••••</div>
+                     <div class="text-xs text-gray-500 mt-1">Пароль установлен и защищён</div>
                  </div>
-                 <div class="text-xs text-gray-500 mt-1">Минимум 8 символов</div>
+                 <button type="button" onclick="openChangePasswordModal()" class="text-orange-500 hover:text-orange-600 transition-colors w-8 text-center">
+                     <span class="text-lg">✏️</span>
+                 </button>
              </div>
-             <div>
-                 <label class="block text-sm text-gray-700 mb-1">Подтверждение нового пароля</label>
-                 <div class="relative">
-                   <input type="password" name="password_confirmation" id="passwordConfirmInput" class="w-full border border-gray-300 rounded-md px-3 py-2 pr-10" required placeholder="Повторите новый пароль">
-                   <button type="button" id="togglePasswordConfirm" class="absolute inset-y-0 right-0 pr-3 flex items-center hover:opacity-70 cursor-pointer">
-                     <span id="passwordConfirmEye" class="text-lg">👁️</span>
-                     <span id="passwordConfirmEyeSlash" class="text-lg hidden">🙈</span>
-                   </button>
-                 </div>
-             </div>
-             <div class="flex justify-end gap-2">
-                 <button type="submit" class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Сохранить новый пароль</button>
-               <button type="button" id="cancelPasswordBtn" class="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">Отменить</button>
-             </div>
-           </div>
-         </form>
-       </div>
-       @endif
+         </div>
      </div>
    </section>
 
@@ -2641,9 +2607,137 @@
         }
 
      });
+
+     // Функции для модального окна смены пароля
+     function openChangePasswordModal() {
+         document.getElementById('changePasswordModal').classList.remove('hidden');
+     }
+
+     function closeModal(modalId) {
+         document.getElementById(modalId).classList.add('hidden');
+     }
+
+     function togglePasswordVisibilityModal(inputId) {
+         const input = document.getElementById(inputId);
+         const eyeIcon = document.getElementById(inputId + '-eye');
+         
+         if (input.type === 'password') {
+             input.type = 'text';
+             eyeIcon.textContent = '🙈';
+         } else {
+             input.type = 'password';
+             eyeIcon.textContent = '👁️';
+         }
+     }
+
+     // Обработчик формы смены пароля
+     document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
+         e.preventDefault();
+         
+         const newPassword = document.getElementById('new-password').value;
+         const confirmPassword = document.getElementById('confirm-password').value;
+         
+         if (newPassword !== confirmPassword) {
+             alert('Пароли не совпадают');
+             return;
+         }
+         
+         // Валидация пароля
+         if (newPassword.length < 8) {
+             alert('Пароль должен содержать минимум 8 символов');
+             return;
+         }
+         
+         if (!/\d/.test(newPassword) || !/[a-zA-Z]/.test(newPassword)) {
+             alert('Пароль должен содержать буквы и цифры');
+             return;
+         }
+         
+         const formData = new FormData(this);
+         
+         fetch('{{ route("profile.about.updatePassword") }}', {
+             method: 'POST',
+             headers: {
+                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+             },
+             body: formData
+         })
+         .then(response => response.json())
+         .then(data => {
+             if (data.success) {
+                 alert('Пароль обновлён');
+                 closeModal('changePasswordModal');
+                 this.reset();
+             } else {
+                 alert(data.message || 'Ошибка при смене пароля');
+             }
+         })
+         .catch(error => {
+             console.error('Ошибка при смене пароля:', error);
+             alert('Ошибка при смене пароля');
+         });
+     });
    </script>
  </div>
- @endsection
 
+ <!-- Модальное окно смены пароля -->
+ <div id="changePasswordModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+     <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
+         <!-- Крестик закрытия -->
+         <button onclick="closeModal('changePasswordModal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+             </svg>
+         </button>
+         
+         <div class="mb-6">
+             <h2 class="text-2xl font-bold text-gray-900 mb-2">Сменить пароль</h2>
+             <p class="text-sm text-gray-500">Введите новый пароль для своего аккаунта</p>
+         </div>
+
+         <form id="changePasswordForm" method="POST" action="{{ route('profile.about.updatePassword') }}">
+             @csrf
+             @method('PUT')
+             
+             <div class="mb-4">
+                 <label for="new-password" class="block text-sm font-medium text-gray-700 mb-2">Новый пароль</label>
+                 <div class="relative">
+                     <input type="password" id="new-password" name="password" class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                     <button type="button" onclick="togglePasswordVisibilityModal('new-password')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                         <span id="new-password-eye" class="text-lg">👁️</span>
+                     </button>
+                 </div>
+             </div>
+
+             <div class="mb-6">
+                 <label for="confirm-password" class="block text-sm font-medium text-gray-700 mb-2">Подтверждение пароля</label>
+                 <div class="relative">
+                     <input type="password" id="confirm-password" name="password_confirmation" class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                     <button type="button" onclick="togglePasswordVisibilityModal('confirm-password')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                         <span id="confirm-password-eye" class="text-lg">👁️</span>
+                     </button>
+                 </div>
+             </div>
+
+             <div class="mb-6 p-3 bg-blue-50 rounded-lg">
+                 <p class="text-sm text-blue-700">
+                     <strong>Требования к паролю:</strong><br>
+                     • Минимум 8 символов<br>
+                     • Хотя бы одна буква<br>
+                     • Хотя бы одна цифра
+                 </p>
+             </div>
+
+             <div class="flex justify-end space-x-3">
+                 <button type="button" onclick="closeModal('changePasswordModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                     Отмена
+                 </button>
+                 <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                     Сохранить
+                 </button>
+             </div>
+         </form>
+     </div>
+ </div>
 
 
