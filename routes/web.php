@@ -15,6 +15,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\CounterpartyController;
+use App\Http\Controllers\AnalyticsController;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -215,6 +216,13 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     // Сайты
     Route::resource('sites', SiteController::class);
     Route::get('/sites', [SiteController::class, 'index'])->name('sites');
+
+    // Аналитика
+    Route::get('/analytics/projects', [AnalyticsController::class, 'projects'])->name('analytics.projects');
+    Route::get('/analytics/salary', [AnalyticsController::class, 'salary'])->name('analytics.salary');
+    Route::get('/analytics/equipment', [AnalyticsController::class, 'equipment'])->name('analytics.equipment');
+    Route::get('/analytics/sales', [AnalyticsController::class, 'sales'])->name('analytics.sales');
+    Route::get('/analytics/financial', [AnalyticsController::class, 'financial'])->name('analytics.financial');
 });
 
 Route::get('/subscription/payment', [SubscriptionController::class, 'showPaymentPage'])->name('subscription.payment');
